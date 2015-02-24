@@ -24,16 +24,25 @@
 
 
 
-import glob, hashlib, json, os, resource, shutil, subprocess
+import glob, hashlib, json, os, shutil, sys, subprocess
 import pickle # Temporary
 
 CFG_REPODIR = 'repo/'
 CFG_CACHEDIR = 'cache/'
 
 
+def isExecError(executionReport):
+    """Returns whether an execution returned an error according to its exit code."""
+    return (executionReport['exitCode'] != 0)
+
 def getFile(fileDescr, workingDir):
     """Fetch a file contents from a fileDescr object into workingDir.
     If getCache is True, also lookup cache for related cached files."""
+
+    if os.path.isfile(workingDir + fileDescr['name']):
+        # File already exists
+        raise Exception()
+
     if fileDescr.has_key('content'): # Content given in descr
         open(workingDir + fileDescr['name'], 'w').write(fileDescr['content'])
     else: # Get file by path
@@ -114,60 +123,61 @@ def capture(path, name='', truncateSize=-1):
     return report
 
 
-def execute(executionParams, cmdLine, workingDir):
+def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile='stdout.out'):
     """Execute a command line and build the report."""
     # Values copied from the arguments
     executionReport = {'timeLimitMs': executionParams['timeLimitMs'],
                        'memoryLimitKb': executionParams['memoryLimitKb'],
                        'commandLine': cmdLine}
     # TODO : wrapper
-    start_res = resource.getrusage(resource.RUSAGE_CHILDREN)
-    proc = subprocess.Popen(cmdLine.split(), stdout=open('stdout.out', 'w'),
+    proc = subprocess.Popen(cmdLine.split(), stdin=open(stdinFile, 'r'), stdout=open(stdoutFile, 'w'),
             stderr=open('stderr.out', 'w'), cwd=workingDir)
 
     proc.wait()
-    end_res = resource.getrusage(resource.RUSAGE_CHILDREN)
 
     # Generate execution report
-    executionReport['timeTakenMs'] = (end_res.ru_utime + end_res.ru_stime) - (start_res.ru_utime + start_res.ru_utime)
+    executionReport['timeTakenMs'] = 0
     executionReport['wasKilled'] = False # TODO avec le wrapper
     executionReport['wasCached'] = False
     executionReport['exitCode'] = proc.returncode
-    executionReport['stdout'] = capture('stdout.out', name='stdout',
+    executionReport['stdout'] = capture(stdoutFile, name='stdout',
             truncateSize=executionParams['stdoutTruncateKb'] * 1024)
     executionReport['stderr'] = capture('stderr.out', name='stderr',
             truncateSize=executionParams['stderrTruncateKb'] * 1024)
     filesReports = []
     for globf in executionParams['getFiles']:
         for f in glob.glob(workingDir + globf):
-            filesReports.append(capture(f, name=os.path.basename(f)))
-            # TODO :: truncateSize manquant dans la spec ?
+            # Files captured are always truncated at 1MB
+            filesReports.append(capture(f, name=os.path.basename(f), 1024*1024))
     executionReport['files'] = filesReports
 
 
-def cachedExecute(executionParams, cmdLine, workingDir, cacheData, outputFiles=[], compilationReport=None):
+def cachedExecute(executionParams, cmdLine, workingDir, cacheData, stdinFile=None, stdoutFile='stdout.out', outputFiles=[]):
     """Get the results from execution of a program, either by fetching them
     from cache, or by actually executing the program."""
-    (cacheStatus, cacheDir) = cacheData
-    if cacheStatus:
-        # Results are in cache, we fetch the report
-        report = json.load(open("%srunExecution.json" % cacheDir, 'r'))
-        report['wasCached'] = True
-        # We load cached results (as symlinks)
-        for g in outputFiles:
-            for f in glob.glob(cacheDir + g):
-                os.symlink(f, workingDir + os.path.basename(f))
+    if executionParams['useCache']:
+        (cacheStatus, cacheDir) = cacheData
+        if cacheStatus:
+            # Results are in cache, we fetch the report
+            report = json.load(open("%srunExecution.json" % cacheDir, 'r'))
+            report['wasCached'] = True
+            # We load cached results (as symlinks)
+            for g in outputFiles:
+                for f in glob.glob(cacheDir + g):
+                    os.symlink(f, workingDir + os.path.basename(f))
+        else:
+            # We execute again the program
+            report = execute(executionParams, cmdLine, workingDir, stdinFile=stdinFile)
+            # We save results to cache
+            for g in outputFiles:
+                for f in glob.glob(cacheDir + g):
+                    shutil.copy(f, workingDir)
+            # We copy reports in cache
+            json.dump(report, open("%srunExecution.json" % cacheDir, 'r'))
     else:
-        # We execute again the program
-        report = execute(executionParams, cmdLine, workingDir)
-        # We save results to cache
-        for g in outputFiles:
-            for f in glob.glob(cacheDir + g):
-                shutil.copy(f, workingDir)
-        # We copy reports in cache
-        json.dump(report, open("%srunExecution.json" % cacheDir, 'r'))
-        if compilationReport:
-            json.dump(compilationReport, open("%scompilationExecution.json" % cacheDir, 'r'))
+        # We don't use cache at all
+        report = execute(executionParams, cmdLine, workingDir, stdinFile=stdinFile)
+
     return report
 
 
@@ -194,23 +204,27 @@ def compile(compilationDescr, executionParams, workingDir, name='executable'):
 def cachedCompile(compilationDescr, executionParams, workingDir, cacheData, name='executable'):
     """Get the compiled version of a program, either by fetching it from cache
     if possible, either by compiling it."""
-    (cacheStatus, cacheDir) = cacheData
-    if cacheStatus:
-        # We load the report and executable from cache
-        os.symlink("%s%s.exe" % (cacheDir, name), "%s%s.exe" % (workingDir, name))
-        report = json.load(open("%scompilationExecution.json" % cacheDir, 'r'))
-        report['wasCached'] = True
+    if executionParams['useCache']:
+        (cacheStatus, cacheDir) = cacheData
+        if cacheStatus:
+            # We load the report and executable from cache
+            os.symlink("%s%s.exe" % (cacheDir, name), "%s%s.exe" % (workingDir, name))
+            report = json.load(open("%scompilationExecution.json" % cacheDir, 'r'))
+            report['wasCached'] = True
+        else:
+            # No current cache, we compile
+            report = compile(compilationDescr, executionParams, workingDir, name)
+            # We cache the results
+            shutil.copy("%s%s.exe" % (workingDir, name), cacheDir)
+            json.dump(report, open("%scompilationExecution.json" % cacheDir, 'r'))
     else:
-        # No current cache, we compile
+        # We don't use cache at all
         report = compile(compilationDescr, compilationExecution, workingDir, name)
-        # We cache the results
-        shutil.copy("%s%s.exe" % (workingDir, name), cacheDir)
-        json.dump(report, open("%scompilationExecution.json" % cacheDir, 'r'))
 
     return report
 
 
-def compileAndRun(compileAndRunParams, workingDir, cacheType=None, inputFiles=[], outputFiles=[], name='executable'):
+def compileAndRun(compileAndRunParams, workingDir, cacheType=None, stdinFile=None, inputFiles=[], outputFiles=[], name='executable'):
     """Compile a program and then run it.
     cacheType argument tells what we should cache (or fetch from cache), either
     the compiled executable or the output of the executable.
@@ -221,132 +235,217 @@ def compileAndRun(compileAndRunParams, workingDir, cacheType=None, inputFiles=[]
         # We compile and run without any cache
         report['compilationExecution'] = compile(compileAndRunParams['compilationDescr'],
                                              compileAndRunParams['compilationExecution'],
-                                             workingDir,
-                                             name)
-        report['runExecution'] = execute('%s%s.exe' % (workingDir, name), compileAndRunParams['runExecution'], workingDir)
+                                             workingDir, name)
+        report['runExecution'] = execute('%s%s.exe' % (workingDir, name), compileAndRunParams['runExecution'], workingDir, stdinFile=stdinFile)
     else:
         # We fetch the cache status
         (compCacheStatus, compCacheDir) = getCacheDir(compileAndRunParams['compilationDescr']['files'], cacheType)
 
+        report['compilationExecution'] = cachedCompile(compileAndRunParams['compilationDescr'],
+                compileAndRunParams['compilationExecution'], workingDir,
+                (compCacheStatus, compCacheDir), name, stdinFile=stdinFile)
+
         if cacheType == 'compilation':
             # We only use cache for compilation
-            report['compilationExecution'] = cachedCompile(compileAndRunParams['compilationDescr'],
-                    compileAndRunParams['compilationExecution'], workingDir,
-                    (compCacheStatus, compCacheDir), name)
-            report['runExecution'] = execute('%s%s.exe' % (workingDir, name), compileAndRunParams['runExecution'], workingDir)
+            report['runExecution'] = execute('%s%s.exe' % (workingDir, name), compileAndRunParams['runExecution'], workingDir, stdinFile=stdinFile)
         elif cacheType == 'execution':
             # We use cache for both compilation and execution
             (execCacheStatus, execCacheDir) = getCacheDir(compileAndRunParams['compilationDescr']['files'], cacheType, inputFiles=inputFiles)
-            if execCacheStatus:
-                # We load compilation report from results cache (we want the compilation
-                # report corresponding to the run whose results we're fetching from cache)
-                report['compilationExecution'] = json.load(open("%scompilationExecution.json" % execCacheDir, 'r'))
-                report['compilationExecution']['wasCached'] = True
-            else:
-                # We will need to execute again the program, so we fetch it
-                report['compilationExecution'] = cachedCompile(compileAndRunParams['compilationDescr'],
-                        compileAndRunParams['compilationExecution'], workingDir,
-                        (compCacheStatus, compCacheDir), name)
-
-            # cachedExecute will do the rest
             report['runExecution'] = cachedExecute('%s%s.exe' % (workingDir, name),
                     compileAndRunParams['runExecution'], workingDir, outputFiles,
-                    (execCacheStatus, execCacheDir), outputFiles)
+                    (execCacheStatus, execCacheDir), outputFiles=outputFiles, stdinFile=stdinFile)
 
     return report
 
 
 def evaluation(evaluationParams):
+    """Full evaluation process."""
+
+    if evaluationParams.has_key('mergeWithJson'):
+        # We load another JSON file for inclusion
+        # the current evaluationParams has priority if some key is defined twice
+        mergedParams = json.load(evaluationParams['mergeWithJson'])
+        for key in evaluationParams.keys():
+            mergedParams[key] = evaluationParams[key]
+        evaluationParams = mergedParams
+
     baseWorkingDir = evaluationParams['rootPath'] + evaluationParams['output_path']
     os.mkdir(baseWorkingDir)
     report = {}
 
-    # *** Generator_in
-    os.mkdir(baseWorkingDir + "generator_in/")
-    report['generator_in'] = compileAndRun(evaluationParams['generator_in'],
-            baseWorkingDir + "generator_in/",
-            cacheType='execution', outputFiles=['*.in'], name='generator_in')
+    os.mkdir(baseWorkingDir + "tests/")
 
-    # TODO :: ajouter fichiers in supplémentaires (spec ?)
+    errorSoFar = False
 
-    # *** Generator_out
-    os.mkdir(baseWorkingDir + "generator_out/")
-    # We copy *.in files from generator_in
-    for f in glob.glob(baseWorkingDir + "generator_in/*.in"):
-        os.symlink(f, baseWorkingDir + "generator_out/" + os.path.basename(f))
-    report['generator_out'] = compileAndRun(evaluationParams['generator_out'],
-            baseWorkingDir + "generator_out/",
-            cacheType='execution', outputFiles=['*.out'], name='generator_out')
+
+    # *** Generators
+    os.mkdir(baseWorkingDir + "generators/")
+    report['generators'] = []
+    generatorsFiles = {} # Source files of solutions, need this for the generations
+    for gen in evaluationParams['generators']:
+        genDir = "%sgenerators/%s/" % (baseWorkingDir, gen['id'])
+        os.mkdir(genDir)
+        # We only compile the generator
+        genReport = cachedCompile(gen['compilationDescr'], gen['compilationExecution'],
+               genDir, getCacheDir(gen['compilationDescr']['files'], 'compilation'), 'generator')
+        errorSoFar = errorSoFar or isExecError(genReport)
+        report['generators'] = (gen['id'], genReport)
+        generatorsFiles[gen['id']] = gen['compilationDescr']['files']
+
+
+    # *** Generations
+    os.mkdir(baseWorkingDir + "generations/")
+    report['generations'] = []
+    for gen in evaluationParams['generations']:
+        genDir = "%sgenerations/%s/" % (baseWorkingDir, gen['id'])
+        os.mkdir(genDir)
+        if gen.has_key('testCases'):
+            # We have specific test cases to generate
+            for tc in gen['testCases']:
+                genReport = {'id': "%s.%s" % (gen['id'], tc['name'])}
+                if gen.has_key('idOutputGenerator'):
+                    # We also have an output generator, we generate `name`.in and `name`.out
+                    genReport['generatorExecution'] = cachedExecute(genExecution, "%sgenerators/%s/generator.exe %s" % (baseWorkingDir, gen['idGenerator'], tc['params']), genDir,
+                            getCacheDir(generatorsFiles[gen['idGenerator']], 'execution:' + tc['params']),
+                            stdoutFile=tc['name'] + '.in',
+                            outputFiles=[tc['name'] + '.in'])
+                    genReport['outputGeneratorExecution'] = cachedExecute(outGenExecution, "%sgenerators/%s/generator.exe" % (baseWorkingDir, gen['idOutputGenerator']), genDir,
+                            getCacheDir(generatorsFiles[gen['idOutputGenerator']], 'execution:' + tc['params']),
+                            stdoutFile=tc['name'] + '.out',
+                            outputFiles=[tc['name'] + '.out'])
+                    shutil.copy(tc['name'] + '.in', baseWorkingDir + 'tests/' + tc['name'] + '.in')
+                    shutil.copy(tc['name'] + '.out', baseWorkingDir + 'tests/' + tc['name'] + '.out')
+                    errorSoFar = errorSoFar or isExecError(genReport['generatorExecution']) or isExecError(genReport['outputGeneratorExecution'])
+                else:
+                    # We only have one generator, we assume `name` is the name of the test file to generate
+                    genReport['generatorExecution'] = cachedExecute(genExecution, "%sgenerators/%s/generator.exe %s" % (baseWorkingDir, gen['idGenerator'], tc['params']), genDir,
+                            getCacheDir(generatorsFiles[gen['idGenerator']], 'execution:' + tc['params']),
+                            stdoutFile=tc['name'],
+                            outputFiles=[tc['name']])
+                    shutil.copy(tc['name'], baseWorkingDir + 'tests/' + tc['name'])
+                    errorSoFar = errorSoFar or isExecError(genReport['generatorExecution'])
+                report['generations'].append(genReport)
+                
+        else:
+            # We generate the test cases just by executing the generators
+            genReport = {'id': gen['id']}
+            genReport['generatorExecution'] = cachedExecute(genExecution, "%sgenerators/%s/generator.exe" % (baseWorkingDir, gen['idGenerator']), genDir,
+                    getCacheDir(generatorsFiles[gen['idGenerator']], 'execution'), outputFiles=['*.in', '*.out'])
+            errorSoFar = errorSoFar or isExecError(genReport['generatorExecution'])
+            if gen.has_key('idOutputGenerator'):
+                # We also have an output generator
+                genReport['outputGeneratorExecution'] = cachedExecute(outGenExecution, "%sgenerators/%s/generator.exe" % (baseWorkingDir, gen['idOutputGenerator']), genDir,
+                        getCacheDir(generatorsFiles[gen['idOutputGenerator']], 'execution'), outputFiles=['*.out'])
+                errorSoFar = errorSoFar or isExecError(genReport['outputGeneratorExecution'])
+            report['generations'].append(genReport)
+            # We copy the generated test files
+            for f in (glob.glob(genDir + '*.in') + glob.glob(genDir + '*.out')):
+                shutil.copy(f, baseWorkingDir + 'tests/' + os.path.basename(f))
+
+    # We add extra tests
+    for et in evaluationParams['extraTests']:
+        getFile(et, baseWorkingDir + "tests/")
 
     # *** Sanitizer
     os.mkdir(baseWorkingDir + "sanitizer/")
-    # We copy *.in files from generator_in
-    for f in glob.glob(baseWorkingDir + "generator_in/*.in"):
-        os.symlink(f, baseWorkingDir + "sanitizer/" + os.path.basename(f))
-    # We copy *.out files from generator_out
-    for f in glob.glob(baseWorkingDir + "generator_out/*.out"):
-        os.symlink(f, baseWorkingDir + "sanitizer/" + os.path.basename(f))
-    report['sanitizer'] = compileAndRun(evaluationParams['sanitizer'],
+    report['sanitizer'] = cachedCompile(evaluationParams['sanitizer']['compilationDescr'],
+            evaluationParams['sanitizer']['compilationExecution'],
             baseWorkingDir + "sanitizer/",
-            cacheType='execution', inputFiles=['*.in', '*.out'], name='sanitizer')
-
-    # TODO :: fichiers à récupérer du sanitizer ?
+            getCacheDir(evaluationParams['sanitizer']['compilationDescr']['files'], 'compilation')
+            'sanitizer')
+    errorSoFar = errorSoFar or isExecError(report['sanitizer'])
 
     # *** Checker
     os.mkdir(baseWorkingDir + "checker/")
-    report['sanitizer'] = cachedCompile(evaluationParams['checker']['compilationDescr'],
+    report['checker'] = cachedCompile(evaluationParams['checker']['compilationDescr'],
             evaluationParams['checker']['compilationExecution'],
             baseWorkingDir + "checker/",
-            getCacheDir(evaluationParams['checker']['compilationDescr']['files'], 'execution')
-            'sanitizer')
-    
-    # TODO :: gestion des erreurs
+            getCacheDir(evaluationParams['checker']['compilationDescr']['files'], 'compilation')
+            'checker')
+    errorSoFar = errorSoFar or isExecError(report['sanitizer'])
+
+
+    # Did we encounter an error so far?
+    if errorSoFar:
+        raise Exception()
+
 
     # *** Solutions
     os.mkdir(baseWorkingDir + "solutions/")
-    solutionsReports = {} # We need this as a dict for later
+    report['solutions'] = []
     solutionsFiles = {} # Source files of solutions, need this for the evaluations
+    solutionsWithErrors = []
     for sol in evaluationParams['solutions']:
         solDir = "%ssolutions/%s/" % (baseWorkingDir, sol['id'])
         os.mkdir(solDir)
-        # We only compile the solution for now
+        # We only compile the solution
         solReport = cachedCompile(sol['compilationDescr'], sol['compilationExecution'],
                solDir, getCacheDir(sol['compilationDescr']['files'], 'compilation'), 'solution')
-        solutionsReports[sol['id']] = solReport
+        report['solutions'].append(solReport)
         solutionsFiles[sol['id']] = sol['compilationDescr']['files']
-
-    report['solutions'] = map(lambda k: (k, solutionsReports[k]), solutionsReports.keys())
+        if isExecError(solReport):
+            # We keep a list of solutions with errors
+            solutionsWithErrors.append(sol['id'])
 
     # *** Executions
     os.mkdir(baseWorkingDir + "executions/")
     report['executions'] = []
     for test in evaluationParams['executions']:
-        testReport = {'name': test['idSolution']} # TODO :: name = ?
+        if test['idSolution'] in solutionsWithError:
+            # This solution didn't compile
+            continue
+
+        mainTestReport = {'name': test['idSolution'], 'testsReports': []}
         testDir = "%sexecutions/%s.%s/" % (baseWorkingDir, test['idSolution'], test['id'])
         os.mkdir(testDir)
 
-        # We fetch the solution executable
-        os.symlink("%ssolutions/%s/solution.exe" % (baseWorkingDir, test['idSolution']), testDir + 'solution.exe')
-        # TODO :: fichiers à mettre ?
-        # We execute the solution
-        testReport['execution'] = cachedExecute(test['runExecution'], testDir + 'solution.exe', testDir,
-                getCacheDir(solutionsFiles[test['idSolution']], 'execution'),
-                outputFiles=[], compilationReport=solutionsReports[test['idSolution']])
-        # We execute the checker
-        testReport['checker'] = cachedExecute(evaluationParams['checker']['runExecution'],
-                baseWorkingDir + "checker/checker.exe", testDir,
-                getCacheDir(evaluationParams['chercker']['compilationDescr']['files'], 'execution'),
-                outputFiles=[], compilationReport=report['checker'])
-        report['executions'].append((test['id'], testReport)) # TODO :: spec dit "an array of testReport"
+        # Solution executable
+        solExec = "%ssolutions/%s/solution.exe" % (baseWorkingDir, test['idSolution'])
+
+        # Files to test as input
+        testFiles = []
+        for filterGlob in test['filterTests']:
+            testFiles.extend(glob.glob(testDir + filterGlob))
+
+        for tf in testFiles:
+            # We execute everything for each test file tf
+            if '.' in os.path.basename(tf):
+                baseTfName = os.path.basename(tf).split('.')[:-1]
+            else:
+                baseTfName = os.path.basename(tf)
+            
+            subTestReport = {'name': baseTfName}
+            # We execute the sanitizer
+            subTestReport['sanitizer'] = cachedExecute(evaluationParams['checker']['runExecution'],
+                    baseWorkingDir + 'sanitizer/sanitizer.exe',
+                    testDir,
+                    getCacheDir(evaluationParams['sanitizer']['compilationDescr']['files'], 'execution', inputFiles=[tf]),
+                    stdinFile=tf, stdoutFile=testDir + baseTfName + '.in',
+                    outputFiles=[testDir + baseTfName + '.in'])
+            if isExecError(subTestReport['sanitizer']):
+                # Sanitizer didn't work, we skip this file
+                continue
+            # We execute the solution
+            subTestReport['execution'] = cachedExecute(test['runExecution'], solExec, testDir,
+                    getCacheDir(solutionsFiles[test['idSolution']], 'execution', inputFiles=[testDir + baseTfName + '.in']),
+                    stdinFile=testDir + baseTfName + '.in', stdoutFile=testDir + baseTfName + '.out',
+                    outputFiles=[testDir + baseTfName + '.out'])
+            if isExecError(subTestReport['execution']):
+                # Solution returned an error, no need to check
+                continue
+            # We execute the checker
+            subTestReport['checker'] = cachedExecute(evaluationParams['checker']['runExecution'],
+                    baseWorkingDir + "checker/checker.exe", testDir,
+                    getCacheDir(evaluationParams['checker']['compilationDescr']['files'], 'execution', inputFiles=[testDir + baseTfName + '.out']),
+                    stdinFile=testDir + baseTfName + '.out', stdoutFiles=testDir + baseTfName + '.ok',
+                    outputFiles=[testDir + baseTfName + '.ok'])
+            mainTestReport['testsReports'].append(subTestReport)
+
+        report['executions'].append(testReport)
 
     return report
 
 
 if __name__ == '__main__':
-    # TODO :: better interface ?
-    if len(sys.argv) == 1:
-        print("JSON path missing.")
-    else:
-        inputJson = json.load(open(sys.argv[1], 'r'))
-        outputJson = evaluation(inputJson)
-        json.dump(outputJson, open('output.json', 'w'))
+    inJson = json.load(sys.stdin)
+    json.dump(evaluation(inJson), sys.stdout)
