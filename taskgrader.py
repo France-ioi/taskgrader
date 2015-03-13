@@ -34,7 +34,7 @@ CFG_REPODIR = CFG_BASEDIR + 'repo/'
 CFG_CACHEDIR = CFG_BASEDIR + 'cache/'
 
 CFG_ISOLATEBIN = CFG_BASEDIR + 'isolate'
-CFG_RIGHTSBIN = CFG_BASEDIR + 'rights'
+CFG_RIGHTSBIN = CFG_BASEDIR + 'box-rights'
 
 class dictWithVars(dict):
     """Class representing JSON data with some variables in it.
@@ -50,10 +50,17 @@ class dictWithVars(dict):
 
     def __getvalue__(self, val):
         """Filters val to check whether it's a variable or not."""
-        if type(val) is str and len(val) > 0 and val[0] == '@':
-            # It's a variable, we replace it with the JSON data
-            # It will return an error if the variable doesn't exist, it's intended
-            return self.varData[val[1:]]
+        if type(val) is str and len(val) > 0:
+            if val[0] == '@':
+                # It's a variable, we replace it with the JSON data
+                # It will return an error if the variable doesn't exist, it's intended
+                return self.__getvalue__(self.varData[val[1:]])
+            elif '$TASK_PATH' in val:
+                return val.replace('$TASK_PATH', self.varData['TASK_PATH'])
+            elif '$BUILD_PATH' in val:
+                return val.replace('$BUILD_PATH', self.varData['BUILD_PATH'])
+            else:
+                return val
         elif type(val) is dict:
             # It's a dict, we replace it with a dictWithVars
             return dictWithVars(self.varData, initDict=val)
@@ -182,6 +189,8 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
 
         # Build isolate command line
         isolatedCmdLine  = CFG_ISOLATEBIN
+        isolatedCmdLine += ' --processes'
+        isolatedCmdLine += ' --env=HOME'
         isolatedCmdLine += ' --meta=' + os.getcwd() + '/' + workingDir + 'isolate.meta'
         if executionParams['timeLimitMs'] > 0:
             isolatedCmdLine += ' --time=' + str(executionParams['timeLimitMs'] / 1000.)
@@ -210,7 +219,8 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
 
         # Copy back the files from sandbox
         for f in os.listdir(isolateDir):
-            shutil.copy(isolateDir + f, workingDir + f)
+            if os.path.isfile(isolateDir + f):
+                shutil.copy(isolateDir + f, workingDir + f)
         shutil.copy(isolateDir + 'isolated.stdout', stdoutFile)
 
         # Get metadata from isolate execution
@@ -286,17 +296,17 @@ def cachedExecute(executionParams, cmdLine, workingDir, cacheData, stdinFile=Non
                     os.symlink(f, workingDir + os.path.basename(f))
         else:
             # We execute again the program
-            report = execute(executionParams, cmdLine, workingDir, stdinFile=stdinFile)
+            report = execute(executionParams, cmdLine, workingDir, stdinFile=stdinFile, stdoutFile=stdoutFile)
             # We save results to cache if execution was successful
             if not isExecError(report):
                 for g in outputFiles:
-                    for f in glob.glob(cacheDir + g):
-                        shutil.copy(f, workingDir)
+                    for f in glob.glob(workingDir + g):
+                        shutil.copy(f, cacheDir)
                 json.dump(report, open("%srunExecution.json" % cacheDir, 'w'))
                 open("%scache.ok" % cacheDir, 'w')
     else:
         # We don't use cache at all
-        report = execute(executionParams, cmdLine, workingDir, stdinFile=stdinFile)
+        report = execute(executionParams, cmdLine, workingDir, stdinFile=stdinFile, stdoutFile=stdoutFile)
 
     return report
 
@@ -311,8 +321,10 @@ def compile(compilationDescr, executionParams, workingDir, name='executable'):
         sourceFiles.append(source['name'])
 
     # We fetch dependencies into the workingDir
+    depFiles = []
     for dep in compilationDescr['dependencies']: # Fetch dependencies
         getFile(dep, workingDir)
+        depFiles.append(dep['name'])
 
     # We compile according to the source type
     if compilationDescr['language'] == 'c':
@@ -321,12 +333,41 @@ def compile(compilationDescr, executionParams, workingDir, name='executable'):
     elif compilationDescr['language'] == 'cpp':
         cmdLine = "g++ -W -Wall -O2 -o %s.exe %s" % (name, ' '.join(sourceFiles))
         report = execute(executionParams, cmdLine, workingDir, isolate=False)
-    elif compilationDescr['language'] == 'py' or compilationDescr['language'] == 'py3':
-        # Python is not "compiled", we just write a shell script to execute it
-        if compilationDescr['language'] == 'py':
-            open(name + '.exe', 'w').write("#!/bin/sh\npython2 %s" % ' '.join(sourceFiles))
-        else:
-            open(name + '.exe', 'w').write("#!/bin/sh\npython3 %s" % ' '.join(sourceFiles))
+    elif compilationDescr['language'] == 'cpp11':
+        cmdLine = "g++ -std=gnu++11 -W -Wall -O2 -o %s.exe %s" % (name, ' '.join(sourceFiles))
+        report = execute(executionParams, cmdLine, workingDir, isolate=False)
+    elif compilationDescr['language'] in ['sh', 'py', 'py3']:
+        # Scripts are not "compiled", we make an archive out of the source files
+        # shar makes a self-extracting "shell archive"
+        sharFile = open(workingDir + name + '.exe', 'w+')
+        subprocess.Popen(['shar', '--quiet-unshar', '--quiet'] + sourceFiles + depFiles, stdout=sharFile, cwd=workingDir).wait()
+        # We remove the last line of the archive (normally an 'exit 0')
+        sharFile.seek(-5, os.SEEK_END)
+        pos = sharFile.tell()
+        while pos > 0 and sharFile.read(1) != "\n":
+            pos -=1
+            sharFile.seek(pos, os.SEEK_SET)
+        if pos > 0:
+            sharFile.truncate(pos + 1)
+        # We set the archive to execute the script(s) after self-extracting
+        if compilationDescr['language'] == 'sh':
+            sharFile.writelines(map(lambda x: "/bin/sh %s\n" % x, sourceFiles))
+        elif compilationDescr['language'] == 'py':
+            sharFile.write("/usr/bin/python2 %s" % ' '.join(sourceFiles))
+        elif compilationDescr['language'] == 'py3':
+            sharFile.write("/usr/bin/python3 %s" % ' '.join(sourceFiles))
+        # On some versions, shar ignores the --quiet-unshar option and talks too much
+        # We replace echo=echo with echo=true as a dirty fix
+        sharFile.seek(0)
+        sharLines = []
+        for l in sharFile:
+            sharLines.append(l.replace('echo=echo', 'echo=true').replace('echo="$gettext_dir/gettext -s"', 'echo=true'))
+        sharFile.seek(0)
+        sharFile.truncate(0)
+        sharFile.writelines(sharLines)
+        sharFile.close()
+        # We set the archive executable bits
+        os.chmod(workingDir + name + '.exe', 493) # chmod 755
         # We build a dummy report
         report = {'timeLimitMs': executionParams['timeLimitMs'],
                 'memoryLimitKb': executionParams['memoryLimitKb'],
@@ -404,24 +445,27 @@ def compileAndRun(compileAndRunParams, workingDir, cacheType=None, stdinFile=Non
 def evaluation(evaluationParams):
     """Full evaluation process."""
 
+    # *** Variables handling
+    varData = {'TASK_PATH': evaluationParams['taskPath']}
+
+    # We load a "preprocessing" JSON node or file
     if evaluationParams.has_key('mergeWithJson'):
-        # We load a "preprocessing" JSON file
         if type(evaluationParams['mergeWithJson']) is str:
-            varData = json.load(open(evaluationParams['mergeWithJson'], 'r'))
+            varData.update(json.load(open(evaluationParams['mergeWithJson'], 'r')))
         else:
-            varData = evaluationParams['mergeWithJson']
-        evaluationParams = dictWithVars(varData, initDict=evaluationParams)
-    else:
-        try:
-            varData = json.load(open(evaluationParams['taskPath'] + 'defaultParams.json', 'r'))
-            evaluationParams = dictWithVars(varData, initDict=evaluationParams)
-        except:
-            pass
+            varData.update(evaluationParams['mergeWithJson'])
+    try:
+        varData.update(json.load(open(evaluationParams['taskPath'] + 'defaultParams.json', 'r')))
+    except:
+        pass
+    evaluationParams = dictWithVars(varData, initDict=evaluationParams)
 
     baseWorkingDir = evaluationParams['rootPath'] + evaluationParams['outputPath']
     os.mkdir(baseWorkingDir)
     report = {}
 
+    varData['BUILD_PATH'] = baseWorkingDir
+    os.mkdir(baseWorkingDir + "libs/")
     os.mkdir(baseWorkingDir + "tests/")
 
     errorSoFar = False
@@ -457,24 +501,24 @@ def evaluation(evaluationParams):
                     shutil.copy(baseWorkingDir + 'generators/%s/generator.exe' % gen['idGenerator'], genDir + 'generator.exe')
                     genReport['generatorExecution'] = cachedExecute(gen['genExecution'], "generator.exe %s" % tc['params'], genDir,
                             getCacheDir(generatorsFiles[gen['idGenerator']], 'execution:' + tc['params']),
-                            stdoutFile=tc['name'] + '.in',
+                            stdoutFile=genDir + tc['name'] + '.in',
                             outputFiles=[tc['name'] + '.in'])
                     shutil.copy(baseWorkingDir + 'generators/%s/generator.exe' % gen['idOutputGenerator'], genDir + 'outgenerator.exe')
                     genReport['outputGeneratorExecution'] = cachedExecute(gen['outGenExecution'], "outgenerator.exe %s" % tc['params'], genDir,
                             getCacheDir(generatorsFiles[gen['idOutputGenerator']], 'execution:' + tc['params']),
-                            stdoutFile=tc['name'] + '.out',
+                            stdoutFile=genDir + tc['name'] + '.out',
                             outputFiles=[tc['name'] + '.out'])
-                    shutil.copy(tc['name'] + '.in', baseWorkingDir + 'tests/' + tc['name'] + '.in')
-                    shutil.copy(tc['name'] + '.out', baseWorkingDir + 'tests/' + tc['name'] + '.out')
+                    shutil.copy(genDir + tc['name'] + '.in', baseWorkingDir + 'tests/' + tc['name'] + '.in')
+                    shutil.copy(genDir + tc['name'] + '.out', baseWorkingDir + 'tests/' + tc['name'] + '.out')
                     errorSoFar = errorSoFar or isExecError(genReport['generatorExecution']) or isExecError(genReport['outputGeneratorExecution'])
                 else:
                     # We only have one generator, we assume `name` is the name of the test file to generate
                     shutil.copy(baseWorkingDir + 'generators/%s/generator.exe' % gen['idGenerator'], genDir + 'generator.exe')
                     genReport['generatorExecution'] = cachedExecute(gen['genExecution'], "generator.exe %s" % tc['params'], genDir,
                             getCacheDir(generatorsFiles[gen['idGenerator']], 'execution:' + tc['params']),
-                            stdoutFile=tc['name'],
+                            stdoutFile=genDir + tc['name'],
                             outputFiles=[tc['name']])
-                    shutil.copy(tc['name'], baseWorkingDir + 'tests/' + tc['name'])
+                    shutil.copy(genDir + tc['name'], baseWorkingDir + 'tests/' + tc['name'])
                     errorSoFar = errorSoFar or isExecError(genReport['generatorExecution'])
                 report['generations'].append(genReport)
                 
@@ -483,7 +527,7 @@ def evaluation(evaluationParams):
             genReport = {'id': gen['id']}
             shutil.copy(baseWorkingDir + 'generators/%s/generator.exe' % gen['idGenerator'], genDir + 'generator.exe')
             genReport['generatorExecution'] = cachedExecute(gen['genExecution'], "generator.exe", genDir,
-                    getCacheDir(generatorsFiles[gen['idGenerator']], 'execution'), outputFiles=['*.in', '*.out'])
+                    getCacheDir(generatorsFiles[gen['idGenerator']], 'execution'), outputFiles=['*.in', '*.out', '*.h', '*.java', '*.ml', '*.mli', '*.pas', '*.py'])
             errorSoFar = errorSoFar or isExecError(genReport['generatorExecution'])
             if gen.has_key('idOutputGenerator'):
                 # We also have an output generator
@@ -494,7 +538,13 @@ def evaluation(evaluationParams):
             report['generations'].append(genReport)
             # We copy the generated test files
             for f in (glob.glob(genDir + '*.in') + glob.glob(genDir + '*.out')):
-                shutil.copy(f, baseWorkingDir + 'tests/' + os.path.basename(f))
+                shutil.copy(f, baseWorkingDir + 'tests/')
+            # We copy the generated lib files
+            libFiles = []
+            for ext in ['*.h', '*.java', '*.ml', '*.mli', '*.pas', '*.py']:
+                libFiles.extend(glob.glob(genDir + ext))
+            for f in libFiles:
+                shutil.copy(f, baseWorkingDir + 'libs/')
 
     # We add extra tests
     for et in evaluationParams['extraTests']:
@@ -545,7 +595,7 @@ def evaluation(evaluationParams):
     os.mkdir(baseWorkingDir + "executions/")
     report['executions'] = []
     for test in evaluationParams['executions']:
-        if test['idSolution'] in solutionsWithError:
+        if test['idSolution'] in solutionsWithErrors:
             # This solution didn't compile
             continue
 
@@ -556,12 +606,12 @@ def evaluation(evaluationParams):
         # Files to test as input
         testFiles = []
         for filterGlob in test['filterTests']:
-            testFiles.extend(glob.glob(testDir + filterGlob))
+            testFiles.extend(glob.glob(baseWorkingDir + 'tests/' + filterGlob))
 
         for tf in testFiles:
             # We execute everything for each test file tf
             if '.' in os.path.basename(tf):
-                baseTfName = os.path.basename(tf).split('.')[:-1]
+                baseTfName = '.'.join(os.path.basename(tf).split('.')[:-1])
             else:
                 baseTfName = os.path.basename(tf)
             
@@ -578,24 +628,29 @@ def evaluation(evaluationParams):
                 # Sanitizer didn't work, we skip this file
                 continue
             # We execute the solution
-            os.symlink("%ssolutions/%s/solution.exe" % (baseWorkingDir, test['idSolution']), testDir + 'solution.exe')
+            shutil.copy(tf, testDir)
+            shutil.copy("%ssolutions/%s/solution.exe" % (baseWorkingDir, test['idSolution']), testDir + 'solution.exe')
             subTestReport['execution'] = cachedExecute(test['runExecution'], 'solution.exe', testDir,
                     getCacheDir(solutionsFiles[test['idSolution']], 'execution', inputFiles=[testDir + baseTfName + '.in']),
-                    stdinFile=testDir + baseTfName + '.in', stdoutFile=testDir + baseTfName + '.out',
+                    stdinFile=testDir + baseTfName + '.in', stdoutFile=testDir + baseTfName + '.solout',
                     outputFiles=[testDir + baseTfName + '.out'])
             if isExecError(subTestReport['execution']):
                 # Solution returned an error, no need to check
                 continue
             # We execute the checker
-            os.symlink(baseWorkingDir + 'checker/checker.exe', testDir + 'checker.exe')
+            shutil.copy(baseWorkingDir + 'checker/checker.exe', testDir)
+            shutil.copy(tf, testDir)
+            shutil.copy(tf[:-3] + '.out', testDir)
             subTestReport['checker'] = cachedExecute(evaluationParams['checker']['runExecution'],
-                    "checker.exe", testDir,
+                    "checker.exe %s %s %s" % (baseTfName + '.solout', baseTfName + '.in', baseTfName + '.out'),
+                    testDir,
                     getCacheDir(evaluationParams['checker']['compilationDescr']['files'], 'execution', inputFiles=[testDir + baseTfName + '.out']),
-                    stdinFile=testDir + baseTfName + '.out', stdoutFiles=testDir + baseTfName + '.ok',
+                    stdinFile=testDir + baseTfName + '.out',
+                    stdoutFile=testDir + baseTfName + '.ok',
                     outputFiles=[testDir + baseTfName + '.ok'])
             mainTestReport['testsReports'].append(subTestReport)
 
-        report['executions'].append(testReport)
+        report['executions'].append(mainTestReport)
 
     return report
 
