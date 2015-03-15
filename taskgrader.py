@@ -25,12 +25,11 @@
 
 
 
-import glob, hashlib, json, os, shutil, sys, subprocess
-import pickle, random # Temporary
+import glob, hashlib, json, os, random, shlex, shutil, sys, subprocess
+import pickle # Temporary
 
 CFG_BASEDIR = './'
 CFG_BUILDSDIR = CFG_BASEDIR + 'builds/'
-CFG_REPODIR = CFG_BASEDIR + 'repo/'
 CFG_CACHEDIR = CFG_BASEDIR + 'cache/'
 
 CFG_ISOLATEBIN = CFG_BASEDIR + 'isolate'
@@ -50,15 +49,18 @@ class dictWithVars(dict):
 
     def __getvalue__(self, val):
         """Filters val to check whether it's a variable or not."""
-        if type(val) is str and len(val) > 0:
+        if (type(val) is str or type(val) is unicode) and len(val) > 0:
             if val[0] == '@':
                 # It's a variable, we replace it with the JSON data
                 # It will return an error if the variable doesn't exist, it's intended
                 return self.__getvalue__(self.varData[val[1:]])
-            elif '$TASK_PATH' in val:
-                return val.replace('$TASK_PATH', self.varData['TASK_PATH'])
-            elif '$BUILD_PATH' in val:
-                return val.replace('$BUILD_PATH', self.varData['BUILD_PATH'])
+            elif '$' in val:
+                if '$BUILD_PATH' in val:
+                    return self.__getvalue__(val.replace('$BUILD_PATH', self.varData['BUILD_PATH']))
+                elif '$ROOT_PATH' in val:
+                    return self.__getvalue__(val.replace('$ROOT_PATH', self.varData['ROOT_PATH']))
+                elif '$TASK_PATH' in val:
+                    return self.__getvalue__(val.replace('$TASK_PATH', self.varData['TASK_PATH']))
             else:
                 return val
         elif type(val) is dict:
@@ -66,7 +68,11 @@ class dictWithVars(dict):
             return dictWithVars(self.varData, initDict=val)
         elif type(val) is list:
             # It's a list, we filter the values in it
-            return map(self.__getvalue__, val)
+            newval = map(self.__getvalue__, val)
+            # We remove None values, which are probably undefined variables
+            while None in newval:
+                newval.remove(None)
+            return newval
         else:
             return val
 
@@ -80,18 +86,32 @@ def isExecError(executionReport):
     return (executionReport['exitCode'] != 0)
 
 
-def getFile(fileDescr, workingDir):
+def getFile(fileDescr, workingDir, buildDir=None, language=''):
     """Fetch a file contents from a fileDescr object into workingDir.
     If getCache is True, also lookup cache for related cached files."""
 
     if os.path.isfile(workingDir + fileDescr['name']):
         # File already exists
-        raise Exception()
+        raise Exception("File %s already exists in %s" % (fileDescr['name'], workingDir))
 
     if fileDescr.has_key('content'): # Content given in descr
         open(workingDir + fileDescr['name'], 'w').write(fileDescr['content'])
-    else: # Get file by path
-        os.symlink(CFG_REPODIR + fileDescr['path'], workingDir + fileDescr['name'])
+    elif fileDescr.has_key('path'): # Get file by path
+        os.symlink(fileDescr['path'], workingDir + fileDescr['name'])
+    else: # File is a built dependency
+        if not buildDir:
+            buildDir = workingDir
+        if os.path.isfile('%slibs/%s-%s' % (buildDir, language, fileDescr['name'])):
+            # We search for [language]-[name] in the libs directory
+            os.symlink('%slibs/%s-%s' % (buildDir, language, fileDescr['name']), workingDir + fileDescr['name'])
+        elif language in ['py2', 'py3'] and os.path.isfile('%slibs/py-%s' % (buildDir, fileDescr['name'])):
+            # For Python languages, we search for py-[name] in the libs directory
+            os.symlink('%slibs/py-%s' % (buildDir, fileDescr['name']), workingDir + fileDescr['name'])
+        elif os.path.isfile('%slibs/%s' % (buildDir, fileDescr['name'])):
+            # We search for [name] in the libs directory
+            os.symlink('%slibs/%s' % (buildDir, fileDescr['name']), workingDir + fileDescr['name'])
+        else:
+            raise Exception("Dependency not found: %s for language %s" % (fileDescr['name'], language))
     return None
 
 
@@ -112,7 +132,7 @@ def getCacheDir(files, cacheType, inputFiles=[]):
         else:
             # File path is given, we use the path as reference
             fileIdList.append("path:%s" % fileDescr['path'])
-            fileHashList.append(hashlib.md5(open(CFG_REPODIR + fileDescr['path'], 'rb').read()).hexdigest())
+            fileHashList.append(hashlib.md5(open(fileDescr['path'], 'rb').read()).hexdigest())
 
     # We add identifiers for input files (local name and md5sum)
     for f in inputFiles:
@@ -128,7 +148,7 @@ def getCacheDir(files, cacheType, inputFiles=[]):
     # TODO :: vraie DB quand le programme sera complet
     # Read cache information from database
     try:
-        database = pickle.load(open('database.pickle', 'r'))
+        database = pickle.load(open(CFG_CACHEDIR + 'database.pickle', 'r'))
     except:
         database = {}
     if database.has_key(filesId):
@@ -140,15 +160,18 @@ def getCacheDir(files, cacheType, inputFiles=[]):
         else:
             # MD5 hashes changed, update database, invalidate cache
             database[filesId] = (dbId, fileHashList)
-            pickle.dump(database, open('database.pickle', 'w'))
-            for f in os.listdir("%s%s/" % (CFG_CACHEDIR, dbId)):
-                os.remove("%s%s/%s" % (CFG_CACHEDIR, dbId, f))
+            pickle.dump(database, open(CFG_CACHEDIR + 'database.pickle', 'w'))
+            try:
+                shutil.rmtree("%s%s" % (CFG_CACHEDIR, dbId))
+            except:
+                pass
+            os.mkdir("%s%s/" % (CFG_CACHEDIR, dbId))
             return (False, "%s%s/" % (CFG_CACHEDIR, dbId))
     else:
         # New entry in database
         newId = len(database)
         database[filesId] = (newId, fileHashList)
-        pickle.dump(database, open('database.pickle', 'w'))
+        pickle.dump(database, open(CFG_CACHEDIR + 'database.pickle', 'w'))
         os.mkdir("%s%s/" % (CFG_CACHEDIR, newId))
         return (False, "%s%s/" % (CFG_CACHEDIR, newId))
 
@@ -177,7 +200,7 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
             'wasCached': False}
 
     if stdoutFile == None:
-        stdoutFile = workingDir + 'stdout.out'
+        stdoutFile = workingDir + 'stdout'
 
     if isolate:
         # Initialize isolate box
@@ -190,8 +213,8 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
         # Build isolate command line
         isolatedCmdLine  = CFG_ISOLATEBIN
         isolatedCmdLine += ' --processes'
-        isolatedCmdLine += ' --env=HOME'
-        isolatedCmdLine += ' --meta=' + os.getcwd() + '/' + workingDir + 'isolate.meta'
+        isolatedCmdLine += ' --env=HOME --env=PATH'
+        isolatedCmdLine += ' --meta=' + workingDir + 'isolate.meta'
         if executionParams['timeLimitMs'] > 0:
             isolatedCmdLine += ' --time=' + str(executionParams['timeLimitMs'] / 1000.)
         if executionParams['memoryLimitKb'] > 0:
@@ -206,11 +229,10 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
         for f in os.listdir(workingDir):
             shutil.copy(workingDir + f, isolateDir + f)
 
-        print isolatedCmdLine
         open(workingDir + 'isolate.meta', 'w')
 
         # Execute the isolated program
-        proc = subprocess.Popen(isolatedCmdLine.split(), cwd=workingDir)
+        proc = subprocess.Popen(shlex.split(isolatedCmdLine), cwd=workingDir)
         proc.wait()
 
         # Set file rights so that we can access the files
@@ -254,8 +276,8 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
             stdinHandle = open(stdinFile, 'r')
         else:
             stdinHandle = None
-        proc = subprocess.Popen(cmdLine.split(), stdin=stdinHandle, stdout=open(stdoutFile, 'w'),
-                stderr=open(workingDir + 'stderr.out', 'w'), cwd=workingDir)
+        proc = subprocess.Popen(shlex.split(cmdLine), stdin=stdinHandle, stdout=open(stdoutFile, 'w'),
+                stderr=open(workingDir + 'stderr', 'w'), cwd=workingDir)
 
         proc.wait()
 
@@ -266,7 +288,7 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
 
         report['stdout'] = capture(stdoutFile, name='stdout',
                 truncateSize=executionParams['stdoutTruncateKb'] * 1024)
-        report['stderr'] = capture(workingDir + 'stderr.out', name='stderr',
+        report['stderr'] = capture(workingDir + 'stderr', name='stderr',
                 truncateSize=executionParams['stderrTruncateKb'] * 1024)
 
     filesReports = []
@@ -276,12 +298,10 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
             filesReports.append(capture(f, name=os.path.basename(f), truncateSize=1024*1024))
     report['files'] = filesReports
 
-    print report # TODO enlever
-
     return report
 
 
-def cachedExecute(executionParams, cmdLine, workingDir, cacheData, stdinFile=None, stdoutFile='stdout.out', outputFiles=[]):
+def cachedExecute(executionParams, cmdLine, workingDir, cacheData, stdinFile=None, stdoutFile=None, outputFiles=[]):
     """Get the results from execution of a program, either by fetching them
     from cache, or by actually executing the program."""
     if executionParams['useCache']:
@@ -311,7 +331,7 @@ def cachedExecute(executionParams, cmdLine, workingDir, cacheData, stdinFile=Non
     return report
 
 
-def compile(compilationDescr, executionParams, workingDir, name='executable'):
+def compile(compilationDescr, executionParams, workingDir, buildDir='./', name='executable'):
     """Effectively compile a program, not using cache (probably because
     there's no cached version)."""
     # We fetch source files into the workingDir
@@ -323,7 +343,7 @@ def compile(compilationDescr, executionParams, workingDir, name='executable'):
     # We fetch dependencies into the workingDir
     depFiles = []
     for dep in compilationDescr['dependencies']: # Fetch dependencies
-        getFile(dep, workingDir)
+        getFile(dep, workingDir, buildDir=buildDir, language=compilationDescr['language'])
         depFiles.append(dep['name'])
 
     # We compile according to the source type
@@ -357,7 +377,7 @@ def compile(compilationDescr, executionParams, workingDir, name='executable'):
         elif compilationDescr['language'] == 'py3':
             sharFile.write("/usr/bin/python3 %s" % ' '.join(sourceFiles))
         # On some versions, shar ignores the --quiet-unshar option and talks too much
-        # We replace echo=echo with echo=true as a dirty fix
+        # We replace echo= statements with echo=true as a dirty fix
         sharFile.seek(0)
         sharLines = []
         for l in sharFile:
@@ -383,7 +403,7 @@ def compile(compilationDescr, executionParams, workingDir, name='executable'):
     return report
 
 
-def cachedCompile(compilationDescr, executionParams, workingDir, cacheData, name='executable'):
+def cachedCompile(compilationDescr, executionParams, workingDir, cacheData, buildDir='./', name='executable'):
     """Get the compiled version of a program, either by fetching it from cache
     if possible, either by compiling it."""
     if executionParams['useCache']:
@@ -395,7 +415,7 @@ def cachedCompile(compilationDescr, executionParams, workingDir, cacheData, name
             report['wasCached'] = True
         else:
             # No current cache, we compile
-            report = compile(compilationDescr, executionParams, workingDir, name)
+            report = compile(compilationDescr, executionParams, workingDir, buildDir=buildDir, name=name)
             # We cache the results if compilation was successful
             if not isExecError(report):
                 shutil.copy("%s%s.exe" % (workingDir, name), cacheDir)
@@ -403,41 +423,7 @@ def cachedCompile(compilationDescr, executionParams, workingDir, cacheData, name
                 open("%scache.ok" % cacheDir, 'w')
     else:
         # We don't use cache at all
-        report = compile(compilationDescr, compilationExecution, workingDir, name)
-
-    return report
-
-
-def compileAndRun(compileAndRunParams, workingDir, cacheType=None, stdinFile=None, inputFiles=[], outputFiles=[], name='executable'):
-    """Compile a program and then run it.
-    cacheType argument tells what we should cache (or fetch from cache), either
-    the compiled executable or the output of the executable.
-    outputFiles tells which files are considered as output of the run and
-    should thus be cached."""
-    report = {}
-    if cacheType == None:
-        # We compile and run without any cache
-        report['compilationExecution'] = compile(compileAndRunParams['compilationDescr'],
-                                             compileAndRunParams['compilationExecution'],
-                                             workingDir, name)
-        report['runExecution'] = execute('%s%s.exe' % (workingDir, name), compileAndRunParams['runExecution'], workingDir, stdinFile=stdinFile)
-    else:
-        # We fetch the cache status
-        (compCacheStatus, compCacheDir) = getCacheDir(compileAndRunParams['compilationDescr']['files'], cacheType)
-
-        report['compilationExecution'] = cachedCompile(compileAndRunParams['compilationDescr'],
-                compileAndRunParams['compilationExecution'], workingDir,
-                (compCacheStatus, compCacheDir), name, stdinFile=stdinFile)
-
-        if cacheType == 'compilation':
-            # We only use cache for compilation
-            report['runExecution'] = execute('%s%s.exe' % (workingDir, name), compileAndRunParams['runExecution'], workingDir, stdinFile=stdinFile)
-        elif cacheType == 'execution':
-            # We use cache for both compilation and execution
-            (execCacheStatus, execCacheDir) = getCacheDir(compileAndRunParams['compilationDescr']['files'], cacheType, inputFiles=inputFiles)
-            report['runExecution'] = cachedExecute('%s%s.exe' % (workingDir, name),
-                    compileAndRunParams['runExecution'], workingDir, outputFiles,
-                    (execCacheStatus, execCacheDir), outputFiles=outputFiles, stdinFile=stdinFile)
+        report = compile(compilationDescr, compilationExecution, workingDir, buildDir=buildDir, name=name)
 
     return report
 
@@ -446,25 +432,34 @@ def evaluation(evaluationParams):
     """Full evaluation process."""
 
     # *** Variables handling
-    varData = {'TASK_PATH': evaluationParams['taskPath']}
+    varData = {'ROOT_PATH': evaluationParams['rootPath'],
+               'TASK_PATH': evaluationParams['taskPath']}
 
     # We load a "preprocessing" JSON node or file
-    if evaluationParams.has_key('mergeWithJson'):
-        if type(evaluationParams['mergeWithJson']) is str:
-            varData.update(json.load(open(evaluationParams['mergeWithJson'], 'r')))
-        else:
-            varData.update(evaluationParams['mergeWithJson'])
     try:
         varData.update(json.load(open(evaluationParams['taskPath'] + 'defaultParams.json', 'r')))
     except:
         pass
+    if evaluationParams.has_key('extraParams'):
+        if type(evaluationParams['extraParams']) is str:
+            varData.update(json.load(open(evaluationParams['extraParams'], 'r')))
+        else:
+            varData.update(evaluationParams['extraParams'])
     evaluationParams = dictWithVars(varData, initDict=evaluationParams)
 
-    baseWorkingDir = evaluationParams['rootPath'] + evaluationParams['outputPath']
+    # Path where the evaluation will take place
+    if evaluationParams.has_key('outputPath'):
+        baseWorkingDir = CFG_BUILDSDIR + evaluationParams['outputPath']
+    else:
+        baseWorkingDir = CFG_BUILDSDIR + '_build' + str(random.randint(0, 10000)) + '/'
+        while os.path.isdir(baseWorkingDir):
+            baseWorkingDir = CFG_BUILDSDIR + '_build' + str(random.randint(0, 10000)) + '/'
     os.mkdir(baseWorkingDir)
+
     report = {}
 
     varData['BUILD_PATH'] = baseWorkingDir
+    report['buildPath'] = baseWorkingDir
     os.mkdir(baseWorkingDir + "libs/")
     os.mkdir(baseWorkingDir + "tests/")
 
@@ -480,10 +475,10 @@ def evaluation(evaluationParams):
         os.mkdir(genDir)
         # We only compile the generator
         genReport = cachedCompile(gen['compilationDescr'], gen['compilationExecution'],
-               genDir, getCacheDir(gen['compilationDescr']['files'], 'compilation'), 'generator')
+               genDir, getCacheDir(gen['compilationDescr']['files'] + gen['compilationDescr']['dependencies'], 'compilation'), baseWorkingDir, 'generator')
         errorSoFar = errorSoFar or isExecError(genReport)
         report['generators'] = (gen['id'], genReport)
-        generatorsFiles[gen['id']] = gen['compilationDescr']['files']
+        generatorsFiles[gen['id']] = gen['compilationDescr']['files'] + gen['compilationDescr']['dependencies']
 
 
     # *** Generations
@@ -547,8 +542,9 @@ def evaluation(evaluationParams):
                 shutil.copy(f, baseWorkingDir + 'libs/')
 
     # We add extra tests
-    for et in evaluationParams['extraTests']:
-        getFile(et, baseWorkingDir + "tests/")
+    if evaluationParams.has_key('extraTests'):
+        for et in evaluationParams['extraTests']:
+            getFile(et, baseWorkingDir + "tests/")
 
     # *** Sanitizer
     os.mkdir(baseWorkingDir + "sanitizer/")
@@ -556,7 +552,7 @@ def evaluation(evaluationParams):
             evaluationParams['sanitizer']['compilationExecution'],
             baseWorkingDir + "sanitizer/",
             getCacheDir(evaluationParams['sanitizer']['compilationDescr']['files'], 'compilation'),
-            'sanitizer')
+            baseWorkingDir, 'sanitizer')
     errorSoFar = errorSoFar or isExecError(report['sanitizer'])
 
     # *** Checker
@@ -565,7 +561,7 @@ def evaluation(evaluationParams):
             evaluationParams['checker']['compilationExecution'],
             baseWorkingDir + "checker/",
             getCacheDir(evaluationParams['checker']['compilationDescr']['files'], 'compilation'),
-            'checker')
+            baseWorkingDir, 'checker')
     errorSoFar = errorSoFar or isExecError(report['sanitizer'])
 
 
@@ -584,7 +580,7 @@ def evaluation(evaluationParams):
         os.mkdir(solDir)
         # We only compile the solution
         solReport = cachedCompile(sol['compilationDescr'], sol['compilationExecution'],
-               solDir, getCacheDir(sol['compilationDescr']['files'], 'compilation'), 'solution')
+               solDir, getCacheDir(sol['compilationDescr']['files'], 'compilation'), baseWorkingDir, 'solution')
         report['solutions'].append(solReport)
         solutionsFiles[sol['id']] = sol['compilationDescr']['files']
         if isExecError(solReport):
@@ -619,13 +615,12 @@ def evaluation(evaluationParams):
             # We execute the sanitizer
             shutil.copy(baseWorkingDir + 'sanitizer/sanitizer.exe', testDir + 'sanitizer.exe')
             subTestReport['sanitizer'] = cachedExecute(evaluationParams['checker']['runExecution'],
-                    'sanitizer.exe',
-                    testDir,
+                    'sanitizer.exe', testDir,
                     getCacheDir(evaluationParams['sanitizer']['compilationDescr']['files'], 'execution', inputFiles=[tf]),
-                    stdinFile=tf, stdoutFile=testDir + baseTfName + '.in',
-                    outputFiles=[testDir + baseTfName + '.in'])
+                    stdinFile=tf, outputFiles=[])
             if isExecError(subTestReport['sanitizer']):
-                # Sanitizer didn't work, we skip this file
+                # Sanitizer found an error, we skip this file
+                mainTestReport['testsReports'].append(subTestReport)
                 continue
             # We execute the solution
             shutil.copy(tf, testDir)
@@ -636,10 +631,10 @@ def evaluation(evaluationParams):
                     outputFiles=[testDir + baseTfName + '.out'])
             if isExecError(subTestReport['execution']):
                 # Solution returned an error, no need to check
+                mainTestReport['testsReports'].append(subTestReport)
                 continue
             # We execute the checker
             shutil.copy(baseWorkingDir + 'checker/checker.exe', testDir)
-            shutil.copy(tf, testDir)
             shutil.copy(tf[:-3] + '.out', testDir)
             subTestReport['checker'] = cachedExecute(evaluationParams['checker']['runExecution'],
                     "checker.exe %s %s %s" % (baseTfName + '.solout', baseTfName + '.in', baseTfName + '.out'),
