@@ -28,7 +28,7 @@
 import glob, hashlib, json, os, random, shlex, shutil, sys, subprocess
 import pickle # Temporary
 
-CFG_BASEDIR = './'
+CFG_BASEDIR = '/home/michel/franceioi/taskgraderfiles/'
 CFG_BUILDSDIR = CFG_BASEDIR + 'builds/'
 CFG_CACHEDIR = CFG_BASEDIR + 'cache/'
 
@@ -94,6 +94,14 @@ def getFile(fileDescr, workingDir, buildDir=None, language=''):
         # File already exists
         raise Exception("File %s already exists in %s" % (fileDescr['name'], workingDir))
 
+    if '/' in fileDescr['name']:
+        # Need to make a folder
+        try:
+            os.makedirs(workingDir + fileDescr['name'].split('/')[0])
+        except:
+            pass
+        
+
     if fileDescr.has_key('content'): # Content given in descr
         open(workingDir + fileDescr['name'], 'w').write(fileDescr['content'])
     elif fileDescr.has_key('path'): # Get file by path
@@ -104,9 +112,12 @@ def getFile(fileDescr, workingDir, buildDir=None, language=''):
         if os.path.isfile('%slibs/%s-%s' % (buildDir, language, fileDescr['name'])):
             # We search for [language]-[name] in the libs directory
             os.symlink('%slibs/%s-%s' % (buildDir, language, fileDescr['name']), workingDir + fileDescr['name'])
-        elif language in ['py2', 'py3'] and os.path.isfile('%slibs/py-%s' % (buildDir, fileDescr['name'])):
-            # For Python languages, we search for py-[name] in the libs directory
-            os.symlink('%slibs/py-%s' % (buildDir, fileDescr['name']), workingDir + fileDescr['name'])
+        if language == 'cpp' and os.path.isfile('%slibs/c-%s' % (buildDir, fileDescr['name'])):
+            # For cpp, we also search for c-[name] in the libs directory
+            os.symlink('%slibs/c-%s' % (buildDir, fileDescr['name']), workingDir + fileDescr['name'])
+        elif language in ['py', 'py2', 'py3'] and os.path.isfile('%slibs/run-%s' % (buildDir, fileDescr['name'])):
+            # For Python languages, we search for run-[name] in the libs directory
+            os.symlink('%slibs/run-%s' % (buildDir, fileDescr['name']), workingDir + fileDescr['name'])
         elif os.path.isfile('%slibs/%s' % (buildDir, fileDescr['name'])):
             # We search for [name] in the libs directory
             os.symlink('%slibs/%s' % (buildDir, fileDescr['name']), workingDir + fileDescr['name'])
@@ -356,6 +367,11 @@ def compile(compilationDescr, executionParams, workingDir, buildDir='./', name='
     elif compilationDescr['language'] == 'cpp11':
         cmdLine = "g++ -std=gnu++11 -W -Wall -O2 -o %s.exe %s" % (name, ' '.join(sourceFiles))
         report = execute(executionParams, cmdLine, workingDir, isolate=False)
+    elif compilationDescr['language'] == 'ocaml':
+        cmdLine = "ocamlopt -o %s.exe %s" % (name, ' '.join(sourceFiles))
+    elif compilationDescr['language'] == 'pascal':
+        cmdLine = "fpc -o%s.exe %s" % (name, ' '.join(sourceFiles))
+    # TODO :: compilation de Java, PHP5
     elif compilationDescr['language'] in ['sh', 'py', 'py3']:
         # Scripts are not "compiled", we make an archive out of the source files
         # shar makes a self-extracting "shell archive"
@@ -371,11 +387,12 @@ def compile(compilationDescr, executionParams, workingDir, buildDir='./', name='
             sharFile.truncate(pos + 1)
         # We set the archive to execute the script(s) after self-extracting
         if compilationDescr['language'] == 'sh':
-            sharFile.writelines(map(lambda x: "/bin/sh %s\n" % x, sourceFiles))
+            sharFile.write("export TASKGRADER_DEPFILES=\"%s\"\n" % ' '.join(depFiles))
+            sharFile.writelines(map(lambda x: "/bin/sh %s $@\n" % x, sourceFiles))
         elif compilationDescr['language'] == 'py':
-            sharFile.write("/usr/bin/python2 %s" % ' '.join(sourceFiles))
+            sharFile.write("/usr/bin/python2 %s $@" % ' '.join(sourceFiles))
         elif compilationDescr['language'] == 'py3':
-            sharFile.write("/usr/bin/python3 %s" % ' '.join(sourceFiles))
+            sharFile.write("/usr/bin/python3 %s $@" % ' '.join(sourceFiles))
         # On some versions, shar ignores the --quiet-unshar option and talks too much
         # We replace echo= statements with echo=true as a dirty fix
         sharFile.seek(0)
@@ -399,7 +416,6 @@ def compile(compilationDescr, executionParams, workingDir, buildDir='./', name='
                 'stdout': '',
                 'stderr': '',
                 'files': ''}
-    # TODO :: compilation d'autres langages : Java, Pascal, Caml
     return report
 
 
@@ -437,7 +453,7 @@ def evaluation(evaluationParams):
 
     # We load a "preprocessing" JSON node or file
     try:
-        varData.update(json.load(open(evaluationParams['taskPath'] + 'defaultParams.json', 'r')))
+        varData.update(json.load(open(os.path.join(evaluationParams['taskPath'], 'defaultParams.json'), 'r')))
     except:
         pass
     if evaluationParams.has_key('extraParams'):
@@ -475,7 +491,7 @@ def evaluation(evaluationParams):
         os.mkdir(genDir)
         # We only compile the generator
         genReport = cachedCompile(gen['compilationDescr'], gen['compilationExecution'],
-               genDir, getCacheDir(gen['compilationDescr']['files'] + gen['compilationDescr']['dependencies'], 'compilation'), baseWorkingDir, 'generator')
+               genDir, getCacheDir(gen['compilationDescr']['files'] + gen['compilationDescr']['dependencies'], 'c-generator'), baseWorkingDir, 'generator')
         errorSoFar = errorSoFar or isExecError(genReport)
         report['generators'] = (gen['id'], genReport)
         generatorsFiles[gen['id']] = gen['compilationDescr']['files'] + gen['compilationDescr']['dependencies']
@@ -495,12 +511,12 @@ def evaluation(evaluationParams):
                     # We also have an output generator, we generate `name`.in and `name`.out
                     shutil.copy(baseWorkingDir + 'generators/%s/generator.exe' % gen['idGenerator'], genDir + 'generator.exe')
                     genReport['generatorExecution'] = cachedExecute(gen['genExecution'], "generator.exe %s" % tc['params'], genDir,
-                            getCacheDir(generatorsFiles[gen['idGenerator']], 'execution:' + tc['params']),
+                            getCacheDir(generatorsFiles[gen['idGenerator']], 'e-generator:' + tc['params']),
                             stdoutFile=genDir + tc['name'] + '.in',
                             outputFiles=[tc['name'] + '.in'])
                     shutil.copy(baseWorkingDir + 'generators/%s/generator.exe' % gen['idOutputGenerator'], genDir + 'outgenerator.exe')
                     genReport['outputGeneratorExecution'] = cachedExecute(gen['outGenExecution'], "outgenerator.exe %s" % tc['params'], genDir,
-                            getCacheDir(generatorsFiles[gen['idOutputGenerator']], 'execution:' + tc['params']),
+                            getCacheDir(generatorsFiles[gen['idOutputGenerator']], 'e-generator:' + tc['params']),
                             stdoutFile=genDir + tc['name'] + '.out',
                             outputFiles=[tc['name'] + '.out'])
                     shutil.copy(genDir + tc['name'] + '.in', baseWorkingDir + 'tests/' + tc['name'] + '.in')
@@ -510,7 +526,7 @@ def evaluation(evaluationParams):
                     # We only have one generator, we assume `name` is the name of the test file to generate
                     shutil.copy(baseWorkingDir + 'generators/%s/generator.exe' % gen['idGenerator'], genDir + 'generator.exe')
                     genReport['generatorExecution'] = cachedExecute(gen['genExecution'], "generator.exe %s" % tc['params'], genDir,
-                            getCacheDir(generatorsFiles[gen['idGenerator']], 'execution:' + tc['params']),
+                            getCacheDir(generatorsFiles[gen['idGenerator']], 'e-generator:' + tc['params']),
                             stdoutFile=genDir + tc['name'],
                             outputFiles=[tc['name']])
                     shutil.copy(genDir + tc['name'], baseWorkingDir + 'tests/' + tc['name'])
@@ -522,13 +538,13 @@ def evaluation(evaluationParams):
             genReport = {'id': gen['id']}
             shutil.copy(baseWorkingDir + 'generators/%s/generator.exe' % gen['idGenerator'], genDir + 'generator.exe')
             genReport['generatorExecution'] = cachedExecute(gen['genExecution'], "generator.exe", genDir,
-                    getCacheDir(generatorsFiles[gen['idGenerator']], 'execution'), outputFiles=['*.in', '*.out', '*.h', '*.java', '*.ml', '*.mli', '*.pas', '*.py'])
+                    getCacheDir(generatorsFiles[gen['idGenerator']], 'e-generator'), outputFiles=['*.in', '*.out', '*.h', '*.java', '*.ml', '*.mli', '*.pas', '*.py'])
             errorSoFar = errorSoFar or isExecError(genReport['generatorExecution'])
             if gen.has_key('idOutputGenerator'):
                 # We also have an output generator
                 shutil.copy(baseWorkingDir + 'generators/%s/generator.exe' % gen['idOutputGenerator'], genDir + 'outgenerator.exe')
                 genReport['outputGeneratorExecution'] = cachedExecute(gen['outGenExecution'], "outgenerator.exe" % gen['idOutputGenerator'], genDir,
-                        getCacheDir(generatorsFiles[gen['idOutputGenerator']], 'execution'), outputFiles=['*.out'])
+                        getCacheDir(generatorsFiles[gen['idOutputGenerator']], 'e-generator'), outputFiles=['*.out'])
                 errorSoFar = errorSoFar or isExecError(genReport['outputGeneratorExecution'])
             report['generations'].append(genReport)
             # We copy the generated test files
@@ -551,7 +567,7 @@ def evaluation(evaluationParams):
     report['sanitizer'] = cachedCompile(evaluationParams['sanitizer']['compilationDescr'],
             evaluationParams['sanitizer']['compilationExecution'],
             baseWorkingDir + "sanitizer/",
-            getCacheDir(evaluationParams['sanitizer']['compilationDescr']['files'], 'compilation'),
+            getCacheDir(evaluationParams['sanitizer']['compilationDescr']['files'] + evaluationParams['sanitizer']['compilationDescr']['dependencies'], 'c-sanitizer'),
             baseWorkingDir, 'sanitizer')
     errorSoFar = errorSoFar or isExecError(report['sanitizer'])
 
@@ -560,14 +576,14 @@ def evaluation(evaluationParams):
     report['checker'] = cachedCompile(evaluationParams['checker']['compilationDescr'],
             evaluationParams['checker']['compilationExecution'],
             baseWorkingDir + "checker/",
-            getCacheDir(evaluationParams['checker']['compilationDescr']['files'], 'compilation'),
+            getCacheDir(evaluationParams['checker']['compilationDescr']['files'] + evaluationParams['sanitizer']['compilationDescr']['dependencies'], 'c-checker'),
             baseWorkingDir, 'checker')
     errorSoFar = errorSoFar or isExecError(report['sanitizer'])
 
 
     # Did we encounter an error so far?
     if errorSoFar:
-        raise Exception()
+        raise Exception("Error in task generation. Please check the partial report for more information: %s" % json.dumps(report))
 
 
     # *** Solutions
@@ -580,7 +596,7 @@ def evaluation(evaluationParams):
         os.mkdir(solDir)
         # We only compile the solution
         solReport = cachedCompile(sol['compilationDescr'], sol['compilationExecution'],
-               solDir, getCacheDir(sol['compilationDescr']['files'], 'compilation'), baseWorkingDir, 'solution')
+               solDir, getCacheDir(sol['compilationDescr']['files'], 'c-solution'), baseWorkingDir, 'solution')
         report['solutions'].append(solReport)
         solutionsFiles[sol['id']] = sol['compilationDescr']['files']
         if isExecError(solReport):
@@ -616,7 +632,7 @@ def evaluation(evaluationParams):
             shutil.copy(baseWorkingDir + 'sanitizer/sanitizer.exe', testDir + 'sanitizer.exe')
             subTestReport['sanitizer'] = cachedExecute(evaluationParams['checker']['runExecution'],
                     'sanitizer.exe', testDir,
-                    getCacheDir(evaluationParams['sanitizer']['compilationDescr']['files'], 'execution', inputFiles=[tf]),
+                    getCacheDir(evaluationParams['sanitizer']['compilationDescr']['files'], 'e-sanitizer', inputFiles=[tf]),
                     stdinFile=tf, outputFiles=[])
             if isExecError(subTestReport['sanitizer']):
                 # Sanitizer found an error, we skip this file
@@ -626,9 +642,9 @@ def evaluation(evaluationParams):
             shutil.copy(tf, testDir)
             shutil.copy("%ssolutions/%s/solution.exe" % (baseWorkingDir, test['idSolution']), testDir + 'solution.exe')
             subTestReport['execution'] = cachedExecute(test['runExecution'], 'solution.exe', testDir,
-                    getCacheDir(solutionsFiles[test['idSolution']], 'execution', inputFiles=[testDir + baseTfName + '.in']),
+                    getCacheDir(solutionsFiles[test['idSolution']], 'e-solution', inputFiles=[testDir + baseTfName + '.in']),
                     stdinFile=testDir + baseTfName + '.in', stdoutFile=testDir + baseTfName + '.solout',
-                    outputFiles=[testDir + baseTfName + '.out'])
+                    outputFiles=['*.solout'])
             if isExecError(subTestReport['execution']):
                 # Solution returned an error, no need to check
                 mainTestReport['testsReports'].append(subTestReport)
@@ -639,7 +655,8 @@ def evaluation(evaluationParams):
             subTestReport['checker'] = cachedExecute(evaluationParams['checker']['runExecution'],
                     "checker.exe %s %s %s" % (baseTfName + '.solout', baseTfName + '.in', baseTfName + '.out'),
                     testDir,
-                    getCacheDir(evaluationParams['checker']['compilationDescr']['files'], 'execution', inputFiles=[testDir + baseTfName + '.out']),
+                    getCacheDir(evaluationParams['checker']['compilationDescr']['files'], 'e-checker',
+                    inputFiles=[testDir + baseTfName + '.solout', testDir + baseTfName + '.in', testDir + baseTfName + '.out']),
                     stdinFile=testDir + baseTfName + '.out',
                     stdoutFile=testDir + baseTfName + '.ok',
                     outputFiles=[testDir + baseTfName + '.ok'])
