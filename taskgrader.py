@@ -6,16 +6,42 @@
 # http://opensource.org/licenses/MIT
 
 
-
-import glob, hashlib, json, os, random, shlex, shutil, sys, subprocess
-import pickle # Temporary
+import glob, hashlib, json, os, random, shlex, shutil, sqlite3, sys, subprocess
+import cProfile
 
 CFG_BASEDIR = '/home/michel/franceioi/taskgraderfiles/'
 CFG_BUILDSDIR = CFG_BASEDIR + 'builds/'
 CFG_CACHEDIR = CFG_BASEDIR + 'cache/'
+CFG_DATABASE = sqlite3.connect(CFG_CACHEDIR + 'taskgrader-cache.sqlite')
 
 CFG_ISOLATEBIN = CFG_BASEDIR + 'isolate'
 CFG_RIGHTSBIN = CFG_BASEDIR + 'box-rights'
+
+# Initialize the database if needed
+try:
+    CFG_DATABASE.execute("""CREATE TABLE cache
+            (id INTEGER PRIMARY KEY,
+             filesid TEXT,
+             hashlist TEXT)""")
+except:
+    pass
+CFG_DATABASE.row_factory = sqlite3.Row
+
+# Time and memory parameter transformations for some languages
+# For memory, we only transform the limit
+CFG_TRANSFORM_MEM =  {'c': lambda x: (712000 + x*1024)/1024,
+                      'cpp': lambda x: (768000 + x*1024)/1024,
+                      'pascal': lambda x: (196000 + x*1024)/1024,
+                      'ocaml': lambda x: (1616000 + x*1024)/1024,
+                      'java': lambda x: (48498000 + x*1024)/1024,
+                      'py': lambda x: (9960000 + x*1024)/1024}
+# For time, each dict entry is a tuple (transform_func, untransform_func)
+CFG_TRANSFORM_TIME = {'c': (lambda x: x * 0.9, lambda x: x / 0.9),
+                      'cpp': (lambda x: x * 0.9, lambda x: x / 0.9),
+                      'pascal': (lambda x: x * 0.9, lambda x: x / 0.9),
+                      'ocaml': (lambda x: x * 0.9, lambda x: x / 0.9),
+                      'java': (lambda x: x * 2.5 + 0.17, lambda x: max(0, x-0.17)/2.5),
+                      'py': (lambda x: x * 0.9 + 0.05, lambda x: max(0, x-0.05)/0.9)}
 
 class dictWithVars(dict):
     """Class representing JSON data with some variables in it.
@@ -87,14 +113,17 @@ def getFile(fileDescr, workingDir, buildDir=None, language=''):
     if fileDescr.has_key('content'): # Content given in descr
         open(workingDir + fileDescr['name'], 'w').write(fileDescr['content'])
     elif fileDescr.has_key('path'): # Get file by path
-        os.symlink(fileDescr['path'], workingDir + fileDescr['name'])
+        if os.path.isfile(fileDescr['path']):
+            os.symlink(fileDescr['path'], workingDir + fileDescr['name'])
+        else:
+            raise Exception("File not found: %s" % fileDescr['path'])
     else: # File is a built dependency
         if not buildDir:
             buildDir = workingDir
         if os.path.isfile('%slibs/%s-%s' % (buildDir, language, fileDescr['name'])):
             # We search for [language]-[name] in the libs directory
             os.symlink('%slibs/%s-%s' % (buildDir, language, fileDescr['name']), workingDir + fileDescr['name'])
-        if language == 'cpp' and os.path.isfile('%slibs/c-%s' % (buildDir, fileDescr['name'])):
+        elif language == 'cpp' and os.path.isfile('%slibs/c-%s' % (buildDir, fileDescr['name'])):
             # For cpp, we also search for c-[name] in the libs directory
             os.symlink('%slibs/c-%s' % (buildDir, fileDescr['name']), workingDir + fileDescr['name'])
         elif language in ['py', 'py2', 'py3'] and os.path.isfile('%slibs/run-%s' % (buildDir, fileDescr['name'])):
@@ -135,25 +164,26 @@ def getCacheDir(files, cacheType, inputFiles=[]):
     fileIdList.sort()
     fileHashList.sort() # Both lists won't be sorted the same but it's not an issue
 
+    # We make a text version for the database
+    fileHashes = ';'.join(fileHashList)
     # This will be the ID string in the database, containing the cache type and the source files list
     filesId = "cache:%s;%s" % (cacheType, ";".join(fileIdList))
 
-    # TODO :: vraie DB quand le programme sera complet
     # Read cache information from database
-    try:
-        database = pickle.load(open(CFG_CACHEDIR + 'database.pickle', 'r'))
-    except:
-        database = {}
-    if database.has_key(filesId):
+    dbCur = CFG_DATABASE.cursor()
+    dbCur.execute("SELECT * FROM cache WHERE filesId=?", [filesId])
+    dbRow = dbCur.fetchone()
+    if dbRow:
         # This list of files already exists in the database
-        (dbId, dbHashList) = database[filesId]
-        if dbHashList == fileHashList and os.path.isfile("%s%s/cache.ok" % (CFG_CACHEDIR, dbId)):
+        dbId = dbRow['id']
+        dbHashes = dbRow['hashlist']
+        if dbHashes == fileHashes and os.path.isfile("%s%s/cache.ok" % (CFG_CACHEDIR, dbId)):
             # MD5 hashes are good
             return (True, "%s%s/" % (CFG_CACHEDIR, dbId))
         else:
             # MD5 hashes changed, update database, invalidate cache
-            database[filesId] = (dbId, fileHashList)
-            pickle.dump(database, open(CFG_CACHEDIR + 'database.pickle', 'w'))
+            dbCur.execute("UPDATE cache SET hashlist=? WHERE filesid=?", [fileHashes, filesId])
+            CFG_DATABASE.commit()
             try:
                 shutil.rmtree("%s%s" % (CFG_CACHEDIR, dbId))
             except:
@@ -162,9 +192,9 @@ def getCacheDir(files, cacheType, inputFiles=[]):
             return (False, "%s%s/" % (CFG_CACHEDIR, dbId))
     else:
         # New entry in database
-        newId = len(database)
-        database[filesId] = (newId, fileHashList)
-        pickle.dump(database, open(CFG_CACHEDIR + 'database.pickle', 'w'))
+        dbCur.execute("INSERT INTO cache(filesid, hashlist) VALUES(?, ?)", [filesId, fileHashes])
+        CFG_DATABASE.commit()
+        newId = dbCur.lastrowid
         os.mkdir("%s%s/" % (CFG_CACHEDIR, newId))
         return (False, "%s%s/" % (CFG_CACHEDIR, newId))
 
@@ -184,13 +214,32 @@ def capture(path, name='', truncateSize=-1):
     return report
 
 
-def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=None, isolate=True):
+def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=None, language='', isolate=True):
     """Execute a command line and build the report."""
+    # Check time and memory limits
+    if executionParams['timeLimitMs'] > 60000:
+        raise Exception("Time limit (%d) for command %s too high." % (executionParams['timeLimitMs'], cmdLine))
+    if executionParams['memoryLimitKb'] > 1024*1024:
+        raise Exception("Memory limit (%d) for command %s too high." % (executionParams['memoryLimitKb'], cmdLine))
+
     # Values copied from the arguments
     report = {'timeLimitMs': executionParams['timeLimitMs'],
             'memoryLimitKb': executionParams['memoryLimitKb'],
             'commandLine': cmdLine,
             'wasCached': False}
+
+    # Transformation of time and memory limits for the language
+    if CFG_TRANSFORM_MEM.has_key(language):
+        realMemLimit = CFG_TRANSFORM_MEM[language](executionParams['memoryLimitKb'])
+    else:
+        realMemoryLimitKb = executionParams['memoryLimitKb']
+    if CFG_TRANSFORM_TIME.has_key(language):
+        (timeTransform, timeUntransform) = CFG_TRANSFORM_TIME[language]
+        realTimeLimit = timeTransform(executionParams['timeLimitMs'])
+        report['realTimeLimitMs'] = realTimeLimit
+    else:
+        timeUntransform = None
+        realTimeLimit = executionParams['timeLimitMs']
 
     if stdoutFile == None:
         stdoutFile = workingDir + 'stdout'
@@ -209,12 +258,15 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
         isolatedCmdLine += ' --env=HOME --env=PATH'
         isolatedCmdLine += ' --meta=' + workingDir + 'isolate.meta'
         if executionParams['timeLimitMs'] > 0:
-            isolatedCmdLine += ' --time=' + str(executionParams['timeLimitMs'] / 1000.)
+            isolatedCmdLine += ' --time=' + str(realTimeLimit / 1000.)
         if executionParams['memoryLimitKb'] > 0:
             isolatedCmdLine += ' --mem=' + str(executionParams['memoryLimitKb'])
         if stdinFile:
-            shutil.copy(stdinFile, isolateDir + 'isolated.stdin')
-            isolatedCmdLine += ' --stdin=isolated.stdin'
+            if os.path.isfile(stdinFile):
+                shutil.copy(stdinFile, isolateDir + 'isolated.stdin')
+                isolatedCmdLine += ' --stdin=isolated.stdin'
+            else:
+                raise Exception("Input file %s not found while preparing to execute command %s." % (stdinFile, cmdLine))
         isolatedCmdLine += ' --stdout=isolated.stdout --stderr=isolated.stderr'
         isolatedCmdLine += ' --run -- ' + cmdLine
 
@@ -246,7 +298,11 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
 
         # Generate execution report
         if isolateMeta.has_key('time'):
-            report['timeTakenMs'] = float(isolateMeta['time'])*1000
+            if timeUntransform:
+                report['timeTakenMs'] = timeUntransform(float(isolateMeta['time'])*1000)
+                report['realTimeTakenMs'] = float(isolateMeta['time'])*1000
+            else:
+                report['timeTakenMs'] = float(isolateMeta['time'])*1000
         else:
             report['timeTakenMs'] = -1
         report['wasKilled'] = isolateMeta.has_key('killed')
@@ -266,7 +322,10 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
     else:
         # We don't use isolate
         if stdinFile:
-            stdinHandle = open(stdinFile, 'r')
+            if os.path.isfile(stdinFile):
+                stdinHandle = open(stdinFile, 'r')  
+            else:
+                raise Exception("Input file %s not found while preparing to execute command %s." % (stdinFile, cmdLine))
         else:
             stdinHandle = None
         proc = subprocess.Popen(shlex.split(cmdLine), stdin=stdinHandle, stdout=open(stdoutFile, 'w'),
@@ -294,7 +353,7 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
     return report
 
 
-def cachedExecute(executionParams, cmdLine, workingDir, cacheData, stdinFile=None, stdoutFile=None, outputFiles=[]):
+def cachedExecute(executionParams, cmdLine, workingDir, cacheData, stdinFile=None, stdoutFile=None, outputFiles=[], language=''):
     """Get the results from execution of a program, either by fetching them
     from cache, or by actually executing the program."""
     if executionParams['useCache']:
@@ -309,7 +368,7 @@ def cachedExecute(executionParams, cmdLine, workingDir, cacheData, stdinFile=Non
                     os.symlink(f, workingDir + os.path.basename(f))
         else:
             # We execute again the program
-            report = execute(executionParams, cmdLine, workingDir, stdinFile=stdinFile, stdoutFile=stdoutFile)
+            report = execute(executionParams, cmdLine, workingDir, stdinFile=stdinFile, stdoutFile=stdoutFile, language=language)
             # We save results to cache if execution was successful
             if not isExecError(report):
                 for g in outputFiles:
@@ -319,7 +378,7 @@ def cachedExecute(executionParams, cmdLine, workingDir, cacheData, stdinFile=Non
                 open("%scache.ok" % cacheDir, 'w')
     else:
         # We don't use cache at all
-        report = execute(executionParams, cmdLine, workingDir, stdinFile=stdinFile, stdoutFile=stdoutFile)
+        report = execute(executionParams, cmdLine, workingDir, stdinFile=stdinFile, stdoutFile=stdoutFile, language=language)
 
     return report
 
@@ -341,18 +400,20 @@ def compile(compilationDescr, executionParams, workingDir, buildDir='./', name='
 
     # We compile according to the source type
     if compilationDescr['language'] == 'c':
-        cmdLine = "gcc -W -Wall -O2 -o %s.exe %s" % (name, ' '.join(sourceFiles))
+        cmdLine = "/usr/bin/gcc -static -std=gnu99 -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
         report = execute(executionParams, cmdLine, workingDir, isolate=False)
     elif compilationDescr['language'] == 'cpp':
-        cmdLine = "g++ -W -Wall -O2 -o %s.exe %s" % (name, ' '.join(sourceFiles))
+        cmdLine = "/usr/bin/g++ -static -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
         report = execute(executionParams, cmdLine, workingDir, isolate=False)
     elif compilationDescr['language'] == 'cpp11':
-        cmdLine = "g++ -std=gnu++11 -W -Wall -O2 -o %s.exe %s" % (name, ' '.join(sourceFiles))
+        cmdLine = "/usr/bin/g++ -std=gnu++11 -static -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
         report = execute(executionParams, cmdLine, workingDir, isolate=False)
     elif compilationDescr['language'] == 'ocaml':
-        cmdLine = "ocamlopt -o %s.exe %s" % (name, ' '.join(sourceFiles))
+        cmdLine = "/usr/bin/ocamlopt -ccopt -static -o %s.exe %s" % (name, ' '.join(sourceFiles))
     elif compilationDescr['language'] == 'pascal':
-        cmdLine = "fpc -o%s.exe %s" % (name, ' '.join(sourceFiles))
+        cmdLine = "/usr/bin/fpc -o%s.exe %s" % (name, ' '.join(sourceFiles))
+    elif compilationDescr['language'] == 'java':
+        cmdLine = "/usr/bin/gcj --encoding=utf8 --main=Main -o %s.exe %s" % (name, ' '.join(sourceFiles))
     # TODO :: compilation de Java, PHP5
     elif compilationDescr['language'] in ['sh', 'py', 'py3']:
         # Scripts are not "compiled", we make an archive out of the source files
@@ -496,13 +557,16 @@ def evaluation(evaluationParams):
                             getCacheDir(generatorsFiles[gen['idGenerator']], 'e-generator:' + tc['params']),
                             stdoutFile=genDir + tc['name'] + '.in',
                             outputFiles=[tc['name'] + '.in'])
+                    if not isExecError(genReport['generatorExecution']):
+                        shutil.copy(genDir + tc['name'] + '.in', baseWorkingDir + 'tests/' + tc['name'] + '.in')
+
                     shutil.copy(baseWorkingDir + 'generators/%s/generator.exe' % gen['idOutputGenerator'], genDir + 'outgenerator.exe')
                     genReport['outputGeneratorExecution'] = cachedExecute(gen['outGenExecution'], "outgenerator.exe %s" % tc['params'], genDir,
                             getCacheDir(generatorsFiles[gen['idOutputGenerator']], 'e-generator:' + tc['params']),
                             stdoutFile=genDir + tc['name'] + '.out',
                             outputFiles=[tc['name'] + '.out'])
-                    shutil.copy(genDir + tc['name'] + '.in', baseWorkingDir + 'tests/' + tc['name'] + '.in')
-                    shutil.copy(genDir + tc['name'] + '.out', baseWorkingDir + 'tests/' + tc['name'] + '.out')
+                    if not isExecError(genReport['outputGeneratorExecution']):
+                        shutil.copy(genDir + tc['name'] + '.out', baseWorkingDir + 'tests/' + tc['name'] + '.out')
                     errorSoFar = errorSoFar or isExecError(genReport['generatorExecution']) or isExecError(genReport['outputGeneratorExecution'])
                 else:
                     # We only have one generator, we assume `name` is the name of the test file to generate
@@ -511,8 +575,10 @@ def evaluation(evaluationParams):
                             getCacheDir(generatorsFiles[gen['idGenerator']], 'e-generator:' + tc['params']),
                             stdoutFile=genDir + tc['name'],
                             outputFiles=[tc['name']])
-                    shutil.copy(genDir + tc['name'], baseWorkingDir + 'tests/' + tc['name'])
-                    errorSoFar = errorSoFar or isExecError(genReport['generatorExecution'])
+                    if isExecError(genReport['generatorExecution']):
+                        errorSoFar = True
+                    else:
+                        shutil.copy(genDir + tc['name'], baseWorkingDir + 'tests/' + tc['name'])
                 report['generations'].append(genReport)
                 
         else:
@@ -565,13 +631,13 @@ def evaluation(evaluationParams):
 
     # Did we encounter an error so far?
     if errorSoFar:
-        raise Exception("Error in task generation. Please check the partial report for more information: %s" % json.dumps(report))
+        raise Exception("Error in task generation. Please check the partial report for more information:\n%s" % json.dumps(report))
 
 
     # *** Solutions
     os.mkdir(baseWorkingDir + "solutions/")
     report['solutions'] = []
-    solutionsFiles = {} # Source files of solutions, need this for the evaluations
+    solutionsInfo = {} # Language and source files of solutions, need this for the evaluations
     solutionsWithErrors = []
     for sol in evaluationParams['solutions']:
         solDir = "%ssolutions/%s/" % (baseWorkingDir, sol['id'])
@@ -580,7 +646,7 @@ def evaluation(evaluationParams):
         solReport = cachedCompile(sol['compilationDescr'], sol['compilationExecution'],
                solDir, getCacheDir(sol['compilationDescr']['files'], 'c-solution'), baseWorkingDir, 'solution')
         report['solutions'].append(solReport)
-        solutionsFiles[sol['id']] = sol['compilationDescr']['files']
+        solutionsInfo[sol['id']] = (sol['compilationDescr']['language'], sol['compilationDescr']['files'])
         if isExecError(solReport):
             # We keep a list of solutions with errors
             solutionsWithErrors.append(sol['id'])
@@ -592,6 +658,8 @@ def evaluation(evaluationParams):
         if test['idSolution'] in solutionsWithErrors:
             # This solution didn't compile
             continue
+
+        (solutionLang, solutionFiles) = solutionsInfo[test['idSolution']]
 
         mainTestReport = {'name': test['idSolution'], 'testsReports': []}
         testDir = "%sexecutions/%s.%s/" % (baseWorkingDir, test['idSolution'], test['id'])
@@ -624,16 +692,20 @@ def evaluation(evaluationParams):
             shutil.copy(tf, testDir)
             shutil.copy("%ssolutions/%s/solution.exe" % (baseWorkingDir, test['idSolution']), testDir + 'solution.exe')
             subTestReport['execution'] = cachedExecute(test['runExecution'], 'solution.exe', testDir,
-                    getCacheDir(solutionsFiles[test['idSolution']], 'e-solution', inputFiles=[testDir + baseTfName + '.in']),
+                    getCacheDir(solutionFiles, 'e-solution', inputFiles=[testDir + baseTfName + '.in']),
                     stdinFile=testDir + baseTfName + '.in', stdoutFile=testDir + baseTfName + '.solout',
-                    outputFiles=['*.solout'])
+                    outputFiles=['*.solout'], language=solutionLang)
             if isExecError(subTestReport['execution']):
                 # Solution returned an error, no need to check
                 mainTestReport['testsReports'].append(subTestReport)
                 continue
             # We execute the checker
             shutil.copy(baseWorkingDir + 'checker/checker.exe', testDir)
-            shutil.copy(tf[:-3] + '.out', testDir)
+            if os.path.isfile(tf[:-3] + '.out'):
+                shutil.copy(tf[:-3] + '.out', testDir)
+            else:
+                # We write a dummy .out file, the checker probably doesn't need it
+                open(testDir + baseTfName + '.out', 'w')
             subTestReport['checker'] = cachedExecute(evaluationParams['checker']['runExecution'],
                     "checker.exe %s %s %s" % (baseTfName + '.solout', baseTfName + '.in', baseTfName + '.out'),
                     testDir,
@@ -650,5 +722,8 @@ def evaluation(evaluationParams):
 
 
 if __name__ == '__main__':
-    inJson = json.load(sys.stdin)
+    try:
+        inJson = json.load(sys.stdin)
+    except Exception as err:
+        raise Exception("Input data is not valid JSON: %s" % err)
     json.dump(evaluation(inJson), sys.stdout)
