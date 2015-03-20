@@ -7,28 +7,8 @@
 
 
 
-import getopt
-# Usual imports
-import glob, hashlib, json, os, random, shlex, shutil, sys, subprocess
-
-# Taskgrader path
-CFG_TASKGRADER = '/home/michel/franceioi/taskgrader/taskgrader.py'
-# Default solution compilation and execution parameters
-CFG_EXECPARAMS = {'timeLimitMs': 60000,
-                  'memoryLimitKb': 128*1024,
-                  'useCache': True,
-                  'stdoutTruncateKb': -1,
-                  'stderrTruncateKb': -1,
-                  'getFiles': []}
-# Languages supported, file extension -> language
-CFG_LANGUAGES = {'.c': 'c',
-                 '.cpp': 'cpp',
-                 '.py': 'py',
-                 '.ml': 'ocaml',
-                 '.java': 'java',
-                 '.pas': 'pascal',
-                 '.sh': 'sh',
-                 '': 'sh'}
+import getopt, json, os, sys, subprocess
+from config import CFG_TASKGRADER, CFG_EXECPARAMS, CFG_LANGEXTS
 
 
 def usage():
@@ -99,7 +79,7 @@ if __name__ == '__main__':
 
         # Auto-detect language from extension
         (r, ext) = os.path.splitext(f)
-        lang = CFG_LANGUAGES[ext]
+        lang = CFG_LANGEXTS[ext]
 
         print "Adding solution %s, language %s" % (f, lang)
 

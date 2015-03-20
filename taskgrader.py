@@ -7,41 +7,8 @@
 
 
 import glob, hashlib, json, os, random, shlex, shutil, sqlite3, sys, subprocess
-import cProfile
+from config import *
 
-CFG_BASEDIR = '/home/michel/franceioi/taskgraderfiles/'
-CFG_BUILDSDIR = CFG_BASEDIR + 'builds/'
-CFG_CACHEDIR = CFG_BASEDIR + 'cache/'
-CFG_DATABASE = sqlite3.connect(CFG_CACHEDIR + 'taskgrader-cache.sqlite')
-
-CFG_ISOLATEBIN = CFG_BASEDIR + 'isolate'
-CFG_RIGHTSBIN = CFG_BASEDIR + 'box-rights'
-
-# Initialize the database if needed
-try:
-    CFG_DATABASE.execute("""CREATE TABLE cache
-            (id INTEGER PRIMARY KEY,
-             filesid TEXT,
-             hashlist TEXT)""")
-except:
-    pass
-CFG_DATABASE.row_factory = sqlite3.Row
-
-# Time and memory parameter transformations for some languages
-# For memory, we only transform the limit
-CFG_TRANSFORM_MEM =  {'c': lambda x: (712000 + x*1024)/1024,
-                      'cpp': lambda x: (768000 + x*1024)/1024,
-                      'pascal': lambda x: (196000 + x*1024)/1024,
-                      'ocaml': lambda x: (1616000 + x*1024)/1024,
-                      'java': lambda x: (48498000 + x*1024)/1024,
-                      'py': lambda x: (9960000 + x*1024)/1024}
-# For time, each dict entry is a tuple (transform_func, untransform_func)
-CFG_TRANSFORM_TIME = {'c': (lambda x: x * 0.9, lambda x: x / 0.9),
-                      'cpp': (lambda x: x * 0.9, lambda x: x / 0.9),
-                      'pascal': (lambda x: x * 0.9, lambda x: x / 0.9),
-                      'ocaml': (lambda x: x * 0.9, lambda x: x / 0.9),
-                      'java': (lambda x: x * 2.5 + 0.17, lambda x: max(0, x-0.17)/2.5),
-                      'py': (lambda x: x * 0.9 + 0.05, lambda x: max(0, x-0.05)/0.9)}
 
 class dictWithVars(dict):
     """Class representing JSON data with some variables in it.
