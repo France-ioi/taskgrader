@@ -1,0 +1,6 @@
+[submodule "moe"]
+	path = moe
+	url = git://git.ucw.cz/moe.git
+[submodule "jsonschema"]
+	path = jsonschema
+	url = https://github.com/Julian/jsonschema.git

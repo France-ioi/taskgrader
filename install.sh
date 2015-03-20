@@ -23,17 +23,12 @@ then
 fi
 
 ### Fetch isolate
-echo "*** Fetching isolate from git://git.ucw.cz/moe.git..."
-git clone git://git.ucw.cz/moe.git
+echo "*** Compiling isolate from moe..."
 cd moe
 ./configure
 make
 mv obj/isolate/isolate ../
 cd ..
-
-### Fetch jsonschema
-echo "*** Fetching jsonschema from https://github.com/Julian/jsonschema.git..."
-git clone https://github.com/Julian/jsonschema.git
 
 ### Compile C programs
 echo "*** Setting isolate rights..."
