@@ -63,14 +63,11 @@ else
     ERROR=1
 fi
 
-echo "*** Notice:"
-echo "Please set, in taskgrader.py:"
-echo "-the variable CFG_BASEDIR in taskgrader.py to an existing clean directory,"
-echo " it will contain the builds and cache;"
-echo "-the variable CFG_BINDIR in taskgrader.py to the directory containing the taskgrader"
-echo " and the binaries compiled by this script;"
-echo "in grade.py:"
-echo "-the variable CFG_TASKGRADER to the path of taskgrader.py."
+### Modify config.py
+mkdir files
+sed -i "s|^CFG_BASEDIR.*$|CFG_BASEDIR=\"`pwd`/files/\"|" config.py
+sed -i "s|^CFG_BINDIR.*$|CFG_BINDIR=\"`pwd`/\"|" config.py
+
 
 if [ $ERROR -eq 1 ]
 then
