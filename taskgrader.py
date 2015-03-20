@@ -8,7 +8,10 @@
 
 import glob, hashlib, json, os, random, shlex, shutil, sqlite3, sys, subprocess
 from config import *
+from schemas import *
 
+sys.path.append(CFG_JSONSCHEMA)
+from jsonschema import validate
 
 class dictWithVars(dict):
     """Class representing JSON data with some variables in it.
@@ -497,6 +500,8 @@ def evaluation(evaluationParams):
     report['buildPath'] = baseWorkingDir
     os.mkdir(baseWorkingDir + "libs/")
     os.mkdir(baseWorkingDir + "tests/")
+
+    validate(evaluationParams, SCHEMA_INJSON)
 
     errorSoFar = False
 

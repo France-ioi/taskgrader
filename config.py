@@ -15,11 +15,13 @@ CFG_BINDIR = ''
 
 CFG_BUILDSDIR = os.path.join(CFG_BASEDIR, 'builds/')
 CFG_CACHEDIR = os.path.join(CFG_BASEDIR, 'cache/')
-CFG_DATABASE = sqlite3.connect(os.path.join(CFG_CACHEDIR, 'taskgrader-cache.sqlite'))
+CFG_DATABASEPATH = os.path.join(CFG_CACHEDIR, 'taskgrader-cache.sqlite')
 
 CFG_ISOLATEBIN = os.path.join(CFG_BINDIR, 'isolate')
 CFG_RIGHTSBIN = os.path.join(CFG_BINDIR, 'box-rights')
 CFG_JAVASCOOLBIN = os.path.join(CFG_BINDIR, 'FranceIOIJvs2Java')
+
+CFG_JSONSCHEMA = os.path.join(CFG_BINDIR, 'jsonschema')
 
 # Time and memory parameter transformations for some languages
 # For memory, we only transform the limit
@@ -55,10 +57,10 @@ CFG_LANGEXTS = {'.c': 'c',
 
 
 ### We raise an exception if we don't have all configuration variables
-for var in ['CFG_BASEDIR', 'CFG_BUILDSDIR', 'CFG_CACHEDIR', 'CFG_DATABASE',
+for var in ['CFG_BASEDIR', 'CFG_BUILDSDIR', 'CFG_CACHEDIR', 'CFG_DATABASEPATH',
             'CFG_BINDIR', 'CFG_ISOLATEBIN', 'CFG_RIGHTSBIN', 'CFG_JAVASCOOLBIN',
-            'CFG_TRANSFORM_MEM', 'CFG_TRANSFORM_TIME', 'CFG_TASKGRADER',
-            'CFG_EXECPARAMS', 'CFG_LANGEXTS']:
+            'CFG_JSONSCHEMA', 'CFG_TRANSFORM_MEM', 'CFG_TRANSFORM_TIME',
+            'CFG_TASKGRADER', 'CFG_EXECPARAMS', 'CFG_LANGEXTS']:
     if var not in globals():
         raise Exception("Configuration variable %s missing. Please edit config.py." % var)
 
@@ -78,6 +80,7 @@ except:
     pass
 
 # Initialize the database if needed
+CFG_DATABASE = sqlite3.connect(CFG_DATABASEPATH)
 try:
     CFG_DATABASE.execute("""CREATE TABLE cache
             (id INTEGER PRIMARY KEY,
