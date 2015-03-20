@@ -22,7 +22,10 @@ then
     exit 1
 fi
 
-### Fetch isolate
+### Fetch jsonschema and moe
+git submodule update --init jsonschema moe
+
+### Compile isolate
 echo "*** Compiling isolate from moe..."
 cd moe
 ./configure
