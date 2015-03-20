@@ -8,7 +8,6 @@
 
 import glob, hashlib, json, os, random, shlex, shutil, sqlite3, sys, subprocess
 from config import *
-from schemas import *
 
 sys.path.append(CFG_JSONSCHEMA)
 from jsonschema import validate
@@ -430,14 +429,11 @@ def compile(compilationDescr, executionParams, workingDir, buildDir='./', name='
         # We build a dummy report
         report = {'timeLimitMs': executionParams['timeLimitMs'],
                 'memoryLimitKb': executionParams['memoryLimitKb'],
-                'cmdLine': '[shell script built]',
+                'commandLine': '[shell script built]',
                 'timeTakenMs': 0,
                 'wasKilled': False,
                 'wasCached': False,
-                'exitCode': 0,
-                'stdout': '',
-                'stderr': '',
-                'files': ''}
+                'exitCode': 0}
     return report
 
 
@@ -498,10 +494,15 @@ def evaluation(evaluationParams):
 
     varData['BUILD_PATH'] = baseWorkingDir
     report['buildPath'] = baseWorkingDir
+
+    # We validate the input JSON format
+    try:
+        validate(evaluationParams, json.load(open(CFG_INPUTSCHEMA, 'r')))
+    except Exception as err:
+        raise Exception("Validation failed for input JSON, error message: %s" % str(err))
+
     os.mkdir(baseWorkingDir + "libs/")
     os.mkdir(baseWorkingDir + "tests/")
-
-    validate(evaluationParams, SCHEMA_INJSON)
 
     errorSoFar = False
 
@@ -517,7 +518,7 @@ def evaluation(evaluationParams):
         genReport = cachedCompile(gen['compilationDescr'], gen['compilationExecution'],
                genDir, getCacheDir(gen['compilationDescr']['files'] + gen['compilationDescr']['dependencies'], 'c-generator'), baseWorkingDir, 'generator')
         errorSoFar = errorSoFar or isExecError(genReport)
-        report['generators'] = (gen['id'], genReport)
+        report['generators'].append({'id': gen['id'], 'compilationExecution': genReport})
         generatorsFiles[gen['id']] = gen['compilationDescr']['files'] + gen['compilationDescr']['dependencies']
 
 
@@ -626,7 +627,7 @@ def evaluation(evaluationParams):
         # We only compile the solution
         solReport = cachedCompile(sol['compilationDescr'], sol['compilationExecution'],
                solDir, getCacheDir(sol['compilationDescr']['files'], 'c-solution'), baseWorkingDir, 'solution')
-        report['solutions'].append(solReport)
+        report['solutions'].append({'id': sol['id'], 'compilationExecution': solReport})
         solutionsInfo[sol['id']] = (sol['compilationDescr']['language'], sol['compilationDescr']['files'])
         if isExecError(solReport):
             # We keep a list of solutions with errors
@@ -698,6 +699,12 @@ def evaluation(evaluationParams):
             mainTestReport['testsReports'].append(subTestReport)
 
         report['executions'].append(mainTestReport)
+
+    # We validate the output JSON format
+    try:
+        validate(report, json.load(open(CFG_OUTPUTSCHEMA, 'r')))
+    except Exception as err:
+        raise Exception("Validation failed for output JSON, error message: %s" % str(err))
 
     return report
 

@@ -22,6 +22,8 @@ CFG_RIGHTSBIN = os.path.join(CFG_BINDIR, 'box-rights')
 CFG_JAVASCOOLBIN = os.path.join(CFG_BINDIR, 'FranceIOIJvs2Java')
 
 CFG_JSONSCHEMA = os.path.join(CFG_BINDIR, 'jsonschema')
+CFG_INPUTSCHEMA = os.path.join(CFG_BINDIR, 'schema_input.json')
+CFG_OUTPUTSCHEMA = os.path.join(CFG_BINDIR, 'schema_output.json')
 
 # Time and memory parameter transformations for some languages
 # For memory, we only transform the limit

@@ -1,0 +1,101 @@
+{   "title": "TaskGrader output JSON",
+    "type": "object",
+
+    "definitions": {
+        "captureReport": {"type": "object",
+            "description": "Information and data from a captured file.",
+            "properties": {
+                "name": {"type": "string", "description": "Filename."},
+                "sizeKb": {"type": "integer", "description": "Size of the original file in kilobytes."},
+                "data": {"type": "string", "description": "Data of the file, possibly truncated."},
+                "wasTruncated": {"type": "boolean", "description": "Whether the file was truncated or not according to input options."}},
+            "required": ["name", "sizeKb", "data", "wasTruncated"]},
+
+        "executionReport": {"type": "object",
+            "description": "Report of an execution.",
+            "properties": {
+                "timeLimitMs": {"type": "integer", "description": "Time limit in milliseconds."},
+                "memoryLimitKb": {"type": "integer", "description": "Memory limit in kilobytes."},
+                "commandLine": {"type": "string", "description": "Command-line executed."},
+                "timeTakenMs": {"type": "number", "description": "Time taken by the execution in milliseconds."},
+                "realTimeTakenMs": {"type": "number", "description": "Actual time taken by the execution in milliseconds, when there is a time transformation function for the language."},
+                "wasKilled": {"type": "boolean", "description": "Whether the execution was killed by the sandbox."},
+                "wasCached": {"type": "boolean", "description": "Whether the results of the execution were taken from cache. In that case, the report comes from the original execution."},
+                "exitCode": {"type": "integer", "description": "Exit code of the execution."},
+                "stdout": {"$ref": "#/definitions/captureReport", "description": "Standard output of the execution."},
+                "stderr": {"$ref": "#/definitions/captureReport", "description": "Standard error output of the execution."},
+                "files": {"type": "array", "description": "Files captured from the execution.", "items": {"$ref": "#/definitions/captureReport"}}},
+            "required": ["timeLimitMs", "memoryLimitKb", "commandLine", "timeTakenMs", "wasKilled", "wasCached", "exitCode"]},
+
+
+        "compileAndRunReport": {"type": "object",
+            "description": "Report of a compilation and an execution.",
+            "properties": {
+                "compilationExecution": {"$ref": "#/definitions/executionReport"},
+                "runExecution": {"$ref": "#/definitions/executionReport"}},
+            "required": ["compilationExecution", "runExecution"]},
+
+        "testReport": {"type": "object",
+            "description": "Report of a single test execution.",
+            "properties": {
+                "name": {"type": "string", "description": "Name of the test file used."},
+                "sanitizer": {"$ref": "#/definitions/executionReport", "description": "Report of the sanitizer execution."},
+                "execution": {"$ref": "#/definitions/executionReport", "description": "Report of the solution execution."},
+                "checker": {"$ref": "#/definitions/executionReport", "description": "Report of the checker execution."}},
+            "required": ["name", "sanitizer"]}},
+
+
+    "properties": {
+        "buildPath": {"type": "string",
+            "decription": "Path to the internal build folder used by the taskgrader."},
+
+        "generators": {"type": "array",
+            "description": "List of reports of compilation of generators.",
+            "items": {"type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "compilationExecution": {"$ref": "#/definitions/executionReport"}},
+                "required": ["id", "compilationExecution"]}},
+
+        "generations": {"type": "array",
+            "description": "List of reports of generations.",
+            "items": {"type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "generatorExecution": {"$ref": "#/definitions/executionReport"},
+                    "outputGeneratorExecution": {"$ref": "#/definitions/executionReport"}},
+                "required": ["id", "generatorExecution"]}},
+
+        "sanitizer": {"description": "Report of the sanitizer compilation.",
+            "$ref": "#/definitions/executionReport"},
+
+        "checker": {"description": "Report of the checker compilation.",
+            "$ref": "#/definitions/executionReport"},
+
+        "solutions": {"type": "array",
+            "description": "List of reports of compilation of solutions.",
+            "items": {"type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "compilationExecution": {"$ref": "#/definitions/executionReport"}},
+                "required": ["id", "compilationExecution"]}},
+
+        "solutions": {"type": "array",
+            "description": "List of reports of compilation of solutions.",
+            "items": {"type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "compilationExecution": {"$ref": "#/definitions/executionReport"}},
+                "required": ["id", "compilationExecution"]}},
+
+        "executions": {"type": "array",
+            "description": "List of reports of solution tests.",
+            "items": {"type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "testsReports": {"type": "array",
+                        "description": "Reports of individual tests.",
+                        "items": {"$ref": "#/definitions/testReport"}}},
+                "required": ["name", "testsReports"]}}},
+
+    "required": ["buildPath", "generators", "generations", "sanitizer", "checker"]}
