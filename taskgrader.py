@@ -377,11 +377,20 @@ def compile(compilationDescr, executionParams, workingDir, buildDir='./', name='
         report = execute(executionParams, cmdLine, workingDir, isolate=False)
     elif compilationDescr['language'] == 'ocaml':
         cmdLine = "/usr/bin/ocamlopt -ccopt -static -o %s.exe %s" % (name, ' '.join(sourceFiles))
+        report = execute(executionParams, cmdLine, workingDir, isolate=False)
     elif compilationDescr['language'] == 'pascal':
         cmdLine = "/usr/bin/fpc -o%s.exe %s" % (name, ' '.join(sourceFiles))
+        report = execute(executionParams, cmdLine, workingDir, isolate=False)
     elif compilationDescr['language'] == 'java':
         cmdLine = "/usr/bin/gcj --encoding=utf8 --main=Main -o %s.exe %s" % (name, ' '.join(sourceFiles))
-    # TODO :: compilation de Java, PHP5
+        report = execute(executionParams, cmdLine, workingDir, isolate=False)
+    elif compilationDescr['language'] == 'javascool':
+        # Javascool needs to be transformed before being executed
+        cmdLine = "%s %s source.java %s" % (CFG_JAVASCOOLBIN, sourceFiles[0], ' '.join(depFiles))
+        execute(executionParams, cmdLine, workingDir, isolate=False)
+        cmdLine = "/usr/bin/gcj --encoding=utf8 --main=Main -o %s.exe source.java" % name
+        report = execute(executionParams, cmdLine, workingDir, isolate=False)
+    # TODO :: compilation de PHP5
     elif compilationDescr['language'] in ['sh', 'py', 'py3']:
         # Scripts are not "compiled", we make an archive out of the source files
         # shar makes a self-extracting "shell archive"
