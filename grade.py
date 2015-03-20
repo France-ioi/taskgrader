@@ -31,10 +31,34 @@ CFG_LANGUAGES = {'.c': 'c',
                  '': 'sh'}
 
 
+def usage():
+    print """Usage: grade.py [option]... FILE...
+Grades the program(s) in FILE(s) with the taskgrader.
+
+ -d, --debug          Shows all the JSON data generated
+ -h, --help           Shows this usage information
+ -m, --memory-limit=  Sets the memory limit for compilation and execution
+ -t, --time-limit=    Sets the time limit for compilation and execution
+ -p, --task-path=     Sets the task path; defaults to current directory"""
+
+
 if __name__ == '__main__':
     execParams = {}
     execParams.update(CFG_EXECPARAMS)
     debug = False
+
+    # Read command line options
+    try:
+        (opts, files) = getopt.getopt(sys.argv[1:], 'dhm:t:p:', ['debug', 'help', 'memory-limit=', 'time-limit=', 'task-path='])
+    except getopt.GetoptError as err:
+        print str(err)
+        usage()
+        sys.exit(1)
+
+    if len(files) == 0:
+        print "No input solutions specified."
+        usage()
+        sys.exit(1)
 
     # We default the task path to the current directory if there's a defaultParams in it
     if os.path.isfile('defaultParams.json'):
@@ -42,15 +66,12 @@ if __name__ == '__main__':
     else:
         taskPath = None
 
-    # Read command line options
-    try:
-        (opts, files) = getopt.getopt(sys.argv[1:], 'dm:t:p:', ['debug', 'memory-limit=', 'time-limit=', 'task-path='])
-    except getopt.GetoptError as err:
-        print str(err)
-        sys.exit(1)
     for (opt, arg) in opts:
         if opt in ['-d', '--debug']:
             debug = True
+        elif opt in ['-h', '--help']:
+            usage()
+            sys.exit(0)
         elif opt in ['-m', '--memory-limit']:
             execParams['memoryLimitKb'] = int(arg)
         elif opt in ['-t', '--time-limit']:
@@ -60,6 +81,7 @@ if __name__ == '__main__':
 
     if not taskPath or not os.path.isfile(os.path.join(taskPath, 'defaultParams.json')):
         print "Current directory is not a task and no task path given. Aborting."
+        usage()
         sys.exit(1)
 
     print "Running task in %s" % taskPath
@@ -129,10 +151,10 @@ if __name__ == '__main__':
                 # Everything was executed
                 print 'Solution executed successfully. Checker report:'
                 print report['checker']['stdout']['data']
-            elif report.has_key('solution'):
+            elif report.has_key('execution'):
                 # Solution error
                 print 'Solution returned an error. Solution report:'
-                print json.dumps(report['solution'])
+                print json.dumps(report['execution'])
             else:
                 # Sanitizer error
                 print 'Test rejected by sanitizer. Sanitizer report:'
