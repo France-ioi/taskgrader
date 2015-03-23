@@ -6,7 +6,7 @@
 ### Check for dependencies
 ERROR=0
 echo "*** Checking for required binaries..."
-for BINARY in fpc gcc g++ gcj git python2 python3 shar sudo
+for BINARY in gcc gcj git python sudo
 do
     if which $BINARY > /dev/null
     then
@@ -20,6 +20,22 @@ if [ $ERROR -eq 1 ]
 then
     echo "/!\ Some binaries are missing. Please install them before continuing."
     exit 1
+fi
+
+echo "*** Checking for optional binaries..."
+for BINARY in fpc g++ python2 python3 shar
+do
+    if which $BINARY > /dev/null
+    then
+        echo "$BINARY detected."
+    else
+        echo "/!\ $BINARY missing, some languages won't compile properly."
+        ERROR=1
+    fi
+done
+if [ $ERROR -eq 1 ]
+then
+    echo "/!\ Some optional binaries missing, some languages won't compile properly."
 fi
 
 ### Fetch jsonschema and moe
