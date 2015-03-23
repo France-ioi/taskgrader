@@ -19,7 +19,7 @@ CFG_DATABASEPATH = os.path.join(CFG_CACHEDIR, 'taskgrader-cache.sqlite')
 
 CFG_ISOLATEBIN = os.path.join(CFG_BINDIR, 'isolate')
 CFG_RIGHTSBIN = os.path.join(CFG_BINDIR, 'box-rights')
-CFG_JAVASCOOLBIN = os.path.join(CFG_BINDIR, 'FranceIOIJvs2Java')
+CFG_JAVASCOOLBIN = os.path.join(CFG_BINDIR, 'Jvs2Java')
 
 CFG_JSONSCHEMA = os.path.join(CFG_BINDIR, 'jsonschema')
 CFG_INPUTSCHEMA = os.path.join(CFG_BINDIR, 'schema_input.json')

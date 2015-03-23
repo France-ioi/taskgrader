@@ -23,7 +23,12 @@ then
 fi
 
 ### Fetch jsonschema and moe
-git submodule update --init jsonschema moe
+echo "*** Fetching dependencies..."
+git submodule update --init Jvs2Java jsonschema moe
+
+### Compile Jvs2Java
+echo "*** Compiling Jvs2Java..."
+gcj --encoding=utf8 --main=FranceIOIJvs2Java -o Jvs2Java Jvs2Java/Jvs2Java.java
 
 ### Compile isolate
 echo "*** Compiling isolate from moe..."

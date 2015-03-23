@@ -4,3 +4,6 @@
 [submodule "jsonschema"]
 	path = jsonschema
 	url = https://github.com/Julian/jsonschema.git
+[submodule "Jvs2Java"]
+	path = Jvs2Java
+	url = https://github.com/France-ioi/Jvs2Java.git
