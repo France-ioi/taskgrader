@@ -19,7 +19,7 @@ CFG_DATABASEPATH = os.path.join(CFG_CACHEDIR, 'taskgrader-cache.sqlite')
 
 CFG_ISOLATEBIN = os.path.join(CFG_BINDIR, 'isolate')
 CFG_RIGHTSBIN = os.path.join(CFG_BINDIR, 'box-rights')
-CFG_JAVASCOOLBIN = os.path.join(CFG_BINDIR, 'Jvs2Java')
+CFG_JAVASCOOLBIN = os.path.join(CFG_BINDIR, 'jvs2java')
 
 CFG_JSONSCHEMA = os.path.join(CFG_BINDIR, 'jsonschema')
 CFG_INPUTSCHEMA = os.path.join(CFG_BINDIR, 'schema_input.json')
@@ -66,7 +66,7 @@ for var in ['CFG_BASEDIR', 'CFG_BUILDSDIR', 'CFG_CACHEDIR', 'CFG_DATABASEPATH',
     if var not in globals():
         raise Exception("Configuration variable %s missing. Please edit config.py." % var)
 
-for var in ['CFG_BASEDIR', 'CFG_BINDIR']:
+for var in [CFG_BASEDIR, CFG_BINDIR]:
     if var == '':
         raise Exception("Configuration variable %s empty. Please edit config.py." % var)
 

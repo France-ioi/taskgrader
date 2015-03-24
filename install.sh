@@ -44,7 +44,7 @@ git submodule update --init Jvs2Java jsonschema moe
 
 ### Compile Jvs2Java
 echo "*** Compiling Jvs2Java..."
-gcj --encoding=utf8 --main=FranceIOIJvs2Java -o Jvs2Java Jvs2Java/Jvs2Java.java
+gcj --encoding=utf8 --main=FranceIOIJvs2Java -o jvs2java Jvs2Java/Jvs2Java.java
 
 ### Compile isolate
 echo "*** Compiling isolate from moe..."
