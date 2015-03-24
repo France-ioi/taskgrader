@@ -83,20 +83,44 @@ if __name__ == '__main__':
 
         print "Adding solution %s, language %s" % (f, lang)
 
+        # Do we have the defaultDependencies in the defaultParams?
+        if defaultParams.has_key('defaultDependencies-' + lang):
+            dep = '@defaultDependencies-' + lang
+        elif defaultParams.has_key('defaultDependencies'):
+            dep = '@defaultDependencies'
+        else:
+            dep = []
+        
+        # Do we have the defaultFilterTests in the defaultParams?
+        if defaultParams.has_key('defaultFilterTests-' + lang):
+            ftests = '@defaultFilterTests-' + lang
+        elif defaultParams.has_key('defaultFilterTests'):
+            ftests = '@defaultFilterTests'
+        else:
+            ftests = ['*.in']
+        
+
         testSolutions.append({
             'id': 'sol%d-%s' % (solId, solName),
             'compilationDescr': {
                 'language': lang,
                 'files': [{'name': os.path.basename(f),
                            'path': filePath}],
-                'dependencies': '@defaultDependencies-' + lang},
+                'dependencies': dep},
             'compilationExecution': execParams})
 
         testExecutions.append({
             'id': 'exec%d-%s' % (solId, solName),
             'idSolution': 'sol%d-%s' % (solId, solName),
-            'filterTests': '@defaultFilterTests-' + lang,
+            'filterTests': ftests,
             'runExecution': execParams})
+
+
+    # Do we have extraTests defined in the defaultParams?
+    if defaultParams.has_key('defaultExtraTests'):
+        etests = '@defaultExtraTests'
+    else:
+        etests = []
 
     # Final evaluation JSON to be given to the taskgrader
     testEvaluation = {
@@ -104,7 +128,7 @@ if __name__ == '__main__':
         'taskPath': taskPath,
         'generators': ['@defaultGenerator'],
         'generations': ['@defaultGeneration'],
-        'extraTests': '@defaultExtraTests',
+        'extraTests': etests,
         'sanitizer': '@defaultSanitizer',
         'checker': '@defaultChecker',
         'solutions': testSolutions,
