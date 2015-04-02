@@ -57,17 +57,17 @@ cd ..
 
 ### Compile C programs
 echo "*** Setting isolate rights..."
-if ! sudo chmod 4755 isolate
-then
-    echo "/!\ Failed to \`chmod 4755 isolate\`. Please run the command as root."
-    ERROR=1
-fi
 if ! sudo chown root:root isolate
 then
     echo "/!\ Failed to \`chown root:root isolate\`. Please run the command as root."
     ERROR=1
 fi
 
+if ! sudo chmod 4755 isolate
+then
+    echo "/!\ Failed to \`chmod 4755 isolate\`. Please run the command as root."
+    ERROR=1
+fi
 echo "*** Compiling box-rights..."
 if gcc -O3 -o box-rights box-rights.c
 then
