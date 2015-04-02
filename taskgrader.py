@@ -128,7 +128,7 @@ def getCacheDir(files, cacheType, inputFiles=[]):
     # We add identifiers for input files (local name and md5sum)
     for f in inputFiles:
         md5sum = hashlib.md5(open(f, 'rb').read()).hexdigest()
-        fileIdList.append("input:%s:%s" % (os.path.basename(f)), md5sum)
+        fileIdList.append("input:%s:%s" % (os.path.basename(f), md5sum))
 
     fileIdList.sort()
     fileHashList.sort() # Both lists won't be sorted the same but it's not an issue
