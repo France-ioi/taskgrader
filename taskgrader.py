@@ -74,7 +74,7 @@ def getFile(fileDescr, workingDir, buildDir=None, language=''):
     if '/' in fileDescr['name']:
         # Need to make a folder
         try:
-            os.makedirs(workingDir + fileDescr['name'].split('/')[0])
+            os.makedirs(workingDir + '/'.join(fileDescr['name'].split('/')[:-1]))
         except:
             pass
         
