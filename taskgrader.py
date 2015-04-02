@@ -292,7 +292,7 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
         # We don't use isolate
         if stdinFile:
             if os.path.isfile(stdinFile):
-                stdinHandle = open(stdinFile, 'r')  
+                stdinHandle = open(stdinFile, 'rb')  
             else:
                 raise Exception("Input file %s not found while preparing to execute command %s." % (stdinFile, cmdLine))
         else:
@@ -676,7 +676,7 @@ def evaluation(evaluationParams):
             subTestReport['execution'] = cachedExecute(test['runExecution'], 'solution.exe', testDir,
                     getCacheDir(solutionFiles, 'e-solution', inputFiles=[testDir + baseTfName + '.in']),
                     stdinFile=testDir + baseTfName + '.in', stdoutFile=testDir + baseTfName + '.solout',
-                    outputFiles=['*.solout'], language=solutionLang)
+                    outputFiles=[baseTfName + '.solout'], language=solutionLang)
             if isExecError(subTestReport['execution']):
                 # Solution returned an error, no need to check
                 mainTestReport['testsReports'].append(subTestReport)
