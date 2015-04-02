@@ -88,6 +88,7 @@ fi
 
 ### Modify config.py
 mkdir files
+cp -p config.py.template config.py
 sed -i "s|^CFG_BASEDIR.*$|CFG_BASEDIR=\"`pwd`/files/\"|" config.py
 sed -i "s|^CFG_BINDIR.*$|CFG_BINDIR=\"`pwd`/\"|" config.py
 

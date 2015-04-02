@@ -58,6 +58,12 @@ CFG_LANGEXTS = {'.c': 'c',
                 '': 'sh'}
 
 
+### server.py configuration
+# URLs to the taskqueue
+CFG_TASKQUEUE_POLL = 'http://fioi.mblockelet.info/queue/poll.php'
+CFG_TASKQUEUE_SEND = 'http://fioi.mblockelet.info/queue/sendresults.php'
+
+
 ### We raise an exception if we don't have all configuration variables
 for var in ['CFG_BASEDIR', 'CFG_BUILDSDIR', 'CFG_CACHEDIR', 'CFG_DATABASEPATH',
             'CFG_BINDIR', 'CFG_ISOLATEBIN', 'CFG_RIGHTSBIN', 'CFG_JAVASCOOLBIN',
