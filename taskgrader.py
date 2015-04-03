@@ -358,13 +358,12 @@ def cachedExecute(executionParams, cmdLine, workingDir, cacheData, stdinFile=Non
         else:
             # We execute again the program
             report = execute(executionParams, cmdLine, workingDir, stdinFile=stdinFile, stdoutFile=stdoutFile, language=language)
-            # We save results to cache if execution was successful
-            if not isExecError(report):
-                for g in outputFiles:
-                    for f in glob.glob(workingDir + g):
-                        shutil.copy(f, cacheDir)
-                json.dump(report, open("%srunExecution.json" % cacheDir, 'w'))
-                open("%scache.ok" % cacheDir, 'w')
+            # We save results to cache
+            for g in outputFiles:
+                for f in glob.glob(workingDir + g):
+                    shutil.copy(f, cacheDir)
+            json.dump(report, open("%srunExecution.json" % cacheDir, 'w'))
+            open("%scache.ok" % cacheDir, 'w')
     else:
         # We don't use cache at all
         report = execute(executionParams, cmdLine, workingDir, stdinFile=stdinFile, stdoutFile=stdoutFile, language=language)
@@ -473,11 +472,10 @@ def cachedCompile(compilationDescr, executionParams, workingDir, cacheData, buil
         else:
             # No current cache, we compile
             report = compile(compilationDescr, executionParams, workingDir, buildDir=buildDir, name=name)
-            # We cache the results if compilation was successful
-            if not isExecError(report):
-                shutil.copy("%s%s.exe" % (workingDir, name), cacheDir)
-                json.dump(report, open("%scompilationExecution.json" % cacheDir, 'w'))
-                open("%scache.ok" % cacheDir, 'w')
+            # We cache the results
+            shutil.copy("%s%s.exe" % (workingDir, name), cacheDir)
+            json.dump(report, open("%scompilationExecution.json" % cacheDir, 'w'))
+            open("%scache.ok" % cacheDir, 'w')
     else:
         # We don't use cache at all
         report = compile(compilationDescr, compilationExecution, workingDir, buildDir=buildDir, name=name)
