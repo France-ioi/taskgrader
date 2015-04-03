@@ -7,23 +7,33 @@
 
 import os, sqlite3
 
+##### START OF CONFIGURATION #####
+
 ### taskgrader.py configuration
 # Base directory for work files, will contain the builds and cache
 CFG_BASEDIR = ''
 # Base directory for binaries, must contain the different binaries needed
 CFG_BINDIR = ''
 
+# Internal folders for taskgrader operation
 CFG_BUILDSDIR = os.path.join(CFG_BASEDIR, 'builds/')
 CFG_CACHEDIR = os.path.join(CFG_BASEDIR, 'cache/')
-CFG_DATABASEPATH = os.path.join(CFG_CACHEDIR, 'taskgrader-cache.sqlite')
+CFG_CACHEDBPATH = os.path.join(CFG_CACHEDIR, 'taskgrader-cache.sqlite')
 
+# Paths to binaries
 CFG_ISOLATEBIN = os.path.join(CFG_BINDIR, 'isolate')
 CFG_RIGHTSBIN = os.path.join(CFG_BINDIR, 'box-rights')
 CFG_JAVASCOOLBIN = os.path.join(CFG_BINDIR, 'jvs2java')
 
+# jsonschema-related variables
 CFG_JSONSCHEMA = os.path.join(CFG_BINDIR, 'jsonschema')
 CFG_INPUTSCHEMA = os.path.join(CFG_BINDIR, 'schema_input.json')
 CFG_OUTPUTSCHEMA = os.path.join(CFG_BINDIR, 'schema_output.json')
+
+# Maximum time and memory limits; if input JSON defines limits higher than
+# that, the tasgrader will return an error
+CFG_MAX_TIMELIMIT = 60000       # in milliseconds
+CFG_MAX_MEMORYLIMIT = 1024*1024 # in kilobytes
 
 # Time and memory parameter transformations for some languages
 # For memory, we only transform the limit
@@ -60,20 +70,26 @@ CFG_LANGEXTS = {'.c': 'c',
 
 ### server.py configuration
 # URLs to the taskqueue
-CFG_TASKQUEUE_POLL = 'http://fioi.mblockelet.info/queue/poll.php'
-CFG_TASKQUEUE_SEND = 'http://fioi.mblockelet.info/queue/sendresults.php'
+CFG_TASKQUEUE_POLL = ''
+CFG_TASKQUEUE_SEND = ''
+
+
+
+##### END OF CONFIGURATION #####
 
 
 ### We raise an exception if we don't have all configuration variables
-for var in ['CFG_BASEDIR', 'CFG_BUILDSDIR', 'CFG_CACHEDIR', 'CFG_DATABASEPATH',
+for var in ['CFG_BASEDIR', 'CFG_BUILDSDIR', 'CFG_CACHEDIR', 'CFG_CACHEDBPATH',
             'CFG_BINDIR', 'CFG_ISOLATEBIN', 'CFG_RIGHTSBIN', 'CFG_JAVASCOOLBIN',
-            'CFG_JSONSCHEMA', 'CFG_TRANSFORM_MEM', 'CFG_TRANSFORM_TIME',
+            'CFG_JSONSCHEMA', 'CFG_INPUTSCHEMA', 'CFG_OUTPUTSCHEMA',
+            'CFG_MAX_TIMELIMIT', 'CFG_MAX_MEMORYLIMIT',
+            'CFG_TRANSFORM_MEM', 'CFG_TRANSFORM_TIME',
             'CFG_TASKGRADER', 'CFG_EXECPARAMS', 'CFG_LANGEXTS']:
     if var not in globals():
         raise Exception("Configuration variable %s missing. Please edit config.py." % var)
 
-for var in [CFG_BASEDIR, CFG_BINDIR]:
-    if var == '':
+for var in ['CFG_BASEDIR', 'CFG_BINDIR']:
+    if not eval(var):
         raise Exception("Configuration variable %s empty. Please edit config.py." % var)
 
 ### Initialization
@@ -88,13 +104,13 @@ except:
     pass
 
 # Initialize the database if needed
-CFG_DATABASE = sqlite3.connect(CFG_DATABASEPATH)
+CFG_CACHEDB = sqlite3.connect(CFG_CACHEDBPATH)
 try:
-    CFG_DATABASE.execute("""CREATE TABLE cache
+    CFG_CACHEDB.execute("""CREATE TABLE cache
             (id INTEGER PRIMARY KEY,
              filesid TEXT,
              hashlist TEXT)""")
 except:
     pass
-CFG_DATABASE.row_factory = sqlite3.Row
+CFG_CACHEDB.row_factory = sqlite3.Row
 

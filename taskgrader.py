@@ -15,9 +15,11 @@ from jsonschema import validate
 class dictWithVars(dict):
     """Class representing JSON data with some variables in it.
     Extension of the Python dict class; the initDict argument allows to
-    initialize its internal value to a dict.
+    initialize its internal value to some dict.
     varData represents the variable data; all values written as '@varname' in
-    the dict will be replaced by varData['varname']."""
+    the dict will be replaced by varData['varname'].
+    Objects of this class behave exactly as a dict and in a transparent way,
+    it will return only data without showing when internally it's variables."""
 
     def __init__(self, varData, initDict={}, *args, **kwargs):
         self.varData = varData
@@ -65,7 +67,9 @@ def isExecError(executionReport):
 
 def getFile(fileDescr, workingDir, buildDir=None, language=''):
     """Fetch a file contents from a fileDescr object into workingDir.
-    If getCache is True, also lookup cache for related cached files."""
+    If only the file name is given, getFile will search for a file with that
+    name in buildDir. If language is defined, it will search for a file
+    related to that language first."""
 
     if os.path.isfile(workingDir + fileDescr['name']):
         # File already exists
@@ -110,7 +114,12 @@ def getCacheDir(files, cacheType, inputFiles=[]):
     """For a list of source files and the type (compilation or execution),
     returns a tuple containing:
     -whether some related files have been cached
-    -where to store/retrieve cache files."""
+    -the folder containing cache files.
+    It hits the cache when the file list and corresponding MD5 hashes are
+    the same; it uses a SQLite3 database to store the information.
+    Cache will consist of folders, each folder named after the ID in the
+    database and containing all the cached files."""
+
     fileIdList = []
     fileHashList = []
     # We build a list of identifiers for each source file and compute their md5
@@ -139,7 +148,7 @@ def getCacheDir(files, cacheType, inputFiles=[]):
     filesId = "cache:%s;%s" % (cacheType, ";".join(fileIdList))
 
     # Read cache information from database
-    dbCur = CFG_DATABASE.cursor()
+    dbCur = CFG_CACHEDB.cursor()
     dbCur.execute("SELECT * FROM cache WHERE filesId=?", [filesId])
     dbRow = dbCur.fetchone()
     if dbRow:
@@ -152,7 +161,7 @@ def getCacheDir(files, cacheType, inputFiles=[]):
         else:
             # MD5 hashes changed, update database, invalidate cache
             dbCur.execute("UPDATE cache SET hashlist=? WHERE filesid=?", [fileHashes, filesId])
-            CFG_DATABASE.commit()
+            CFG_CACHEDB.commit()
             try:
                 shutil.rmtree("%s%s" % (CFG_CACHEDIR, dbId))
             except:
@@ -162,14 +171,15 @@ def getCacheDir(files, cacheType, inputFiles=[]):
     else:
         # New entry in database
         dbCur.execute("INSERT INTO cache(filesid, hashlist) VALUES(?, ?)", [filesId, fileHashes])
-        CFG_DATABASE.commit()
+        CFG_CACHEDB.commit()
         newId = dbCur.lastrowid
         os.mkdir("%s%s/" % (CFG_CACHEDIR, newId))
         return (False, "%s%s/" % (CFG_CACHEDIR, newId))
 
 
 def capture(path, name='', truncateSize=-1):
-    """Capture a file descriptor contents for inclusion into the output json."""
+    """Capture a file contents for inclusion into the output JSON as a
+    captureReport object."""
     report = {'name': name,
               'sizeKb': os.path.getsize(path) / 1024}
     fd = open(path, 'r')
@@ -184,11 +194,18 @@ def capture(path, name='', truncateSize=-1):
 
 
 def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=None, language='', isolate=True):
-    """Execute a command line and build the report."""
+    """Execute a command line and build the report.
+    Executes the command line cmdLine according to the parameters from
+    executionParams, in directory workingDir.
+    If isolate is True, it will run the program in a sandbox.
+    stdinFile and stdoutFile allows to control input/output of the program,
+    and language allows to know whether use some mem/time transformation
+    functions as defined in config.py ."""
+
     # Check time and memory limits
-    if executionParams['timeLimitMs'] > 60000:
+    if executionParams['timeLimitMs'] > CFG_MAX_TIMELIMIT:
         raise Exception("Time limit (%d) for command %s too high." % (executionParams['timeLimitMs'], cmdLine))
-    if executionParams['memoryLimitKb'] > 1024*1024:
+    if executionParams['memoryLimitKb'] > CFG_MAX_MEMORYLIMIT:
         raise Exception("Memory limit (%d) for command %s too high." % (executionParams['memoryLimitKb'], cmdLine))
 
     # Values copied from the arguments
@@ -324,7 +341,10 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
 
 def cachedExecute(executionParams, cmdLine, workingDir, cacheData, stdinFile=None, stdoutFile=None, outputFiles=[], language=''):
     """Get the results from execution of a program, either by fetching them
-    from cache, or by actually executing the program."""
+    from cache, or by actually executing the program.
+    cachedExecute will look at the cacheData (fetched with the function
+    getCacheDir) and determine whether to fetch files from cache, whether to
+    pass the arguments to the function execute. In that case, it will cache the results after the execution."""
     if executionParams['useCache']:
         (cacheStatus, cacheDir) = cacheData
         if cacheStatus:
@@ -354,7 +374,10 @@ def cachedExecute(executionParams, cmdLine, workingDir, cacheData, stdinFile=Non
 
 def compile(compilationDescr, executionParams, workingDir, buildDir='./', name='executable'):
     """Effectively compile a program, not using cache (probably because
-    there's no cached version)."""
+    there's no cached version).
+    It fetches the files as described by the compilationDescr, and uses the
+    executionParams as parameters for the compiler execution.
+    The resulting file will by named '[name].exe'."""
     # We fetch source files into the workingDir
     sourceFiles = []
     for source in compilationDescr['files']: # Fetch source files
