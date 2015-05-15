@@ -492,7 +492,7 @@ def evaluation(evaluationParams):
 
     # We load a "preprocessing" JSON node or file
     try:
-        varData.update(json.load(open(os.path.join(evaluationParams['taskPath'], 'defaultParams.json'), 'r')))
+        varData.update(json.load(open(os.path.join(evaluationParams['taskPath'].replace('$ROOT_PATH', evaluationParams['rootPath']), 'defaultParams.json'), 'r')))
     except:
         pass
     if evaluationParams.has_key('extraParams'):
