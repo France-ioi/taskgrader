@@ -48,6 +48,10 @@
         "taskPath": {"type": "string",
             "description": "Path to the task files. defaultParams.json will be loaded from this folder. Can be referred to as $TASK_PATH in paths."},
 
+        "restrictToPaths": {"type": "array",
+            "description": "Paths from which the taskgrader is allowed to load files from. If empty, taskgrader will load from any path.",
+            "items": {"type": "string"}},
+
         "generators": {"type": "array",
             "description": "List of generators to compile.",
             "items": {"type": "object",

@@ -60,6 +60,36 @@ class dictWithVars(dict):
         return self.__getvalue__(super(dictWithVars, self).__getitem__(key))
 
 
+def isInRestrict(path):
+    """Check whether a path is in the allowed paths for read/write."""
+    global restrictToPaths
+    if len(restrictToPaths) == 0:
+        return True
+    for folder in restrictToPaths:
+        if os.path.abspath(path).startswith(os.path.abspath(folder) + '/'):
+            return True
+    return False
+
+
+def symlink(filefrom, fileto, fromlocal=False, tolocal=False):
+    """Make a symlink. *local variables indicate whether the paths must be
+    explicitly allowed or not."""
+    if fromlocal and not isInRestrict(filefrom):
+        raise Exception("Loading file `%s` not allowed." % filefrom)
+    if tolocal and not isInRestrict(fileto):
+        raise Exception("Loading file `%s` not allowed." % fileto)
+    os.symlink(filefrom, fileto)
+
+def filecopy(filefrom, fileto, fromlocal=False, tolocal=False):
+    """Copy a file. *local variables indicate whether the paths must be
+    explicitly allowed or not."""
+    if fromlocal and not isInRestrict(filefrom):
+        raise Exception("Loading file `%s` not allowed." % filefrom)
+    if tolocal and not isInRestrict(fileto):
+        raise Exception("Loading file `%s` not allowed." % fileto)
+    shutil.copy(filefrom, fileto)
+
+
 def isExecError(executionReport):
     """Returns whether an execution returned an error according to its exit code."""
     return (executionReport['exitCode'] != 0)
@@ -70,6 +100,9 @@ def getFile(fileDescr, workingDir, buildDir=None, language=''):
     If only the file name is given, getFile will search for a file with that
     name in buildDir. If language is defined, it will search for a file
     related to that language first."""
+
+    if '../' in fileDescr['name']:
+        raise Exception("File name `%s` is invalid." % fileDescr['name'])
 
     if os.path.isfile(workingDir + fileDescr['name']):
         # File already exists
@@ -87,7 +120,7 @@ def getFile(fileDescr, workingDir, buildDir=None, language=''):
         open(workingDir + fileDescr['name'], 'w').write(fileDescr['content'])
     elif fileDescr.has_key('path'): # Get file by path
         if os.path.isfile(fileDescr['path']):
-            os.symlink(fileDescr['path'], workingDir + fileDescr['name'])
+            symlink(fileDescr['path'], workingDir + fileDescr['name'], fromlocal=True)
         else:
             raise Exception("File not found: %s" % fileDescr['path'])
     else: # File is a built dependency
@@ -95,16 +128,16 @@ def getFile(fileDescr, workingDir, buildDir=None, language=''):
             buildDir = workingDir
         if os.path.isfile('%slibs/%s-%s' % (buildDir, language, fileDescr['name'])):
             # We search for [language]-[name] in the libs directory
-            os.symlink('%slibs/%s-%s' % (buildDir, language, fileDescr['name']), workingDir + fileDescr['name'])
+            symlink('%slibs/%s-%s' % (buildDir, language, fileDescr['name']), workingDir + fileDescr['name'])
         elif language == 'cpp' and os.path.isfile('%slibs/c-%s' % (buildDir, fileDescr['name'])):
             # For cpp, we also search for c-[name] in the libs directory
-            os.symlink('%slibs/c-%s' % (buildDir, fileDescr['name']), workingDir + fileDescr['name'])
+            symlink('%slibs/c-%s' % (buildDir, fileDescr['name']), workingDir + fileDescr['name'])
         elif language in ['py', 'py2', 'py3'] and os.path.isfile('%slibs/run-%s' % (buildDir, fileDescr['name'])):
             # For Python languages, we search for run-[name] in the libs directory
-            os.symlink('%slibs/run-%s' % (buildDir, fileDescr['name']), workingDir + fileDescr['name'])
+            symlink('%slibs/run-%s' % (buildDir, fileDescr['name']), workingDir + fileDescr['name'])
         elif os.path.isfile('%slibs/%s' % (buildDir, fileDescr['name'])):
             # We search for [name] in the libs directory
-            os.symlink('%slibs/%s' % (buildDir, fileDescr['name']), workingDir + fileDescr['name'])
+            symlink('%slibs/%s' % (buildDir, fileDescr['name']), workingDir + fileDescr['name'])
         else:
             raise Exception("Dependency not found: %s for language %s" % (fileDescr['name'], language))
     return None
@@ -180,6 +213,8 @@ def getCacheDir(files, cacheType, inputFiles=[]):
 def capture(path, name='', truncateSize=-1):
     """Capture a file contents for inclusion into the output JSON as a
     captureReport object."""
+    if not isInRestrict(path):
+        raise Exception("Opening file `%s` is not allowed.")
     report = {'name': name,
               'sizeKb': os.path.getsize(path) / 1024}
     fd = open(path, 'r')
@@ -229,6 +264,8 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
 
     if stdoutFile == None:
         stdoutFile = workingDir + 'stdout'
+    elif not isInRestrict(stdoutFile):
+        raise Exception("Writing to file `%s` not allowed." % stdoutFile)
 
     if isolate:
         # Initialize isolate box
@@ -249,7 +286,7 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
             isolatedCmdLine += ' --mem=' + str(executionParams['memoryLimitKb'])
         if stdinFile:
             if os.path.isfile(stdinFile):
-                shutil.copy(stdinFile, isolateDir + 'isolated.stdin')
+                filecopy(stdinFile, isolateDir + 'isolated.stdin', fromlocal=True)
                 isolatedCmdLine += ' --stdin=isolated.stdin'
             else:
                 raise Exception("Input file %s not found while preparing to execute command %s." % (stdinFile, cmdLine))
@@ -258,7 +295,7 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
 
         # Copy files from working directory to sandbox
         for f in os.listdir(workingDir):
-            shutil.copy(workingDir + f, isolateDir + f)
+            filecopy(workingDir + f, isolateDir + f)
 
         open(workingDir + 'isolate.meta', 'w')
 
@@ -273,8 +310,8 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
         # Copy back the files from sandbox
         for f in os.listdir(isolateDir):
             if os.path.isfile(isolateDir + f):
-                shutil.copy(isolateDir + f, workingDir + f)
-        shutil.copy(isolateDir + 'isolated.stdout', stdoutFile)
+                filecopy(isolateDir + f, workingDir + f)
+        filecopy(isolateDir + 'isolated.stdout', stdoutFile)
 
         # Get metadata from isolate execution
         isolateMeta = {}
@@ -308,7 +345,7 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
     else:
         # We don't use isolate
         if stdinFile:
-            if os.path.isfile(stdinFile):
+            if os.path.isfile(stdinFile) and isInRestrict(stdinFile):
                 stdinHandle = open(stdinFile, 'rb')  
             else:
                 raise Exception("Input file %s not found while preparing to execute command %s." % (stdinFile, cmdLine))
@@ -354,14 +391,14 @@ def cachedExecute(executionParams, cmdLine, workingDir, cacheData, stdinFile=Non
             # We load cached results (as symlinks)
             for g in outputFiles:
                 for f in glob.glob(cacheDir + g):
-                    os.symlink(f, workingDir + os.path.basename(f))
+                    symlink(f, workingDir + os.path.basename(f))
         else:
             # We execute again the program
             report = execute(executionParams, cmdLine, workingDir, stdinFile=stdinFile, stdoutFile=stdoutFile, language=language)
             # We save results to cache
             for g in outputFiles:
                 for f in glob.glob(workingDir + g):
-                    shutil.copy(f, cacheDir)
+                    filecopy(f, cacheDir)
             json.dump(report, open("%srunExecution.json" % cacheDir, 'w'))
             open("%scache.ok" % cacheDir, 'w')
     else:
@@ -466,14 +503,14 @@ def cachedCompile(compilationDescr, executionParams, workingDir, cacheData, buil
         (cacheStatus, cacheDir) = cacheData
         if cacheStatus:
             # We load the report and executable from cache
-            os.symlink("%s%s.exe" % (cacheDir, name), "%s%s.exe" % (workingDir, name))
+            symlink("%s%s.exe" % (cacheDir, name), "%s%s.exe" % (workingDir, name))
             report = json.load(open("%scompilationExecution.json" % cacheDir, 'r'))
             report['wasCached'] = True
         else:
             # No current cache, we compile
             report = compile(compilationDescr, executionParams, workingDir, buildDir=buildDir, name=name)
             # We cache the results
-            shutil.copy("%s%s.exe" % (workingDir, name), cacheDir)
+            filecopy("%s%s.exe" % (workingDir, name), cacheDir)
             json.dump(report, open("%scompilationExecution.json" % cacheDir, 'w'))
             open("%scache.ok" % cacheDir, 'w')
     else:
@@ -486,9 +523,17 @@ def cachedCompile(compilationDescr, executionParams, workingDir, cacheData, buil
 def evaluation(evaluationParams):
     """Full evaluation process."""
 
+    global restrictToPaths
+
     # *** Variables handling
     varData = {'ROOT_PATH': evaluationParams['rootPath'],
                'TASK_PATH': evaluationParams['taskPath']}
+
+    # Load path restriction is present
+    if evaluationParams.has_key('restrictToPaths'):
+        restrictToPaths = evaluationParams['restrictToPaths']
+    else:
+        restrictToPaths = []
 
     # We load a "preprocessing" JSON node or file
     try:
@@ -496,7 +541,7 @@ def evaluation(evaluationParams):
     except:
         pass
     if evaluationParams.has_key('extraParams'):
-        if type(evaluationParams['extraParams']) is str:
+        if type(evaluationParams['extraParams']) is str and isInRestrict(evaluationParams['extraParams']):
             varData.update(json.load(open(evaluationParams['extraParams'], 'r')))
         else:
             varData.update(evaluationParams['extraParams'])
@@ -504,6 +549,8 @@ def evaluation(evaluationParams):
 
     # Path where the evaluation will take place
     if evaluationParams.has_key('outputPath'):
+        if '../' in evaluationParams['outputPath']:
+            raise Exception("Output path `%s` invalid." % evaluationParams['outputPath'])
         baseWorkingDir = CFG_BUILDSDIR + evaluationParams['outputPath']
     else:
         baseWorkingDir = CFG_BUILDSDIR + '_build' + str(random.randint(0, 10000)) + '/'
@@ -515,6 +562,8 @@ def evaluation(evaluationParams):
 
     varData['BUILD_PATH'] = baseWorkingDir
     report['buildPath'] = baseWorkingDir
+    if len(restrictToPaths) > 0:
+        restrictToPaths.append(baseWorkingDir)
 
     # We validate the input JSON format
     try:
@@ -555,25 +604,25 @@ def evaluation(evaluationParams):
                 genReport = {'id': "%s.%s" % (gen['id'], tc['name'])}
                 if gen.has_key('idOutputGenerator'):
                     # We also have an output generator, we generate `name`.in and `name`.out
-                    shutil.copy(baseWorkingDir + 'generators/%s/generator.exe' % gen['idGenerator'], genDir + 'generator.exe')
+                    filecopy(baseWorkingDir + 'generators/%s/generator.exe' % gen['idGenerator'], genDir + 'generator.exe', fromlocal=True)
                     genReport['generatorExecution'] = cachedExecute(gen['genExecution'], "generator.exe %s" % tc['params'], genDir,
                             getCacheDir(generatorsFiles[gen['idGenerator']], 'e-generator:' + tc['params']),
                             stdoutFile=genDir + tc['name'] + '.in',
                             outputFiles=[tc['name'] + '.in'])
                     if not isExecError(genReport['generatorExecution']):
-                        shutil.copy(genDir + tc['name'] + '.in', baseWorkingDir + 'tests/' + tc['name'] + '.in')
+                        filecopy(genDir + tc['name'] + '.in', baseWorkingDir + 'tests/' + tc['name'] + '.in')
 
-                    shutil.copy(baseWorkingDir + 'generators/%s/generator.exe' % gen['idOutputGenerator'], genDir + 'outgenerator.exe')
+                    filecopy(baseWorkingDir + 'generators/%s/generator.exe' % gen['idOutputGenerator'], genDir + 'outgenerator.exe', fromlocal=True)
                     genReport['outputGeneratorExecution'] = cachedExecute(gen['outGenExecution'], "outgenerator.exe %s" % tc['params'], genDir,
                             getCacheDir(generatorsFiles[gen['idOutputGenerator']], 'e-generator:' + tc['params']),
                             stdoutFile=genDir + tc['name'] + '.out',
                             outputFiles=[tc['name'] + '.out'])
                     if not isExecError(genReport['outputGeneratorExecution']):
-                        shutil.copy(genDir + tc['name'] + '.out', baseWorkingDir + 'tests/' + tc['name'] + '.out')
+                        filecopy(genDir + tc['name'] + '.out', baseWorkingDir + 'tests/' + tc['name'] + '.out', fromlocal=True, tolocal=True)
                     errorSoFar = errorSoFar or isExecError(genReport['generatorExecution']) or isExecError(genReport['outputGeneratorExecution'])
                 else:
                     # We only have one generator, we assume `name` is the name of the test file to generate
-                    shutil.copy(baseWorkingDir + 'generators/%s/generator.exe' % gen['idGenerator'], genDir + 'generator.exe')
+                    filecopy(baseWorkingDir + 'generators/%s/generator.exe' % gen['idGenerator'], genDir + 'generator.exe', fromlocal=True)
                     genReport['generatorExecution'] = cachedExecute(gen['genExecution'], "generator.exe %s" % tc['params'], genDir,
                             getCacheDir(generatorsFiles[gen['idGenerator']], 'e-generator:' + tc['params']),
                             stdoutFile=genDir + tc['name'],
@@ -581,32 +630,32 @@ def evaluation(evaluationParams):
                     if isExecError(genReport['generatorExecution']):
                         errorSoFar = True
                     else:
-                        shutil.copy(genDir + tc['name'], baseWorkingDir + 'tests/' + tc['name'])
+                        filecopy(genDir + tc['name'], baseWorkingDir + 'tests/' + tc['name'], fromlocal=True, tolocal=True)
                 report['generations'].append(genReport)
                 
         else:
             # We generate the test cases just by executing the generators
             genReport = {'id': gen['id']}
-            shutil.copy(baseWorkingDir + 'generators/%s/generator.exe' % gen['idGenerator'], genDir + 'generator.exe')
+            filecopy(baseWorkingDir + 'generators/%s/generator.exe' % gen['idGenerator'], genDir + 'generator.exe', fromlocal=True)
             genReport['generatorExecution'] = cachedExecute(gen['genExecution'], "generator.exe", genDir,
                     getCacheDir(generatorsFiles[gen['idGenerator']], 'e-generator'), outputFiles=['*.in', '*.out', '*.h', '*.java', '*.ml', '*.mli', '*.pas', '*.py'])
             errorSoFar = errorSoFar or isExecError(genReport['generatorExecution'])
             if gen.has_key('idOutputGenerator'):
                 # We also have an output generator
-                shutil.copy(baseWorkingDir + 'generators/%s/generator.exe' % gen['idOutputGenerator'], genDir + 'outgenerator.exe')
+                filecopy(baseWorkingDir + 'generators/%s/generator.exe' % gen['idOutputGenerator'], genDir + 'outgenerator.exe', fromlocal=True)
                 genReport['outputGeneratorExecution'] = cachedExecute(gen['outGenExecution'], "outgenerator.exe" % gen['idOutputGenerator'], genDir,
                         getCacheDir(generatorsFiles[gen['idOutputGenerator']], 'e-generator'), outputFiles=['*.out'])
                 errorSoFar = errorSoFar or isExecError(genReport['outputGeneratorExecution'])
             report['generations'].append(genReport)
             # We copy the generated test files
             for f in (glob.glob(genDir + '*.in') + glob.glob(genDir + '*.out')):
-                shutil.copy(f, baseWorkingDir + 'tests/')
+                filecopy(f, baseWorkingDir + 'tests/')
             # We copy the generated lib files
             libFiles = []
             for ext in ['*.h', '*.java', '*.ml', '*.mli', '*.pas', '*.py']:
                 libFiles.extend(glob.glob(genDir + ext))
             for f in libFiles:
-                shutil.copy(f, baseWorkingDir + 'libs/')
+                filecopy(f, baseWorkingDir + 'libs/')
 
     # We add extra tests
     if evaluationParams.has_key('extraTests'):
@@ -682,7 +731,7 @@ def evaluation(evaluationParams):
             
             subTestReport = {'name': baseTfName}
             # We execute the sanitizer
-            shutil.copy(baseWorkingDir + 'sanitizer/sanitizer.exe', testDir + 'sanitizer.exe')
+            filecopy(baseWorkingDir + 'sanitizer/sanitizer.exe', testDir + 'sanitizer.exe')
             subTestReport['sanitizer'] = cachedExecute(evaluationParams['checker']['runExecution'],
                     'sanitizer.exe', testDir,
                     getCacheDir(evaluationParams['sanitizer']['compilationDescr']['files'], 'e-sanitizer', inputFiles=[tf]),
@@ -692,8 +741,8 @@ def evaluation(evaluationParams):
                 mainTestReport['testsReports'].append(subTestReport)
                 continue
             # We execute the solution
-            shutil.copy(tf, testDir)
-            shutil.copy("%ssolutions/%s/solution.exe" % (baseWorkingDir, test['idSolution']), testDir + 'solution.exe')
+            filecopy(tf, testDir, fromlocal=True)
+            filecopy("%ssolutions/%s/solution.exe" % (baseWorkingDir, test['idSolution']), testDir + 'solution.exe', fromlocal=True)
             subTestReport['execution'] = cachedExecute(test['runExecution'], 'solution.exe', testDir,
                     getCacheDir(solutionFiles, 'e-solution', inputFiles=[testDir + baseTfName + '.in']),
                     stdinFile=testDir + baseTfName + '.in', stdoutFile=testDir + baseTfName + '.solout',
@@ -703,9 +752,9 @@ def evaluation(evaluationParams):
                 mainTestReport['testsReports'].append(subTestReport)
                 continue
             # We execute the checker
-            shutil.copy(baseWorkingDir + 'checker/checker.exe', testDir)
+            filecopy(baseWorkingDir + 'checker/checker.exe', testDir)
             if os.path.isfile(tf[:-3] + '.out'):
-                shutil.copy(tf[:-3] + '.out', testDir)
+                filecopy(tf[:-3] + '.out', testDir, fromlocal=True)
             else:
                 # We write a dummy .out file, the checker probably doesn't need it
                 open(testDir + baseTfName + '.out', 'w')
