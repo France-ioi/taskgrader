@@ -69,9 +69,16 @@ CFG_LANGEXTS = {'.c': 'c',
 
 
 ### server.py configuration
-# URLs to the taskqueue
-CFG_TASKQUEUE_POLL = ''
-CFG_TASKQUEUE_SEND = ''
+# URLs to the graderqueue
+CFG_GRADERQUEUE_POLL = '' # URL to poll tasks from
+CFG_GRADERQUEUE_SEND = '' # URL to send results
+# Paths for tasks fetched from the graderqueue
+CFG_GRADERQUEUE_ROOT = '' # rootPath to add to tasks
+CFG_GRADERQUEUE_VARS = {} # Values for variables from the graderqueue
+# Client SSL files
+CFG_GRADERQUEUE_KEY = ''  # local.key
+CFG_GRADERQUEUE_CERT = '' # local.crt
+CFG_GRADERQUEUE_CA = ''   # CA.crt
 
 
 

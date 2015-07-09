@@ -7,8 +7,9 @@
 
 
 
-import getopt, json, os, sys, subprocess, time, urllib, urllib2
-from config import CFG_TASKGRADER, CFG_TASKQUEUE_POLL, CFG_TASKQUEUE_SEND, CFG_TASKQUEUE_ROOT
+import getopt, json, os, requests, string, sys, subprocess, time
+import urllib, urllib2, urllib2_ssl
+from config import CFG_TASKGRADER, CFG_GRADERQUEUE_POLL, CFG_GRADERQUEUE_SEND, CFG_GRADERQUEUE_ROOT, CFG_GRADERQUEUE_VARS, CFG_GRADERQUEUE_CLIENTCERT
 
 
 def usage():
@@ -62,18 +63,23 @@ if __name__ == '__main__':
         if os.fork() > 0:
             sys.exit(0)
 
-    while(True):
+    lastTaskTime = time.time()
+
+    while(time.time()-lastTaskTime < 60):
         # Main loop
 
         # We wait 1 second between each poll request
         time.sleep(1)
 
         # Request data from the taskqueue
-        f = urllib2.urlopen(CFG_TASKQUEUE_POLL)
+        opener = urllib2.build_opener(urllib2_ssl.HTTPSHandler(
+            key_file=CFG_GRADERQUEUE_KEY, cert_file=CFG_GRADERQUEUE_CERT, ca_certs=CFG_GRADERQUEUE_CA, checker=lambda x, y: True))
+        r = opener.open(CFG_GRADERQUEUE_POLL).read()
         try:
-            jsondata = json.loads(f.read())
+            jsondata = json.loads(r)
         except:
             print 'Error: Taskqueue returned non-JSON data.'
+            print r
             sys.exit(1)
 
         if not jsondata.has_key('errorcode'):
@@ -97,11 +103,15 @@ if __name__ == '__main__':
             print 'Error: Taskqueue returned no taskdata.'
             sys.exit(1)
 
+        lastTaskTime = time.time()
+
         taskdata = jsondata['taskdata']
         if verbose:
             print 'Received task %s (#%d)' % (jsondata['taskname'], jsondata['taskid'])
 
-        taskdata['rootPath'] = CFG_TASKQUEUE_ROOT
+        taskdata['rootPath'] = CFG_GRADERQUEUE_ROOT
+        if taskdata.has_key('restrictToPaths'):
+            taskdata['restrictToPaths'] = map(lambda p: Template(p).safe_substitute(CFG_GRADERQUEUE_VARS), taskdata['restrictToPaths'])
 
         if debug:
             print ''
@@ -150,10 +160,9 @@ if __name__ == '__main__':
                 print json.dumps(evalJson)
 
             # Send back results
-            req = urllib2.Request(CFG_TASKQUEUE_SEND,
-                    urllib.urlencode({'taskid': jsondata['taskid'],
-                    'resultdata': json.dumps({'errorcode': 0, 'taskdata': evalJson})}))
-            response = urllib2.urlopen(req).read()
+            resp = opener.open(CFG_GRADERQUEUE_SEND, data=urllib.urlencode(
+                    {'taskid': jsondata['taskid'],
+                     'resultdata': json.dumps({'errorcode': 0, 'taskdata': evalJson})})).read()
 
             if verbose:
                 print "Sent results."
@@ -167,15 +176,16 @@ if __name__ == '__main__':
                 print "stderr:"
                 print procErr
 
-            req = urllib2.Request(CFG_TASKQUEUE_SEND,
-                urllib.urlencode({'taskid': jsondata['taskid'],
-                'resultdata': json.dumps({'errorcode': 2, 'errormsg': "stdout:\n%s\nstderr:\n%s" % (procOut, procErr)})}))
-            response = urllib2.urlopen(req).read()
+            resp = opener.open(CFG_GRADERQUEUE_SEND, data=urllib.urlencode(
+                    {'taskid': jsondata['taskid'],
+                     'resultdata': json.dumps({'errorcode': 2, 'errormsg': "stdout:\n%s\nstderr:\n%s" % (procOut, procErr)})})).read()
 
         try:
-            respjson = json.loads(response)
+            respjson = json.loads(resp)
             if verbose:
                 print "Taskqueue response: (%d) %s" % (respjson['errorcode'], respjson['errormsg'])
         except:
-            print "Error: Taskqueue answered results with invalid data (%s)" % response
+            print "Error: Taskqueue answered results with invalid data (%s)" % resp
             sys.exit(1)
+
+    print "No task available, sleeping."
