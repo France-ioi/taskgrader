@@ -280,6 +280,8 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
         isolatedCmdLine += ' --processes'
         isolatedCmdLine += ' --env=HOME --env=PATH'
         isolatedCmdLine += ' --meta=' + workingDir + 'isolate.meta'
+        # Use an unique box ID
+        isolatedCmdLine += ' --box-id=%d' % os.getpid()
         if executionParams['timeLimitMs'] > 0:
             isolatedCmdLine += ' --time=' + str(realTimeLimit / 1000.)
         if executionParams['memoryLimitKb'] > 0:
