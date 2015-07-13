@@ -9,7 +9,7 @@
 
 import getopt, json, os, requests, string, sys, subprocess, time
 import urllib, urllib2, urllib2_ssl
-from config import CFG_TASKGRADER, CFG_GRADERQUEUE_POLL, CFG_GRADERQUEUE_SEND, CFG_GRADERQUEUE_ROOT, CFG_GRADERQUEUE_VARS, CFG_GRADERQUEUE_CLIENTCERT
+from config import CFG_TASKGRADER, CFG_BASEDIR, CFG_SERVER_PIDFILE, CFG_GRADERQUEUE_POLL, CFG_GRADERQUEUE_SEND, CFG_GRADERQUEUE_ROOT, CFG_GRADERQUEUE_VARS, CFG_GRADERQUEUE_KEY, CFG_GRADERQUEUE_CERT, CFG_GRADERQUEUE_CA
 
 
 def usage():
@@ -19,17 +19,20 @@ Launches an evaluation server.
  -d, --debug        Shows all the JSON data in and out (implies -v)
  -D, --daemon       Daemonize the process (incompatible with -v)
  -h, --help         Shows this usage information
+ -s, --server       Server mode: start only if not already started
+                    (implies -D)
  -v, --verbose      Gives some information on standard output"""
 
 
 if __name__ == '__main__':
     daemon = False
     debug = False
+    server = False
     verbose = False
 
     # Read command line options
     try:
-        (opts, extraargs) = getopt.getopt(sys.argv[1:], 'dDhv', ['daemon', 'debug', 'help', 'verbose'])
+        (opts, extraargs) = getopt.getopt(sys.argv[1:], 'dDhsv', ['daemon', 'debug', 'help', 'server', 'verbose'])
     except getopt.GetoptError as err:
         print str(err)
         usage()
@@ -44,6 +47,9 @@ if __name__ == '__main__':
         elif opt in ['-h', '--help']:
             usage()
             sys.exit(0)
+        elif opt in ['-s', '--server']:
+            daemon = True
+            server = True
         elif opt in ['-v', '--verbose']:
             verbose = True
 
@@ -53,15 +59,40 @@ if __name__ == '__main__':
         sys.exit(1)
 
 
+    if server:
+        # Launch only if not already started
+        try:
+            pid = int(open(CFG_SERVER_PIDFILE, 'r').read())
+        except:
+            pid = 0
+        if pid > 0:
+            try:
+                os.kill(pid, 0)
+            except OSError as err:
+                if err.errno == 1:
+                    print "Server exists as another user. Exiting."
+                    sys.exit(1)
+            else:
+                print "Server already launched. Exiting."
+                sys.exit(1)
+
     if daemon:
         # Daemonize
         if os.fork() > 0:
             sys.exit(0)
+        devnull = os.open(os.devnull, os.O_RDWR)
+        os.dup2(devnull, 0)
+        os.dup2(devnull, 1)
+        os.dup2(devnull, 2)
         os.chdir("/")
         os.setsid()
         os.umask(0)
         if os.fork() > 0:
             sys.exit(0)
+
+    if server:
+        # Write new PID
+        open(CFG_SERVER_PIDFILE, 'w').write(str(os.getpid()))
 
     lastTaskTime = time.time()
 

@@ -51,3 +51,9 @@ The `defaultParams.json` must be JSON data pairing the following keys with the r
 ## Internal functions (for developers)
 
 `evaluation` is the evaluation process. It reads an input JSON and builds a `dictWithVars` out of it to reflect the variables system. It compiles and executes with the functions `cachedExecute` and `cachedCompile`. These functions need the informations from the function `getCacheDir` to know whether some results are already cached; if there are some, they fetch files from the cache, else they call their counterparts `execute` and `compile` to actually execute and compile. `compile` uses `getFile` to fetch the source and dependency files into the working directory. `execute` uses `capture` to save the contents of a file into a `captureReport` in the output JSON.
+
+## Usage with the graderqueue
+
+The `server.py` script is made for use with the [graderqueue](https://github.com/France-ioi/graderqueue). To use its wakeup feature, you can use `inetd`, and add a config line to a file named `/etc/inetd.d/taskgrader` with:
+
+    [port]   stream  tcp nowait  [user]  /path/to/server.py /path/to/server.py --server
