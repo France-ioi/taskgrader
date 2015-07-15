@@ -371,8 +371,7 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
     filesReports = []
     for globf in executionParams['getFiles']:
         for f in glob.glob(workingDir + globf):
-            # Files captured are always truncated at 1MB
-            filesReports.append(capture(f, name=os.path.basename(f), truncateSize=1024*1024))
+            filesReports.append(capture(f, name=os.path.basename(f), truncateSize=CFG_MAX_GETFILE))
     report['files'] = filesReports
 
     return report

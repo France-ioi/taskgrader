@@ -34,6 +34,7 @@ CFG_OUTPUTSCHEMA = os.path.join(CFG_BINDIR, 'schema_output.json')
 # that, the tasgrader will return an error
 CFG_MAX_TIMELIMIT = 60000       # in milliseconds
 CFG_MAX_MEMORYLIMIT = 1024*1024 # in kilobytes
+CFG_MAX_GETFILE = 1024*1024     # in bytes
 
 # Time and memory parameter transformations for some languages
 # For memory, we only transform the limit
