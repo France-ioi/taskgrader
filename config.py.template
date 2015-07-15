@@ -99,25 +99,7 @@ for var in ['CFG_BASEDIR', 'CFG_BINDIR']:
     if not eval(var):
         raise Exception("Configuration variable %s empty. Please edit config.py." % var)
 
-### Initialization
-# Make directories if they don't exist
-try:
-    os.mkdir(CFG_BUILDSDIR)
-except:
-    pass
-try:
-    os.mkdir(CFG_CACHEDIR)
-except:
-    pass
-
-# Initialize the database if needed
+### Connect to database
 CFG_CACHEDB = sqlite3.connect(CFG_CACHEDBPATH)
-try:
-    CFG_CACHEDB.execute("""CREATE TABLE cache
-            (id INTEGER PRIMARY KEY,
-             filesid TEXT,
-             hashlist TEXT)""")
-except:
-    pass
 CFG_CACHEDB.row_factory = sqlite3.Row
 

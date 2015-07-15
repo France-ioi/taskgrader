@@ -87,8 +87,16 @@ else
     ERROR=1
 fi
 
-### Modify config.py
+### Initialize data directories
 mkdir files
+mkdir files/cache
+mkdir files/builds
+
+### Initialize database
+# We use python to avoid depending on sqlite3 client binary
+python schema_db.py
+
+### Modify config.py
 cp -p config.py.template config.py
 sed -i "s|^CFG_BASEDIR.*$|CFG_BASEDIR=\"`pwd`/files/\"|" config.py
 sed -i "s|^CFG_BINDIR.*$|CFG_BINDIR=\"`pwd`/\"|" config.py
