@@ -7,59 +7,32 @@
 
 
 
-import getopt, json, os, requests, string, sys, subprocess, time
+import argparse, json, os, requests, string, sys, subprocess, time
 import urllib, urllib2, urllib2_ssl
 from config import CFG_TASKGRADER, CFG_BASEDIR, CFG_SERVER_PIDFILE, CFG_GRADERQUEUE_POLL, CFG_GRADERQUEUE_SEND, CFG_GRADERQUEUE_ROOT, CFG_GRADERQUEUE_VARS, CFG_GRADERQUEUE_KEY, CFG_GRADERQUEUE_CERT, CFG_GRADERQUEUE_CA
 
 
-def usage():
-    print """Usage: server.py [option]...
-Launches an evaluation server.
-
- -d, --debug        Shows all the JSON data in and out (implies -v)
- -D, --daemon       Daemonize the process (incompatible with -v)
- -h, --help         Shows this usage information
- -s, --server       Server mode: start only if not already started
-                    (implies -D)
- -v, --verbose      Gives some information on standard output"""
-
-
 if __name__ == '__main__':
-    daemon = False
-    debug = False
-    server = False
-    verbose = False
-
     # Read command line options
-    try:
-        (opts, extraargs) = getopt.getopt(sys.argv[1:], 'dDhsv', ['daemon', 'debug', 'help', 'server', 'verbose'])
-    except getopt.GetoptError as err:
-        print str(err)
-        usage()
-        sys.exit(1)
+    argParser = argparse.ArgumentParser(description="Launches an evaluation server for use with the graderQueue.")
 
-    for (opt, arg) in opts:
-        if opt in ['-d', '--debug']:
-            debug = True
-            verbose = True
-        elif opt in ['-D', '--daemon']:
-            daemon = True
-        elif opt in ['-h', '--help']:
-            usage()
-            sys.exit(0)
-        elif opt in ['-s', '--server']:
-            daemon = True
-            server = True
-        elif opt in ['-v', '--verbose']:
-            verbose = True
+    argParser.add_argument('-d', '--debug', help='Shows all the JSON data in and out (implies -v)', action='store_true')
+    argParser.add_argument('-D', '--daemon', help='Daemonize the process (incompatible with -v)', action='store_true')
+    argParser.add_argument('-s', '--server', help='Server mode: start only if not already started (implies -D)', action='store_true')
+    argParser.add_argument('-v', '--verbose', help='Be more verbose', action='store_true')
 
-    if daemon and verbose:
+    args = argParser.parse_args()
+
+    args.verbose = args.verbose or args.debug
+    args.daemon = args.daemon or args.server
+
+    if args.daemon and args.verbose:
         print "Can't daemonize while verbose mode is enabled."
-        usage()
+        argParser.print_help()
         sys.exit(1)
 
 
-    if server:
+    if args.server:
         # Launch only if not already started
         try:
             pid = int(open(CFG_SERVER_PIDFILE, 'r').read())
@@ -76,7 +49,7 @@ if __name__ == '__main__':
                 print "Server already launched. Exiting."
                 sys.exit(1)
 
-    if daemon:
+    if args.daemon:
         # Daemonize
         if os.fork() > 0:
             sys.exit(0)
@@ -90,7 +63,7 @@ if __name__ == '__main__':
         if os.fork() > 0:
             sys.exit(0)
 
-    if server:
+    if args.server:
         # Write new PID
         open(CFG_SERVER_PIDFILE, 'w').write(str(os.getpid()))
 
@@ -121,7 +94,7 @@ if __name__ == '__main__':
 
         # Handle various possible errors
         if jsondata['errorcode'] == 1:
-            if verbose:
+            if args.verbose:
                 print 'Taskqueue has no available task.'
             continue
         elif jsondata['errorcode'] == 2:
@@ -137,26 +110,26 @@ if __name__ == '__main__':
         lastTaskTime = time.time()
 
         taskdata = jsondata['taskdata']
-        if verbose:
+        if args.verbose:
             print 'Received task %s (#%d)' % (jsondata['taskname'], jsondata['taskid'])
 
         taskdata['rootPath'] = CFG_GRADERQUEUE_ROOT
         if taskdata.has_key('restrictToPaths'):
             taskdata['restrictToPaths'] = map(lambda p: Template(p).safe_substitute(CFG_GRADERQUEUE_VARS), taskdata['restrictToPaths'])
 
-        if debug:
+        if args.debug:
             print ''
             print '* JSON sent to taskgrader:'
             print json.dumps(taskdata)
     
         # Send to taskgrader
-        if debug:
+        if args.debug:
             print ''
             print '* Output from taskgrader'
         proc = subprocess.Popen(['/usr/bin/python', CFG_TASKGRADER], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (procOut, procErr) = proc.communicate(input=json.dumps(taskdata))
 
-        if debug:
+        if args.debug:
             print ''
             print '* Results'
 
@@ -167,9 +140,9 @@ if __name__ == '__main__':
             evalJson = None
 
         if evalJson:
-            if verbose:
+            if args.verbose:
                 print "Execution successful."
-            if debug:
+            if args.debug:
                 for execution in evalJson['executions']:
                     print ' * Execution %s:' % execution['name']
                     for report in execution['testsReports']:
@@ -185,7 +158,7 @@ if __name__ == '__main__':
                             # Sanitizer error
                             print 'Test rejected by sanitizer. Sanitizer report:'
                             print json.dumps(report['sanitizer'])
-            if debug:
+            if args.debug:
                 print ''
                 print '* Full report:'
                 print json.dumps(evalJson)
@@ -195,12 +168,12 @@ if __name__ == '__main__':
                     {'taskid': jsondata['taskid'],
                      'resultdata': json.dumps({'errorcode': 0, 'taskdata': evalJson})})).read()
 
-            if verbose:
+            if args.verbose:
                 print "Sent results."
         else:
-            if verbose:
+            if args.verbose:
                 print "Taskgrader error."
-            if debug:
+            if args.debug:
                 print "stdout:"
                 print procOut
                 print ""
@@ -213,7 +186,7 @@ if __name__ == '__main__':
 
         try:
             respjson = json.loads(resp)
-            if verbose:
+            if args.verbose:
                 print "Taskqueue response: (%d) %s" % (respjson['errorcode'], respjson['errormsg'])
         except:
             print "Error: Taskqueue answered results with invalid data (%s)" % resp

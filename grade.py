@@ -7,66 +7,39 @@
 
 
 
-import getopt, json, os, sys, subprocess
+import argparse, json, os, sys, subprocess
 from config import CFG_TASKGRADER, CFG_EXECPARAMS, CFG_LANGEXTS
-
-
-def usage():
-    print """Usage: grade.py [option]... FILE...
-Grades the program(s) in FILE(s) with the taskgrader.
-
- -d, --debug          Shows all the JSON data generated
- -h, --help           Shows this usage information
- -m, --memory-limit=  Sets the memory limit for compilation and execution
- -t, --time-limit=    Sets the time limit for compilation and execution
- -p, --task-path=     Sets the task path; defaults to current directory"""
 
 
 if __name__ == '__main__':
     execParams = {}
     execParams.update(CFG_EXECPARAMS)
-    debug = False
 
     # Read command line options
-    try:
-        (opts, files) = getopt.getopt(sys.argv[1:], 'dhm:t:p:', ['debug', 'help', 'memory-limit=', 'time-limit=', 'task-path='])
-    except getopt.GetoptError as err:
-        print str(err)
-        usage()
-        sys.exit(1)
+    argParser = argparse.ArgumentParser(description="Grades the program(s) in FILE(s) with the taskgrader, using default parameters.")
 
-    if len(files) == 0:
-        print "No input solutions specified."
-        usage()
-        sys.exit(1)
+    argParser.add_argument('files', metavar='FILE', nargs='+', help='Program to grade')
+    argParser.add_argument('-d', '--debug', help='Shows all the JSON data generated', action='store_true')
+    argParser.add_argument('-m', '--memory-limit', type=int, help="Sets the memory limit for compilation and execution", default=execParams['memoryLimitKb'])
+    argParser.add_argument('-t', '--time-limit', type=int, help="Sets the time limit for compilation and execution", default=execParams['timeLimitMs'])
+    argParser.add_argument('-p', '--task-path',  help="Sets the task path; defaults to current directory")
+
+    args = argParser.parse_args()
 
     # We default the task path to the current directory if there's a defaultParams in it
-    if os.path.isfile('defaultParams.json'):
-        taskPath = os.getcwd()
-    else:
-        taskPath = None
-
-    for (opt, arg) in opts:
-        if opt in ['-d', '--debug']:
-            debug = True
-        elif opt in ['-h', '--help']:
-            usage()
-            sys.exit(0)
-        elif opt in ['-m', '--memory-limit']:
-            execParams['memoryLimitKb'] = int(arg)
-        elif opt in ['-t', '--time-limit']:
-            execParams['timeLimitMs'] = int(arg)
-        elif opt in ['-p', '--task-path']:
-            taskPath = arg
-
-    if not taskPath or not os.path.isfile(os.path.join(taskPath, 'defaultParams.json')):
+    if not args.task_path and os.path.isfile('defaultParams.json'):
+        args.task_path = os.getcwd()
+    elif not os.path.isfile(os.path.join(args.task_path, 'defaultParams.json')):
         print "Current directory is not a task and no task path given. Aborting."
-        usage()
+        parser.print_help()
         sys.exit(1)
 
-    print "Running task in %s" % taskPath
+    execParams['memoryLimitKb'] = args.memory_limit
+    execParams['timeLimitMs'] = args.time_limit
 
-    defaultParams = json.load(open(os.path.join(taskPath, 'defaultParams.json'), 'r'))
+    print "Running task in %s" % args.task_path
+
+    defaultParams = json.load(open(os.path.join(args.task_path, 'defaultParams.json'), 'r'))
 
     solId = 0
     testSolutions = []
@@ -125,7 +98,7 @@ if __name__ == '__main__':
     # Final evaluation JSON to be given to the taskgrader
     testEvaluation = {
         'rootPath': defaultParams['rootPath'],
-        'taskPath': taskPath,
+        'taskPath': args.task_path,
         'generators': ['@defaultGenerator'],
         'generations': ['@defaultGeneration'],
         'extraTests': etests,
@@ -134,7 +107,7 @@ if __name__ == '__main__':
         'solutions': testSolutions,
         'executions': testExecutions}
 
-    if debug:
+    if args.debug:
         print ''
         print '* JSON sent to taskgrader:'
         print json.dumps(testEvaluation)
@@ -163,7 +136,7 @@ if __name__ == '__main__':
                 # Sanitizer error
                 print 'Test rejected by sanitizer. Sanitizer report:'
                 print json.dumps(report['sanitizer'])
-    if debug:
+    if args.debug:
         print ''
         print '* Full report:'
         print json.dumps(resultJson)
