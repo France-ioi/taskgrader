@@ -12,7 +12,7 @@
 
 import argparse, json, os, requests, string, sys, subprocess, time
 import urllib, urllib2, urllib2_ssl
-from config import CFG_TASKGRADER, CFG_BASEDIR, CFG_SERVER_PIDFILE, CFG_GRADERQUEUE_POLL, CFG_GRADERQUEUE_SEND, CFG_GRADERQUEUE_ROOT, CFG_GRADERQUEUE_VARS, CFG_GRADERQUEUE_KEY, CFG_GRADERQUEUE_CERT, CFG_GRADERQUEUE_CA
+from config import CFG_TASKGRADER, CFG_BASEDIR, CFG_SERVER_PIDFILE, CFG_GRADERQUEUE_POLL, CFG_GRADERQUEUE_SEND, CFG_GRADERQUEUE_ROOT, CFG_GRADERQUEUE_VARS, CFG_GRADERQUEUE_KEY, CFG_GRADERQUEUE_CERT, CFG_GRADERQUEUE_CA, CFG_GRADERQUEUE_CHECKER
 
 
 if __name__ == '__main__':
@@ -80,7 +80,10 @@ if __name__ == '__main__':
 
         # Request data from the taskqueue
         opener = urllib2.build_opener(urllib2_ssl.HTTPSHandler(
-            key_file=CFG_GRADERQUEUE_KEY, cert_file=CFG_GRADERQUEUE_CERT, ca_certs=CFG_GRADERQUEUE_CA, checker=lambda x, y: True))
+            key_file=CFG_GRADERQUEUE_KEY,
+            cert_file=CFG_GRADERQUEUE_CERT,
+            ca_certs=CFG_GRADERQUEUE_CA,
+            checker=CFG_GRADERQUEUE_CHECKER))
         r = opener.open(CFG_GRADERQUEUE_POLL).read()
         try:
             jsondata = json.loads(r)
