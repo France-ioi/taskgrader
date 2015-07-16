@@ -5,6 +5,9 @@
 #
 # http://opensource.org/licenses/MIT
 
+# This script starts a server, fetching tasks from the graderqueue and sending
+# them to the taskgrader.
+# See https://github.com/France-ioi/graderqueue .
 
 
 import argparse, json, os, requests, string, sys, subprocess, time

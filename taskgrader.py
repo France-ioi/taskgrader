@@ -5,6 +5,10 @@
 #
 # http://opensource.org/licenses/MIT
 
+# This simple tool manages every step of grading a contest task, from the
+# generation of test data to the grading of a solution output.
+# See README.md for more information.
+
 
 import glob, hashlib, json, os, random, shlex, shutil, sqlite3, sys, subprocess
 from config import *

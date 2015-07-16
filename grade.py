@@ -5,6 +5,8 @@
 #
 # http://opensource.org/licenses/MIT
 
+# This companion tool to the taskgrader grades the program(s) in FILE(s) with
+# the taskgrader, using default parameters set in config.py .
 
 
 import argparse, json, os, sys, subprocess
