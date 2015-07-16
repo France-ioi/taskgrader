@@ -106,8 +106,11 @@ if __name__ == '__main__':
         elif jsondata['errorcode'] == 2:
             print 'Error: Taskqueue returned an error (%s)' % jsondata['errormsg']
             sys.exit(1)
+        elif jsondata['errorcode'] == 3:
+            print 'Error: Authentication failed (%s)' % jsondata['errormsg']
+            sys.exit(1)
         elif jsondata['errorcode'] != 0:
-            print 'Error: Taskqueue returned an unknown errorcode (%s)' % jsondata['errorcode']
+            print 'Error: Taskqueue returned an unknown errorcode (%s): %s' % (jsondata['errorcode'], jsondata['errormsg'])
             sys.exit(1)
         elif not (jsondata.has_key('taskdata') and jsondata.has_key('taskname') and jsondata.has_key('taskid')):
             print 'Error: Taskqueue returned no taskdata.'
