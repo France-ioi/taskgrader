@@ -45,10 +45,7 @@ CFG_TRANSFORM_MEM  = {}
 CFG_TRANSFORM_TIME = {}
 
 
-### grade.py configuration
-# Path to the taskgrader
-CFG_TASKGRADER = os.path.join(CFG_BINDIR, 'taskgrader.py')
-
+### genStdTaskJson.py configuration
 # Default solution compilation and execution parameters
 CFG_EXECPARAMS = {'timeLimitMs': 60000,
                   'memoryLimitKb': 128*1024,
@@ -76,9 +73,8 @@ CFG_LANGEXTS = {'.c': 'c',
 for var in ['CFG_BASEDIR', 'CFG_BUILDSDIR', 'CFG_CACHEDIR', 'CFG_CACHEDBPATH',
             'CFG_BINDIR', 'CFG_ISOLATEBIN', 'CFG_RIGHTSBIN', 'CFG_JAVASCOOLBIN',
             'CFG_JSONSCHEMA', 'CFG_INPUTSCHEMA', 'CFG_OUTPUTSCHEMA',
-            'CFG_MAX_TIMELIMIT', 'CFG_MAX_MEMORYLIMIT',
-            'CFG_TRANSFORM_MEM', 'CFG_TRANSFORM_TIME',
-            'CFG_TASKGRADER', 'CFG_EXECPARAMS', 'CFG_LANGEXTS']:
+            'CFG_MAX_TIMELIMIT', 'CFG_MAX_MEMORYLIMIT', 'CFG_MAX_GETFILE',
+            'CFG_TRANSFORM_MEM', 'CFG_TRANSFORM_TIME']:
     if var not in globals():
         raise Exception("Configuration variable %s missing. Please edit config.py." % var)
 
