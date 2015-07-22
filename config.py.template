@@ -69,29 +69,6 @@ CFG_LANGEXTS = {'.c': 'c',
                 '': 'sh'}
 
 
-### server.py configuration
-# URLs to the graderqueue
-CFG_GRADERQUEUE_POLL = '' # URL to poll tasks from
-CFG_GRADERQUEUE_SEND = '' # URL to send results
-
-# Paths for tasks fetched from the graderqueue
-CFG_GRADERQUEUE_ROOT = '' # rootPath to add to tasks
-CFG_GRADERQUEUE_VARS = {} # Values for variables from the graderqueue
-
-# Server certificate validation files
-# CA to check the certificate against; use a list for multiple CAs
-CFG_GRADERQUEUE_CA = ''   # CA.crt
-# Hostname checker to use on server certificate (for urllib2_ssl)
-# To check the hostname corresponds to the certificate,
-# use urllib2_ssl.match_hostname, else put None
-CFG_GRADERQUEUE_CHECKER = None
-
-# Client SSL files
-CFG_GRADERQUEUE_KEY = ''  # local.key
-CFG_GRADERQUEUE_CERT = '' # local.crt
-
-
-
 ##### END OF CONFIGURATION #####
 
 
