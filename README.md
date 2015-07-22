@@ -33,6 +33,33 @@ Here's a description of the evaluation process, managed by the function `evaluat
 * For each `execution`, we check whether the test file passes the `sanitizer` test, then we execute the solution with the test file as standard input and save the output, and we use the `checker` to grade the solution
 * We return the evaluation report
 
+## Evaluation components
+
+The evaluation is made against a task which has multiple components.
+
+### Generators
+
+The `generators` are generating the testing environment. They are executed, optionally with various parameters, to generate files, which can be:
+
+* test files: inputs for the solution, and if necessary, expected results
+* libraries, for the compilation and execution of solutions
+
+Some of these files can be passed directly in the evaluation JSON, without the need of a generator.
+
+### Sanitizer
+
+The `sanitizer` checks whether a test input is valid. It expects the test input on its stdin, and its exit code indicates the validity of the data.
+
+### Checker
+
+The `checker` checks whether the output of a solution corresponds to the expected result. It expects three arguments on the command line:
+
+* `test.solout` the solution output
+* `test.in` the reference input
+* `test.out` the reference output
+
+All checkers are passed these three arguments, whether they use it or not. The checker outputs the grading of the solution; its exit code can indicate an error while checking (invalid arguments, missing files, ...).
+
 ## Grading a solution
 
 `grade.py` allows to grade easily a solution. The task path must be the current directory, or must be specified with `-p`. It will expect to have a `defaultParams.json` file in the task directory, describing the task with some variables.
