@@ -12,6 +12,48 @@
 import argparse, json, os, sys
 from config import CFG_EXECPARAMS, CFG_LANGEXTS
 
+def getDefault(defaultParams, field, lang, default):
+    """Checks defaultParams for a language-specific field, defaults to default
+    if it's not available."""
+    
+    if defaultParams.has_key('%s-%s' % (field, lang)):
+        dep = '@%s-%s' % (field, lang)
+    elif defaultParams.has_key(field):
+        return '@%s' % field
+    else:
+        return default
+
+
+def genOneSol(filePath, defaultParams, execParams):
+    """Make the compilation and execution JSON data for one solution in
+    filePath."""
+    solName = os.path.basename(filePath)
+    solId += 1
+
+    # Auto-detect language from extension
+    (r, ext) = os.path.splitext(filePath)
+    lang = CFG_LANGEXTS[ext]
+
+    # Do we have the defaultDependencies in the defaultParams?
+    dep = getDefault(defaultParams, 'defaultDependencies', lang, [])
+    # Do we have the defaultFilterTests in the defaultParams?
+    ftests = getDefault(defaultParams, 'defaultFilterTests', lang, ['*.in'])
+   
+    jsonSolution = {
+        'id': 'sol%d-%s' % (solId, solName),
+        'compilationDescr': {
+            'language': lang,
+            'files': [{'name': os.path.basename(filePath),
+                       'path': filePath}],
+            'dependencies': dep},
+        'compilationExecution': execParams}
+
+    jsonExecution = {
+        'id': 'exec%d-%s' % (solId, solName),
+        'idSolution': 'sol%d-%s' % (solId, solName),
+        'filterTests': ftests,
+        'runExecution': execParams}
+
 
 def genStdTaskJson(taskPath, files, execParams):
     """Make a default evaluation JSON, evaluating the solutions in files
@@ -26,45 +68,9 @@ def genStdTaskJson(taskPath, files, execParams):
     testExecutions = []
     # We add the parameters for each solution file given
     for filePath in files:
-        solName = os.path.basename(filePath)
-        solId += 1
-
-        # Auto-detect language from extension
-        (r, ext) = os.path.splitext(filePath)
-        lang = CFG_LANGEXTS[ext]
-
-        # Do we have the defaultDependencies in the defaultParams?
-        if defaultParams.has_key('defaultDependencies-' + lang):
-            dep = '@defaultDependencies-' + lang
-        elif defaultParams.has_key('defaultDependencies'):
-            dep = '@defaultDependencies'
-        else:
-            dep = []
-        
-        # Do we have the defaultFilterTests in the defaultParams?
-        if defaultParams.has_key('defaultFilterTests-' + lang):
-            ftests = '@defaultFilterTests-' + lang
-        elif defaultParams.has_key('defaultFilterTests'):
-            ftests = '@defaultFilterTests'
-        else:
-            ftests = ['*.in']
-        
-
-        testSolutions.append({
-            'id': 'sol%d-%s' % (solId, solName),
-            'compilationDescr': {
-                'language': lang,
-                'files': [{'name': os.path.basename(f),
-                           'path': filePath}],
-                'dependencies': dep},
-            'compilationExecution': execParams})
-
-        testExecutions.append({
-            'id': 'exec%d-%s' % (solId, solName),
-            'idSolution': 'sol%d-%s' % (solId, solName),
-            'filterTests': ftests,
-            'runExecution': execParams})
-
+        (jsol, jexc) = genOneSol(filePath, defaultParams, execParams)
+        testSolutions.append(jsol)
+        testExecutions.append(jexc)
 
     # Do we have extraTests defined in the defaultParams?
     if defaultParams.has_key('defaultExtraTests'):
@@ -105,9 +111,9 @@ if __name__ == '__main__':
     # We default the task path to the current directory if there's a defaultParams in it
     if not args.task_path and os.path.isfile('defaultParams.json'):
         args.task_path = os.getcwd()
-    elif not os.path.isfile(os.path.join(args.task_path, 'defaultParams.json')):
+    elif (args.task_path and not os.path.isfile(os.path.join(args.task_path, 'defaultParams.json'))) or not args.task_path:
         print "Current directory is not a task and no task path given. Aborting."
-        parser.print_help()
+        argParser.print_help()
         sys.exit(1)
 
     # Add command-line given constraints to execParams
