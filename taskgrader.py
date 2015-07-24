@@ -255,9 +255,12 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
 
     # Transformation of time and memory limits for the language
     if CFG_TRANSFORM_MEM.has_key(language):
-        realMemLimit = CFG_TRANSFORM_MEM[language](executionParams['memoryLimitKb'])
+        realMemoryLimitKb = CFG_TRANSFORM_MEM[language](executionParams['memoryLimitKb'])
+        report['realMemoryLimitKb'] = realMemoryLimitKb
     else:
         realMemoryLimitKb = executionParams['memoryLimitKb']
+        report['realMemoryLimitKb'] = executionParams['memoryLimitKb']
+
     if CFG_TRANSFORM_TIME.has_key(language):
         (timeTransform, timeUntransform) = CFG_TRANSFORM_TIME[language]
         realTimeLimit = timeTransform(executionParams['timeLimitMs'])
@@ -273,8 +276,11 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
         raise Exception("Writing to file `%s` not allowed." % stdoutFile)
 
     if isolate:
+        # Box ID is required if multiple isolate instances are running concurrently
+        boxId = (os.getpid() % 100)
+
         # Initialize isolate box
-        initProc = subprocess.Popen([CFG_ISOLATEBIN, '--init'], stdout=subprocess.PIPE, cwd=workingDir)
+        initProc = subprocess.Popen([CFG_ISOLATEBIN, '--init', '--box-id=%d' % boxId], stdout=subprocess.PIPE, cwd=workingDir)
         (isolateDir, isolateErr) = initProc.communicate()
         initProc.wait()
         # isolatePath will be the path of the sandbox, as given by isolate
@@ -286,11 +292,11 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
         isolatedCmdLine += ' --env=HOME --env=PATH'
         isolatedCmdLine += ' --meta=' + workingDir + 'isolate.meta'
         # Use an unique box ID
-        isolatedCmdLine += ' --box-id=%d' % os.getpid()
+        isolatedCmdLine += ' --box-id=%d' % boxId
         if executionParams['timeLimitMs'] > 0:
             isolatedCmdLine += ' --time=' + str(realTimeLimit / 1000.)
         if executionParams['memoryLimitKb'] > 0:
-            isolatedCmdLine += ' --mem=' + str(executionParams['memoryLimitKb'])
+            isolatedCmdLine += ' --mem=' + str(realMemoryLimitKb)
         if stdinFile:
             if os.path.isfile(stdinFile):
                 filecopy(stdinFile, isolateDir + 'isolated.stdin', fromlocal=True)
@@ -333,8 +339,10 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
                 report['realTimeTakenMs'] = float(isolateMeta['time'])*1000
             else:
                 report['timeTakenMs'] = float(isolateMeta['time'])*1000
+                report['realTimeTakenMs'] = report['timeTakenMs']
         else:
             report['timeTakenMs'] = -1
+            report['realTimeTakenMs'] = -1
         report['wasKilled'] = isolateMeta.has_key('killed')
         if isolateMeta.has_key('exitcode'):
             report['exitCode'] = int(isolateMeta['exitcode'])
@@ -347,7 +355,7 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
                 truncateSize=executionParams['stderrTruncateKb'] * 1024)
 
         # Cleanup sandbox
-        cleanProc = subprocess.Popen([CFG_ISOLATEBIN, '--cleanup'], cwd=workingDir)
+        cleanProc = subprocess.Popen([CFG_ISOLATEBIN, '--cleanup', '--box-id=%d' % boxId], cwd=workingDir)
         cleanProc.wait()
     else:
         # We don't use isolate
@@ -365,6 +373,7 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
 
         # Generate execution report
         report['timeTakenMs'] = -1 # We don't know
+        report['realTimeTakenMs'] = -1 # We don't know
         report['wasKilled'] = False
         report['exitCode'] = proc.returncode
 
@@ -496,6 +505,7 @@ def compile(compilationDescr, executionParams, workingDir, buildDir='./', name='
                 'memoryLimitKb': executionParams['memoryLimitKb'],
                 'commandLine': '[shell script built]',
                 'timeTakenMs': 0,
+                'realTimeTakenMs': 0,
                 'wasKilled': False,
                 'wasCached': False,
                 'exitCode': 0}
