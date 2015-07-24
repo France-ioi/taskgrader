@@ -94,7 +94,7 @@ mkdir files/builds
 
 ### Initialize database
 # We use python to avoid depending on sqlite3 client binary
-python schema_db.py
+./schema_db.py
 
 ### Modify config.py
 cp -p config.py.template config.py

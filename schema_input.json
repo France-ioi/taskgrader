@@ -68,8 +68,8 @@
                 "description": "Generation (execution of a generator).",
                 "properties": {
                     "id": {"type": "string", "description": "Name of the generation."},
-                    "idGenerator": {"type": "string", "description": "Name of the generator."},
-                    "idOutputGenerator": {"type": "string", "description": "Name of the output generator, if applicable."},
+                    "idGenerator": {"type": "string", "description": "Name of the tests and libraries generator."},
+                    "idOutputGenerator": {"type": "string", "description": "Name of the results generator, if applicable."},
                     "genExecution": {"$ref": "#/definitions/executionParams"},
                     "outGenExecution": {"$ref": "#/definitions/executionParams"},
                     "testCases": {"type": "array", "description": "List of specific test cases to generate.",

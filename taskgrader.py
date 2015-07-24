@@ -265,6 +265,7 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
     else:
         timeUntransform = None
         realTimeLimit = executionParams['timeLimitMs']
+        report['realTimeLimitMs'] = executionParams['timeLimitMs']
 
     if stdoutFile == None:
         stdoutFile = workingDir + 'stdout'

@@ -100,9 +100,9 @@ if __name__ == '__main__':
     # Read command line options
     argParser = argparse.ArgumentParser(description="Make a standard JSON to grade the program(s) in FILE(s) with the taskgrader, using default parameters.")
 
-    argParser.add_argument('files', metavar='FILE', nargs='+', help='Program to grade')
-    argParser.add_argument('-m', '--memory-limit', type=int, help="Sets the memory limit for compilation and execution", default=execParams['memoryLimitKb'])
-    argParser.add_argument('-t', '--time-limit', type=int, help="Sets the time limit for compilation and execution", default=execParams['timeLimitMs'])
+    argParser.add_argument('files', metavar='FILE', nargs='+', help='Executable to grade; must accept the task on stdin and output the results on stdout')
+    argParser.add_argument('-m', '--memory-limit', type=int, help="Sets the memory limit for compilation and execution, in kilobytes", default=execParams['memoryLimitKb'])
+    argParser.add_argument('-t', '--time-limit', type=int, help="Sets the time limit for compilation and execution, in milliseconds", default=execParams['timeLimitMs'])
     argParser.add_argument('-p', '--task-path', help="Sets the task path; defaults to current directory")
     argParser.add_argument('-r', '--real-path', help="Keep given file paths as-is, do not make them absolute", action='store_true')
 

@@ -25,15 +25,7 @@
                 "stdout": {"$ref": "#/definitions/captureReport", "description": "Standard output of the execution."},
                 "stderr": {"$ref": "#/definitions/captureReport", "description": "Standard error output of the execution."},
                 "files": {"type": "array", "description": "Files captured from the execution.", "items": {"$ref": "#/definitions/captureReport"}}},
-            "required": ["timeLimitMs", "memoryLimitKb", "commandLine", "timeTakenMs", "wasKilled", "wasCached", "exitCode"]},
-
-
-        "compileAndRunReport": {"type": "object",
-            "description": "Report of a compilation and an execution.",
-            "properties": {
-                "compilationExecution": {"$ref": "#/definitions/executionReport"},
-                "runExecution": {"$ref": "#/definitions/executionReport"}},
-            "required": ["compilationExecution", "runExecution"]},
+            "required": ["timeLimitMs", "memoryLimitKb", "commandLine", "timeTakenMs", "realTimeTakenMs", "wasKilled", "wasCached", "exitCode"]},
 
         "testReport": {"type": "object",
             "description": "Report of a single test execution.",
@@ -62,8 +54,8 @@
             "items": {"type": "object",
                 "properties": {
                     "id": {"type": "string"},
-                    "generatorExecution": {"$ref": "#/definitions/executionReport"},
-                    "outputGeneratorExecution": {"$ref": "#/definitions/executionReport"}},
+                    "generatorExecution": {"$ref": "#/definitions/executionReport", "description": "Report of the execution of the input files / libraries generator."},
+                    "outputGeneratorExecution": {"$ref": "#/definitions/executionReport", "description": "Report of the execution of the expected results generator, if applicable."}},
                 "required": ["id", "generatorExecution"]}},
 
         "sanitizer": {"description": "Report of the sanitizer compilation.",
@@ -71,14 +63,6 @@
 
         "checker": {"description": "Report of the checker compilation.",
             "$ref": "#/definitions/executionReport"},
-
-        "solutions": {"type": "array",
-            "description": "List of reports of compilation of solutions.",
-            "items": {"type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "compilationExecution": {"$ref": "#/definitions/executionReport"}},
-                "required": ["id", "compilationExecution"]}},
 
         "solutions": {"type": "array",
             "description": "List of reports of compilation of solutions.",
