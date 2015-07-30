@@ -24,11 +24,10 @@ def getDefault(defaultParams, field, lang, default):
         return default
 
 
-def genOneSol(filePath, defaultParams, execParams):
+def genOneSol(filePath, defaultParams, execParams, solId):
     """Make the compilation and execution JSON data for one solution in
     filePath."""
     solName = os.path.basename(filePath)
-    solId += 1
 
     # Auto-detect language from extension
     (r, ext) = os.path.splitext(filePath)
@@ -54,6 +53,8 @@ def genOneSol(filePath, defaultParams, execParams):
         'filterTests': ftests,
         'runExecution': execParams}
 
+    return (jsonSolution, jsonExecution)
+
 
 def genStdTaskJson(taskPath, files, execParams):
     """Make a default evaluation JSON, evaluating the solutions in files
@@ -68,7 +69,8 @@ def genStdTaskJson(taskPath, files, execParams):
     testExecutions = []
     # We add the parameters for each solution file given
     for filePath in files:
-        (jsol, jexc) = genOneSol(filePath, defaultParams, execParams)
+        solId += 1
+        (jsol, jexc) = genOneSol(filePath, defaultParams, execParams, solId)
         testSolutions.append(jsol)
         testExecutions.append(jexc)
 
@@ -111,7 +113,7 @@ if __name__ == '__main__':
     # We default the task path to the current directory if there's a defaultParams in it
     if not args.task_path and os.path.isfile('defaultParams.json'):
         args.task_path = os.getcwd()
-    elif (args.task_path and not os.path.isfile(os.path.join(args.task_path, 'defaultParams.json'))) or not args.task_path:
+    elif not args.task_path or not os.path.isfile(os.path.join(args.task_path, 'defaultParams.json')):
         print "Current directory is not a task and no task path given. Aborting."
         argParser.print_help()
         sys.exit(1)
