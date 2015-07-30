@@ -254,21 +254,12 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
             'wasCached': False}
 
     # Transformation of time and memory limits for the language
-    if CFG_TRANSFORM_MEM.has_key(language):
-        realMemoryLimitKb = CFG_TRANSFORM_MEM[language](executionParams['memoryLimitKb'])
-        report['realMemoryLimitKb'] = realMemoryLimitKb
-    else:
-        realMemoryLimitKb = executionParams['memoryLimitKb']
-        report['realMemoryLimitKb'] = executionParams['memoryLimitKb']
+    realMemoryLimitKb = CFG_TRANSFORM_MEM.get(language, CFG_TRANSFORM_MEM_DEFAULT)(executionParams['memoryLimitKb'])
+    report['realMemoryLimitKb'] = realMemoryLimitKb
 
-    if CFG_TRANSFORM_TIME.has_key(language):
-        (timeTransform, timeUntransform) = CFG_TRANSFORM_TIME[language]
-        realTimeLimit = timeTransform(executionParams['timeLimitMs'])
-        report['realTimeLimitMs'] = realTimeLimit
-    else:
-        timeUntransform = None
-        realTimeLimit = executionParams['timeLimitMs']
-        report['realTimeLimitMs'] = executionParams['timeLimitMs']
+    (timeTransform, timeUntransform) = CFG_TRANSFORM_TIME.get(language, CFG_TRANSFORM_TIME_DEFAULT)
+    realTimeLimit = timeTransform(executionParams['timeLimitMs'])
+    report['realTimeLimitMs'] = realTimeLimit
 
     if stdoutFile == None:
         stdoutFile = workingDir + 'stdout'
@@ -334,12 +325,8 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
 
         # Generate execution report
         if isolateMeta.has_key('time'):
-            if timeUntransform:
-                report['timeTakenMs'] = timeUntransform(float(isolateMeta['time'])*1000)
-                report['realTimeTakenMs'] = float(isolateMeta['time'])*1000
-            else:
-                report['timeTakenMs'] = float(isolateMeta['time'])*1000
-                report['realTimeTakenMs'] = report['timeTakenMs']
+            report['timeTakenMs'] = timeUntransform(float(isolateMeta['time'])*1000)
+            report['realTimeTakenMs'] = float(isolateMeta['time'])*1000
         else:
             report['timeTakenMs'] = -1
             report['realTimeTakenMs'] = -1
