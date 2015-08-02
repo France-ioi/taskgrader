@@ -64,12 +64,10 @@ def genStdTaskJson(taskPath, files, execParams):
     # Load defaultParams from the task path
     defaultParams = json.load(open(os.path.join(taskPath, 'defaultParams.json'), 'r'))
 
-    solId = 0
     testSolutions = []
     testExecutions = []
     # We add the parameters for each solution file given
-    for filePath in files:
-        solId += 1
+    for solId, filePath in enumarate(files):
         (jsol, jexc) = genOneSol(filePath, defaultParams, execParams, solId)
         testSolutions.append(jsol)
         testExecutions.append(jexc)

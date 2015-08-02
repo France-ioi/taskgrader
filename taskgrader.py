@@ -325,8 +325,8 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
 
         # Generate execution report
         if isolateMeta.has_key('time'):
-            report['timeTakenMs'] = timeUntransform(float(isolateMeta['time'])*1000)
-            report['realTimeTakenMs'] = float(isolateMeta['time'])*1000
+            report['realTimeTakenMs'] = int(float(isolateMeta['time'])*1000)
+            report['timeTakenMs'] = int(timeUntransform(report['realTimeTakenMs']))
         else:
             report['timeTakenMs'] = -1
             report['realTimeTakenMs'] = -1

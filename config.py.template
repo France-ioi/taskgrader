@@ -45,7 +45,7 @@ CFG_TRANSFORM_MEM  = {}
 CFG_TRANSFORM_TIME = {}
 # If no transformation is given for a language, we use the default
 CFG_TRANSFORM_MEM_DEFAULT  = (lambda x: x)
-CFG_TRANSFORM_TIME_DEFAULT = (lambda x: x)
+CFG_TRANSFORM_TIME_DEFAULT = (lambda x: x, lambda x: x)
 
 ### genStdTaskJson.py configuration
 # Default solution compilation and execution parameters
