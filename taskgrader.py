@@ -16,52 +16,42 @@ from config import *
 sys.path.append(CFG_JSONSCHEMA)
 from jsonschema import validate
 
-class dictWithVars(dict):
-    """Class representing JSON data with some variables in it.
-    Extension of the Python dict class; the initDict argument allows to
-    initialize its internal value to some dict.
+
+def preprocessJson(json, varData):
+    """Preprocess some JSON data, replacing variables with their values.
+    There's no checking of the type of values in the variables; the resulting
+    JSON is supposed to be checked against a JSON schema.
     varData represents the variable data; all values written as '@varname' in
-    the dict will be replaced by varData['varname'].
-    Objects of this class behave exactly as a dict and in a transparent way,
-    it will return only data without showing when internally it's variables."""
-
-    def __init__(self, varData, initDict={}, *args, **kwargs):
-        self.varData = varData
-        super(dictWithVars, self).__init__(*args, **kwargs)
-        super(dictWithVars, self).update(initDict)
-
-    def __getvalue__(self, val):
-        """Filters val to check whether it's a variable or not."""
-        if (type(val) is str or type(val) is unicode) and len(val) > 0:
-            if val[0] == '@':
-                # It's a variable, we replace it with the JSON data
-                # It will return an error if the variable doesn't exist, it's intended
-                return self.__getvalue__(self.varData[val[1:]])
-            elif '$' in val:
-                if '$BUILD_PATH' in val:
-                    return self.__getvalue__(val.replace('$BUILD_PATH', self.varData['BUILD_PATH']))
-                elif '$ROOT_PATH' in val:
-                    return self.__getvalue__(val.replace('$ROOT_PATH', self.varData['ROOT_PATH']))
-                elif '$TASK_PATH' in val:
-                    return self.__getvalue__(val.replace('$TASK_PATH', self.varData['TASK_PATH']))
-            else:
-                return val
-        elif type(val) is dict:
-            # It's a dict, we replace it with a dictWithVars
-            return dictWithVars(self.varData, initDict=val)
-        elif type(val) is list:
-            # It's a list, we filter the values in it
-            newval = map(self.__getvalue__, val)
-            # We remove None values, which are probably undefined variables
-            while None in newval:
-                newval.remove(None)
-            return newval
+    the JSON will be replaced by varData['varname']."""
+    if (type(json) is str or type(json) is unicode) and len(json) > 0:
+        if json[0] == '@':
+            # It's a variable, we replace it with the JSON data
+            # It will return an error if the variable doesn't exist, it's intended
+            return preprocessJson(varData[json[1:]], varData)
+        elif '$' in json:
+            if '$BUILD_PATH' in json:
+                return preprocessJson(json.replace('$BUILD_PATH', varData['BUILD_PATH']), varData)
+            elif '$ROOT_PATH' in json:
+                return preprocessJson(json.replace('$ROOT_PATH', varData['ROOT_PATH']), varData)
+            elif '$TASK_PATH' in json:
+                return preprocessJson(json.replace('$TASK_PATH', varData['TASK_PATH']), varData)
         else:
-            return val
-
-    def __getitem__(self, key):
-        # We only need to change how values are returned
-        return self.__getvalue__(super(dictWithVars, self).__getitem__(key))
+            return json
+    elif type(json) is dict:
+        # It's a dict, we process the values in it
+        newjson = {}
+        for k in json.keys():
+            newjson[k] = preprocessJson(json[k], varData)
+        return newjson
+    elif type(json) is list:
+        # It's a list, we filter the values in it
+        newjson = map(lambda x: preprocessJson(x, varData), json)
+        # We remove None values, which are probably undefined variables
+        while None in newjson:
+            newjson.remove(None)
+        return newjson
+    else:
+        return json
 
 
 def isInRestrict(path):
@@ -558,7 +548,7 @@ def evaluation(evaluationParams):
             varData.update(json.load(open(evaluationParams['extraParams'], 'r')))
         else:
             varData.update(evaluationParams['extraParams'])
-    evaluationParams = dictWithVars(varData, initDict=evaluationParams)
+    evaluationParams = preprocessJson(evaluationParams, varData)
 
     # Path where the evaluation will take place
     if evaluationParams.has_key('outputPath'):
