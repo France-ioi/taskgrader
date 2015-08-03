@@ -287,13 +287,18 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
         if executionParams['timeLimitMs'] > 0:
             isolatedCmdLine += ' --time=' + str(realTimeLimit / 1000.)
         if executionParams['memoryLimitKb'] > 0:
-            isolatedCmdLine += ' --mem=' + str(realMemoryLimitKb)
+            if CFG_CONTROLGROUPS:
+                isolatedCmdLine += ' --cg-mem=' + str(realMemoryLimitKb)
+            else:
+                isolatedCmdLine += ' --mem=' + str(realMemoryLimitKb)
         if stdinFile:
             if os.path.isfile(stdinFile):
                 filecopy(stdinFile, isolateDir + 'isolated.stdin', fromlocal=True)
                 isolatedCmdLine += ' --stdin=isolated.stdin'
             else:
                 raise Exception("Input file %s not found while preparing to execute command %s." % (stdinFile, cmdLine))
+        if CFG_CONTROLGROUPS:
+            isolatedCmdLine += ' --cg --cg-timing'
         isolatedCmdLine += ' --stdout=isolated.stdout --stderr=isolated.stderr'
         isolatedCmdLine += ' --run -- ' + cmdLine
 
@@ -328,13 +333,18 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
             report['realTimeTakenMs'] = int(float(isolateMeta['time'])*1000)
             report['timeTakenMs'] = int(timeUntransform(report['realTimeTakenMs']))
         else:
-            report['timeTakenMs'] = -1
             report['realTimeTakenMs'] = -1
-        report['wasKilled'] = isolateMeta.has_key('killed')
-        if isolateMeta.has_key('exitcode'):
-            report['exitCode'] = int(isolateMeta['exitcode'])
+            report['timeTakenMs'] = -1
+        # Memory used: cg-mem is only available when control groups are
+        # enabled, and max-rss can be slightly inaccurate
+        if isolateMeta.has_key('cg-mem'):
+            report['memoryUsedKb'] = int(isolateMeta['cg-mem'])
+        elif isolateMeta.has_key('max-rss'):
+            report['memoryUsedKb'] = int(isolateMeta['max-rss'])
         else:
-            report['exitCode'] = proc.returncode
+            report['memoryUsedKb'] = -1
+        report['wasKilled'] = isolateMeta.has_key('killed')
+        report['exitCode'] = int(isolateMeta.get('exitcode', proc.returncode))
 
         report['stdout'] = capture(workingDir + 'isolated.stdout', name='stdout',
                 truncateSize=executionParams['stdoutTruncateKb'] * 1024)

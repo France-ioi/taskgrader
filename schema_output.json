@@ -19,6 +19,7 @@
                 "commandLine": {"type": "string", "description": "Command-line executed."},
                 "timeTakenMs": {"type": "number", "description": "Time taken by the execution in milliseconds."},
                 "realTimeTakenMs": {"type": "number", "description": "Actual time taken by the execution in milliseconds, when there is a time transformation function for the language."},
+                "memoryUsedKb": {"type": "number", "description": "Memory used by the execution in kilobytes."},
                 "wasKilled": {"type": "boolean", "description": "Whether the execution was killed by the sandbox."},
                 "wasCached": {"type": "boolean", "description": "Whether the results of the execution were taken from cache. In that case, the report comes from the original execution."},
                 "exitCode": {"type": "integer", "description": "Exit code of the execution."},

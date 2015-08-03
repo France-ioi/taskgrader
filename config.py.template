@@ -25,6 +25,9 @@ CFG_ISOLATEBIN = os.path.join(CFG_BINDIR, 'isolate')
 CFG_RIGHTSBIN = os.path.join(CFG_BINDIR, 'box-rights')
 CFG_JAVASCOOLBIN = os.path.join(CFG_BINDIR, 'jvs2java')
 
+# Does the kernel support control groups?
+CFG_CONTROLGROUPS = True
+
 # jsonschema-related variables
 CFG_JSONSCHEMA = os.path.join(CFG_BINDIR, 'jsonschema')
 CFG_INPUTSCHEMA = os.path.join(CFG_BINDIR, 'schema_input.json')
