@@ -10,7 +10,7 @@
 
 import os, sqlite3
 
-if os.isfile('config.py'):
+if os.path.isfile('config.py'):
     # DB path already configured
     from config import CFG_CACHEDBPATH
     dbPath = CFG_CACHEDBPATH
