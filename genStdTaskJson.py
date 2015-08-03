@@ -17,7 +17,7 @@ def getDefault(defaultParams, field, lang, default):
     if it's not available."""
     
     if defaultParams.has_key('%s-%s' % (field, lang)):
-        dep = '@%s-%s' % (field, lang)
+        return '@%s-%s' % (field, lang)
     elif defaultParams.has_key(field):
         return '@%s' % field
     else:
@@ -67,7 +67,7 @@ def genStdTaskJson(taskPath, files, execParams):
     testSolutions = []
     testExecutions = []
     # We add the parameters for each solution file given
-    for solId, filePath in enumarate(files):
+    for solId, filePath in enumerate(files):
         (jsol, jexc) = genOneSol(filePath, defaultParams, execParams, solId)
         testSolutions.append(jsol)
         testExecutions.append(jexc)
