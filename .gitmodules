@@ -1,9 +1,9 @@
-[submodule "moe"]
-	path = moe
-	url = git://git.ucw.cz/moe.git
 [submodule "jsonschema"]
 	path = jsonschema
 	url = https://github.com/Julian/jsonschema.git
 [submodule "Jvs2Java"]
 	path = Jvs2Java
 	url = https://github.com/France-ioi/Jvs2Java.git
+[submodule "isolate"]
+	path = isolate
+	url = https://github.com/ioi/isolate

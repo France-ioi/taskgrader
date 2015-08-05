@@ -41,31 +41,30 @@ fi
 
 ### Fetch jsonschema and moe
 echo "*** Fetching dependencies..."
-git submodule update --init Jvs2Java jsonschema moe
+git submodule update --init Jvs2Java jsonschema isolate
 
 ### Compile Jvs2Java
 echo "*** Compiling Jvs2Java..."
 gcj --encoding=utf8 --main=Jvs2Java -o jvs2java Jvs2Java/Jvs2Java.java
 
 ### Compile isolate
-echo "*** Compiling isolate from moe..."
-cd moe
-./configure
+echo "*** Compiling isolate..."
+cd isolate
 make
-mv obj/isolate/isolate ../
+mv isolate ../isolate-bin
 cd ..
 
 ### Compile C programs
-echo "*** Setting isolate rights..."
-if ! sudo chown root:root isolate
+echo "*** Setting isolate-bin rights..."
+if ! sudo chown root:root isolate-bin
 then
-    echo "/!\ Failed to \`chown root:root isolate\`. Please run the command as root."
+    echo "/!\ Failed to \`chown root:root isolate-bin\`. Please run the command as root."
     ERROR=1
 fi
 
-if ! sudo chmod 4755 isolate
+if ! sudo chmod 4755 isolate-bin
 then
-    echo "/!\ Failed to \`chmod 4755 isolate\`. Please run the command as root."
+    echo "/!\ Failed to \`chmod 4755 isolate-bin\`. Please run the command as root."
     ERROR=1
 fi
 echo "*** Compiling box-rights..."
