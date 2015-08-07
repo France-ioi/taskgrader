@@ -19,8 +19,7 @@ else:
     dbPath = 'files/cache/taskgrader-cache.sqlite'
 
 db = sqlite3.connect(dbPath)
-db.execute("DROP TABLE cache")
-db.execute("""CREATE TABLE cache
+db.execute("""CREATE TABLE IF NOT EXISTS cache
 (id INTEGER PRIMARY KEY,
  filesid TEXT,
  hashlist TEXT)""")
