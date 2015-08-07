@@ -87,9 +87,9 @@ else
 fi
 
 ### Initialize data directories
-mkdir files
-mkdir files/cache
-mkdir files/builds
+mkdir -p files
+mkdir -p files/cache
+mkdir -p files/builds
 
 ### Initialize database
 # We use python to avoid depending on sqlite3 client binary
