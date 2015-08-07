@@ -2,7 +2,16 @@
 This simple tool manages every step of grading a contest task, from the generation of test data to the grading of a solution output.
 
 ## Installing
-Execute install.sh in the taskgrader directory to install. It will help you install everything. If needed, modify `config.py` to suit your needs.
+
+Install dependencies: on Debian/stable:
+
+    apt install build-essential sharutils python2.7 asciidoc fp-compiler gcj-4.9
+
+you also need to have a binary called `gcj` (not provided by Debian/stable):
+
+    ln -s /usr/bin/gcj-4.9 /usr/bin/gcj
+
+Execute `install.sh` in the taskgrader directory to install. It will help you install everything. If needed, modify `config.py` to suit your needs.
 
 ## Executing
 The taskgrader itself can be executed with
