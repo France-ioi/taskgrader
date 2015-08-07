@@ -50,7 +50,7 @@ gcj --encoding=utf8 --main=Jvs2Java -o jvs2java Jvs2Java/Jvs2Java.java
 ### Compile isolate
 echo "*** Compiling isolate..."
 cd isolate
-make
+make isolate
 mv isolate ../isolate-bin
 cd ..
 

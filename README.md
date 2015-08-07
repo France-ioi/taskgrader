@@ -5,7 +5,7 @@ This simple tool manages every step of grading a contest task, from the generati
 
 Install dependencies: on Debian/stable:
 
-    apt install build-essential sharutils python2.7 asciidoc fp-compiler gcj-4.9
+    apt install build-essential sharutils python2.7 fp-compiler gcj-4.9
 
 you also need to have a binary called `gcj` (not provided by Debian/stable):
 
