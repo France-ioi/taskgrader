@@ -87,7 +87,3 @@ for var in ['CFG_BASEDIR', 'CFG_BINDIR']:
     if not eval(var):
         raise Exception("Configuration variable %s empty. Please edit config.py." % var)
 
-### Connect to database
-CFG_CACHEDB = sqlite3.connect(CFG_CACHEDBPATH)
-CFG_CACHEDB.row_factory = sqlite3.Row
-
