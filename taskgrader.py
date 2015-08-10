@@ -17,7 +17,7 @@ sys.path.append(CFG_JSONSCHEMA)
 from jsonschema import validate
 
 # Temporary debug switch
-debugIsolate = False
+debugIsolate = True
 
 
 def preprocessJson(json, varData):
