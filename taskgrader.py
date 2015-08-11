@@ -17,25 +17,76 @@ sys.path.append(CFG_JSONSCHEMA)
 from jsonschema import validate
 
 
-class CacheHandle():
+class CacheFolder():
     def __init__(self, cacheId):
         self.cacheId = cacheId
+        self.cacheFolder = os.path.join(CFG_CACHEDIR, "%s/" % cacheId)
+        # TODO :: add some locking mechanism?
+        self.isCached = os.path.isfile(self._makePath('cache.ok'))
+        self.files = []
+        if self.isCached:
+            try:
+                self.files = cPickle.load(open(self._makePath('cache.files'), 'r'))
+            except:
+                pass
+
+    def _makePath(self, f=None):
+        if f:
+            return os.path.join(CFG_CACHEDIR, str(self.cacheId), f)
+        else:
+            return os.path.join(CFG_CACHEDIR, "%s/" % self.cacheId)
+
+    def invalidate(self):
+        try:
+            shutil.rmtree(self._makePath())
+        except:
+            pass
+        os.mkdir(self._makePath())
+        self.isCached = False
+        self.files = []
+
+    def addFile(self, path):
+        # If the cache has already been made, we don't allow modification.
+        if self.isCached:
+            raise Exception("Tried to modify an already cached version (ID %d)." % self.cacheId)
+
+        filename = os.path.basename(path)
+        filecopy(path, self._makePath(filename))
+        self.files.append(filename)
+
+    def addReport(self, data):
+        # If the cache has already been made, we don't allow modification.
+        if self.isCached:
+            raise Exception("Tried to modify an already cached version (ID %d)." % self.cacheId)
+
+        json.dump(data, open(self._makePath('report.json'), 'w'))
+
+    def save(self):
+        try:
+            os.mkdir(self._makePath())
+        except:
+            pass
+        cPickle.dump(self.files, open(self._makePath('cache.files'), 'w'))
+        open(self._makePath('cache.ok'), 'w').write(' ')
+        self.isCached = True
+
+    def loadFiles(self, path):
+        if not self.isCached:
+            raise Execption("Tried to load non-cached files from cache (ID %d)." % self.cacheId)
+
+        for f in self.files:
+            symlink(self._makePath(f), os.path.join(path, f))
+
+    def loadReport(self):
+        if not self.isCached:
+            raise Execption("Tried to load non-cached files from cache (ID %d)." % self.cacheId)
+
+        return json.load(open(self._makePath('report.json'), 'r'))
 
 
-class Cache():
-    def __init__(self):
-        self.database = sqlite3.connect(CFG_CACHEDBPATH)
-        self.database.row_factory = sqlite3.Row
-
-    def getCache(files, cacheType, inputFiles=[]):
-        """For a list of source files and the type (compilation or execution),
-        returns a tuple containing:
-        -whether some related files have been cached
-        -the folder containing cache files.
-        It hits the cache when the file list and corresponding MD5 hashes are
-        the same; it uses a SQLite3 database to store the information.
-        Cache will consist of folders, each folder named after the ID in the
-        database and containing all the cached files."""
+class CacheHandle():
+    def __init__(self, database, programFiles):
+        self.database = database
 
         fileIdList = []
         fileHashList = []
@@ -45,24 +96,37 @@ class Cache():
                 # File content is given, we use the name given and the hash as reference
                 md5sum = hashlib.md5(fileDescr['content']).hexdigest()
                 fileIdList.append("file:%s:%s" % (fileDescr['name'], md5sum))
-                fileHashList.append(md5sum)
             else:
                 # File path is given, we use the path as reference
+                md5sum = hashlib.md5(open(fileDescr['path'], 'rb').read()).hexdigest())
                 fileIdList.append("path:%s" % fileDescr['path'])
-                fileHashList.append(hashlib.md5(open(fileDescr['path'], 'rb').read()).hexdigest())
-
-        # We add identifiers for input files (local name and md5sum)
-        for f in inputFiles:
-            md5sum = hashlib.md5(open(f, 'rb').read()).hexdigest()
-            fileIdList.append("input:%s:%s" % (os.path.basename(f), md5sum))
+                fileHashList.append()
 
         fileIdList.sort()
         fileHashList.sort() # Both lists won't be sorted the same but it's not an issue
 
-        # We make a text version for the database
-        fileHashes = ';'.join(fileHashList)
-        # This will be the ID string in the database, containing the cache type and the source files list
-        filesId = "cache:%s;%s" % (cacheType, ";".join(fileIdList))
+        self.programId = "program:%s" % (';'.join(fileIdList))
+        self.programHashes = ';'.join(fileHashList)
+
+
+    def getCacheFolder(cacheType, args='', inputFiles=[]):
+        """For a list of source files and the type (compilation or execution),
+        returns a tuple containing:
+        -whether some related files have been cached
+        -the folder containing cache files.
+        It hits the cache when the file list and corresponding MD5 hashes are
+        the same; it uses a SQLite3 database to store the information.
+        Cache will consist of folders, each folder named after the ID in the
+        database and containing all the cached files."""
+
+        inputIdList = []
+        # We add identifiers for input files (local name and md5sum)
+        for f in inputFiles:
+            md5sum = hashlib.md5(open(f, 'rb').read()).hexdigest()
+            inputIdList.append("input:%s:%s" % (os.path.basename(f), md5sum))
+
+        # This will be the ID string in the database, containing the cache type and the input files list
+        filesId = "%s;cache:%s;args:%s;%s" % (self.programId, cacheType, args, ";".join(inputIdList))
 
         # Read cache information from database
         dbCur = self.database.cursor()
@@ -72,27 +136,31 @@ class Cache():
             # This list of files already exists in the database
             dbId = dbRow['id']
             dbHashes = dbRow['hashlist']
-            if dbHashes == fileHashes and os.path.isfile("%s%s/cache.ok" % (CFG_CACHEDIR, dbId)):
+            if dbHashes == self.programHashes:
                 # MD5 hashes are good
-                return (True, "%s%s/" % (CFG_CACHEDIR, dbId))
+                return CacheFolder(dbId)
             else:
                 # MD5 hashes changed, update database, invalidate cache
-                dbCur.execute("UPDATE cache SET hashlist=? WHERE filesid=?", [fileHashes, filesId])
+                dbCur.execute("UPDATE cache SET hashlist=? WHERE filesid=?", [self.programHashes, filesId])
                 self.database.commit()
-                try:
-                    shutil.rmtree("%s%s" % (CFG_CACHEDIR, dbId))
-                except:
-                    pass
-                os.mkdir("%s%s/" % (CFG_CACHEDIR, dbId))
-                return (False, "%s%s/" % (CFG_CACHEDIR, dbId))
+                cf = CacheFolder(dbId)
+                cf.invalidate()
+                return cf
         else:
             # New entry in database
-            dbCur.execute("INSERT INTO cache(filesid, hashlist) VALUES(?, ?)", [filesId, fileHashes])
+            dbCur.execute("INSERT INTO cache(filesid, hashlist) VALUES(?, ?)", [filesId, self.programHashes])
             self.database.commit()
             newId = dbCur.lastrowid
-            os.mkdir("%s%s/" % (CFG_CACHEDIR, newId))
-            return (False, "%s%s/" % (CFG_CACHEDIR, newId))
+            return CacheFolder(newId)
 
+
+class CacheDatabase():
+    def __init__(self):
+        self.database = sqlite3.connect(CFG_CACHEDBPATH)
+        self.database.row_factory = sqlite3.Row
+
+    def getHandle(self, files):
+        return CacheHandle(self.database, files)
 
 
 class Execution():
@@ -297,35 +365,42 @@ class IsolatedExecution(Execution):
 
 class Language():
     def __init__(self):
-        pass
+        self.lang = 'default'
+
+    def _getPossiblePaths(self, baseDir, filename):
+        return [
+            # We search for [language]-[name] in the libs directory
+            '%slibs/%s-%s' % (baseDir, self.lang, filename),
+            # We search for [name] in the libs directory
+            '%slibs/%s' % (baseDir, filename)]
 
     def getSource(self, baseDir, filename):
-        if os.path.isfile('%slibs/%s' % (baseDir, filename)):
-            # We search for [name] in the libs directory
-            return '%slibs/%s' % (baseDir, filename)
+        for path in self._getPossiblePaths(baseDir, filename):
+            if os.path.isfile(path):
+                return path
         else:
-            raise Exception("Dependency not found: %s (language: default)" % filename)
+            raise Exception("Dependency not found: %s (language: %s)" % (filename, self.lang))
 
 class DummyLanguage(Language):
     def setLanguage(self, language):
-        self.language = language
+        self.lang = lang
 
     def getSource(self, baseDir, filename):
         # TODO :: split
-        if os.path.isfile('%slibs/%s-%s' % (baseDir, self.language, filename)):
-            # We search for [language]-[name] in the libs directory
-            return '%slibs/%s-%s' % (baseDir, self.language, filename)
-        elif self.language == 'cpp' and os.path.isfile('%slibs/c-%s' % (baseDir, filename)):
+        if os.path.isfile('%slibs/%s-%s' % (baseDir, self.lang, filename)):
+            # We search for [lang]-[name] in the libs directory
+            return '%slibs/%s-%s' % (baseDir, self.lang, filename)
+        elif self.lang == 'cpp' and os.path.isfile('%slibs/c-%s' % (baseDir, filename)):
             # For cpp, we also search for c-[name] in the libs directory
             return '%slibs/c-%s' % (baseDir, filename)
-        elif self.language in ['py', 'py2', 'py3'] and os.path.isfile('%slibs/run-%s' % (baseDir, filename)):
-            # For Python languages, we search for run-[name] in the libs directory
+        elif self.lang in ['py', 'py2', 'py3'] and os.path.isfile('%slibs/run-%s' % (baseDir, filename)):
+            # For Python langs, we search for run-[name] in the libs directory
             return '%slibs/run-%s' % (baseDir, filename)
         elif os.path.isfile('%slibs/%s' % (baseDir, filename)):
             # We search for [name] in the libs directory
             return '%slibs/%s' % (baseDir, filename)
         else:
-            raise Exception("Dependency not found: %s (language: dummy)" % filename)
+            raise Exception("Dependency not found: %s (language: %s)" % (filename, self.lang))
 
 class Program():
     def __init__(self, compilationDescr, compilationParams, ownDir, baseDir, cache, name='executable'):
@@ -543,6 +618,7 @@ def symlink(filefrom, fileto, fromlocal=False, tolocal=False):
         raise Exception("Loading file `%s` not allowed." % fileto)
     os.symlink(filefrom, fileto)
 
+
 def filecopy(filefrom, fileto, fromlocal=False, tolocal=False):
     """Copy a file. *local variables indicate whether the paths must be
     explicitly allowed or not."""
@@ -562,7 +638,7 @@ def capture(path, name='', truncateSize=-1):
     """Capture a file contents for inclusion into the output JSON as a
     captureReport object."""
     if not isInRestrict(path):
-        raise Exception("Opening file `%s` is not allowed.")
+        raise Exception("Opening file `%s` for capture is not allowed.")
     report = {'name': name,
               'sizeKb': os.path.getsize(path) / 1024}
     fd = open(path, 'r')

@@ -87,9 +87,17 @@ else
 fi
 
 ### Initialize data directories
-mkdir files
-mkdir files/cache
-mkdir files/builds
+echo "*** Initializing (or resetting) data directories..."
+if [ -d files ]
+then
+    # We reset the data folder, but do not delete it as a safety measure
+    echo "/!\ Data folder 'files' already exists, moving it to files.old ."
+    echo "If you don't need anything from this folder, you can delete it safely."
+    mv files files.old
+fi
+mkdir -p files
+mkdir -p files/cache
+mkdir -p files/builds
 
 ### Initialize database
 # We use python to avoid depending on sqlite3 client binary
