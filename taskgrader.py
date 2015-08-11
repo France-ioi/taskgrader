@@ -260,8 +260,12 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
         # Box ID is required if multiple isolate instances are running concurrently
         boxId = (os.getpid() % 100)
 
+        isolateCommonOpts = ['--box-id=%d' % boxId]
+        if CFG_CONTROLGROUPS:
+            isolateCommonOpts.append('--cg')
+
         # Initialize isolate box
-        initProc = subprocess.Popen([CFG_ISOLATEBIN, '--init', '--box-id=%d' % boxId], stdout=subprocess.PIPE, cwd=workingDir)
+        initProc = subprocess.Popen([CFG_ISOLATEBIN, '--init'] + isolateCommonOpts], stdout=subprocess.PIPE, cwd=workingDir)
         (isolateDir, isolateErr) = initProc.communicate()
         initProc.wait()
         # isolatePath will be the path of the sandbox, as given by isolate
@@ -342,7 +346,7 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
                 truncateSize=executionParams['stderrTruncateKb'] * 1024)
 
         # Cleanup sandbox
-        cleanProc = subprocess.Popen([CFG_ISOLATEBIN, '--cleanup', '--box-id=%d' % boxId], cwd=workingDir)
+        cleanProc = subprocess.Popen([CFG_ISOLATEBIN, '--cleanup'] + isolateCommonOpts, cwd=workingDir)
         cleanProc.wait()
     else:
         # We don't use isolate
