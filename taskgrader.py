@@ -265,7 +265,7 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
             isolateCommonOpts.append('--cg')
 
         # Initialize isolate box
-        initProc = subprocess.Popen([CFG_ISOLATEBIN, '--init'] + isolateCommonOpts], stdout=subprocess.PIPE, cwd=workingDir)
+        initProc = subprocess.Popen([CFG_ISOLATEBIN, '--init'] + isolateCommonOpts, stdout=subprocess.PIPE, cwd=workingDir)
         (isolateDir, isolateErr) = initProc.communicate()
         initProc.wait()
         # isolatePath will be the path of the sandbox, as given by isolate
