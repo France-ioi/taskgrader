@@ -35,6 +35,8 @@ def preprocessJson(json, varData):
                 return preprocessJson(json.replace('$ROOT_PATH', varData['ROOT_PATH']), varData)
             elif '$TASK_PATH' in json:
                 return preprocessJson(json.replace('$TASK_PATH', varData['TASK_PATH']), varData)
+            else:
+                return json
         else:
             return json
     elif type(json) is dict:
@@ -111,7 +113,7 @@ def getFile(fileDescr, workingDir, buildDir=None, language=''):
         
 
     if fileDescr.has_key('content'): # Content given in descr
-        open(workingDir + fileDescr['name'], 'w').write(fileDescr['content'])
+        open(workingDir + fileDescr['name'], 'w').write(fileDescr['content'].encode('utf-8'))
     elif fileDescr.has_key('path'): # Get file by path
         if os.path.isfile(fileDescr['path']):
             symlink(fileDescr['path'], workingDir + fileDescr['name'], fromlocal=True)
@@ -153,7 +155,7 @@ def getCacheDir(files, cacheType, inputFiles=[]):
     for fileDescr in files:
         if fileDescr.has_key('content'):
             # File content is given, we use the name given and the hash as reference
-            md5sum = hashlib.md5(fileDescr['content']).hexdigest()
+            md5sum = hashlib.md5(fileDescr['content'].encode('utf-8', errors='ignore')).hexdigest()
             fileIdList.append("file:%s:%s" % (fileDescr['name'], md5sum))
             fileHashList.append(md5sum)
         else:
