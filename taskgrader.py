@@ -553,6 +553,7 @@ def evaluation(evaluationParams):
         else:
             varData.update(evaluationParams['extraParams'])
     evaluationParams = preprocessJson(evaluationParams, varData)
+    print json.dumps(evaluationParams)
 
     # Path where the evaluation will take place
     if evaluationParams.has_key('outputPath'):

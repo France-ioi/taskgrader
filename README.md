@@ -71,7 +71,9 @@ All checkers are passed these three arguments, whether they use it or not. The c
 
 ## Grading a solution
 
-`grade.py` allows to grade easily a solution. The task path must be the current directory, or must be specified with `-p`. It will expect to have a `defaultParams.json` file in the task directory, describing the task with some variables.
+`stdGrade.sh` allows to easily grade a solution. The task path must be the current directory, or must be specified with `-p`. It will expect to have a `defaultParams.json` file in the task directory, describing the task with some variables. Note that it's meant for fast and simple grading of solutions, it doesn't give a full control over the evaluation process,
+
+### defaultParams.json
 
 The `defaultParams.json` must be JSON data pairing the following keys with the right objects:
 
@@ -84,6 +86,19 @@ The `defaultParams.json` must be JSON data pairing the following keys with the r
 * `defaultDependencies-[language]` (optional): default dependencies for that language; if not defined, it will fallback to `defaultDependencies` or to an empty list
 * `defaultFilterTests-[language]` (optional): default glob-style filters for the tests for that language; if not defined, it will fallback to `defaultFilterTests` or to an empty list
 
+### genStdTaskJson.py
+
+Once you have a task directory with a `defaultParams.json`, you can use `genStdTaskJson.py` to generate the some standard JSON data (to use as input to the taskgrader) to evaluate a given solution against that task.
+
+Basic usage: `genStdTaskJson.py [SOLUTION]...` will generate the JSON data on standard output.
+
+Use `genStdTaskJson.py -h` for the full options.
+
+### stdGrade.sh
+
+`stdGrade.sh` is a simple script using `genStdTaskJson.py` to generate a standard JSON, pass it to the taskgrader and then summarize the results with `summarizeResults.py`. It will give you a simple evaluation of a solution against a task and give you summarized results.
+
+
 ## Internal functions (for developers)
 
-`evaluation` is the evaluation process. It reads an input JSON and builds a `dictWithVars` out of it to reflect the variables system. It compiles and executes with the functions `cachedExecute` and `cachedCompile`. These functions need the informations from the function `getCacheDir` to know whether some results are already cached; if there are some, they fetch files from the cache, else they call their counterparts `execute` and `compile` to actually execute and compile. `compile` uses `getFile` to fetch the source and dependency files into the working directory. `execute` uses `capture` to save the contents of a file into a `captureReport` in the output JSON.
+`evaluation` is the evaluation process. It reads an input JSON and preprocesses it to replace the variables. It compiles and executes with the functions `cachedExecute` and `cachedCompile`. These functions need the informations from the function `getCacheDir` to know whether some results are already cached; if there are some, they fetch files from the cache, else they call their counterparts `execute` and `compile` to actually execute and compile. `compile` uses `getFile` to fetch the source and dependency files into the working directory. `execute` uses `capture` to save the contents of a file into a `captureReport` in the output JSON.
