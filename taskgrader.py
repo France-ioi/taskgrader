@@ -373,43 +373,169 @@ class IsolatedExecution(Execution):
 
 
 class Language():
-    def __init__(self):
-        self.lang = 'default'
+    lang = 'default'
 
     def _getPossiblePaths(self, baseDir, filename):
         return [
             # We search for [language]-[name] in the libs directory
-            '%slibs/%s-%s' % (baseDir, self.lang, filename),
+            os.path.join(baseDir, 'libs', '%s-%s' % (self.lang, filename)),
             # We search for [name] in the libs directory
-            '%slibs/%s' % (baseDir, filename)]
+            os.path.join(baseDir, 'libs', filename)]
 
     def getSource(self, baseDir, filename):
         for path in self._getPossiblePaths(baseDir, filename):
             if os.path.isfile(path):
                 return path
         else:
-            raise Exception("Dependency not found: %s (language: %s)" % (filename, self.lang))
+            raise Exception("Dependency not found: `%s` (language: %s)." % (filename, self.lang))
 
-class DummyLanguage(Language):
-    def setLanguage(self, lang):
-        self.lang = lang
+    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+        raise Exception("Can't compile files from language %s." % self.lang)
 
-    def getSource(self, baseDir, filename):
-        # TODO :: split
-        if os.path.isfile('%slibs/%s-%s' % (baseDir, self.lang, filename)):
-            # We search for [lang]-[name] in the libs directory
-            return '%slibs/%s-%s' % (baseDir, self.lang, filename)
-        elif self.lang == 'cpp' and os.path.isfile('%slibs/c-%s' % (baseDir, filename)):
+class LanguageC(Language):
+    lang = 'c'
+
+    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+        cmdLine = "/usr/bin/gcc -static -std=gnu99 -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
+        return Execution(None, compilationParams, cmdLine).execute(ownDir)
+
+class LanguageCpp(Language):
+    lang = 'cpp'
+
+    def _getPossiblePaths(self, baseDir, filename):
+        return [
+            # We search for [language]-[name] in the libs directory
+            os.path.join(baseDir, 'libs', '%s-%s' % (self.lang, filename)),
             # For cpp, we also search for c-[name] in the libs directory
-            return '%slibs/c-%s' % (baseDir, filename)
-        elif self.lang in ['py', 'py2', 'py3'] and os.path.isfile('%slibs/run-%s' % (baseDir, filename)):
-            # For Python langs, we search for run-[name] in the libs directory
-            return '%slibs/run-%s' % (baseDir, filename)
-        elif os.path.isfile('%slibs/%s' % (baseDir, filename)):
+            os.path.join(baseDir, 'libs', 'c-%s' % filename),
             # We search for [name] in the libs directory
-            return '%slibs/%s' % (baseDir, filename)
-        else:
-            raise Exception("Dependency not found: %s (language: %s)" % (filename, self.lang))
+            os.path.join(baseDir, 'libs', filename)]
+
+    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+        cmdLine = "/usr/bin/g++ -static -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
+        return Execution(None, compilationParams, cmdLine).execute(ownDir)
+
+class LanguageCpp11(LanguageCpp):
+    lang = 'cpp11'
+
+    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+        cmdLine = "/usr/bin/g++ -std=gnu++11 -static -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
+        return Execution(None, compilationParams, cmdLine).execute(ownDir)
+
+class LanguageOcaml(Language):
+    lang = 'ocaml'
+
+    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+        cmdLine = "/usr/bin/ocamlopt -ccopt -static -o %s.exe %s" % (name, ' '.join(sourceFiles))
+        return Execution(None, compilationParams, cmdLine).execute(ownDir)
+
+class LanguagePascal(Language):
+    lang = 'pascal'
+
+    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+        cmdLine = "/usr/bin/fpc -o%s.exe %s" % (name, ' '.join(sourceFiles))
+        return Execution(None, compilationParams, cmdLine).execute(ownDir)
+
+class LanguageJava(Language):
+    lang = 'java'
+
+    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+        cmdLine = "/usr/bin/gcj --encoding=utf8 --main=Main -o %s.exe %s" % (name, ' '.join(sourceFiles))
+        return Execution(None, compilationParams, cmdLine).execute(ownDir)
+
+class LanguageJavascool(LanguageJava):
+    lang = 'javascool'
+
+    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+        # Javascool needs to be transformed before being executed
+        cmdLine = "%s %s source.java %s" % (CFG_JAVASCOOLBIN, sourceFiles[0], ' '.join(depFiles))
+        Execution(None, compilationParams, cmdLine).execute(ownDir)
+        cmdLine = "/usr/bin/gcj --encoding=utf8 --main=Main -o %s.exe source.java" % name
+        return Execution(None, compilationParams, cmdLine).execute(ownDir)
+
+class LanguageScript(Language):
+    lang = 'default-script'
+
+    def _scriptLines(self, sourceFiles, depFiles):
+        return map(lambda x: "/bin/sh %s $@\n" % x, sourceFiles)
+
+    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+        # Scripts are not "compiled", we make an archive out of the source files
+        # shar makes a self-extracting "shell archive"
+        sharFile = open(os.path.join(ownDir, name + '.exe'), 'w+')
+        subprocess.Popen(['shar', '--quiet-unshar', '--quiet'] + sourceFiles + depFiles, stdout=sharFile, cwd=ownDir).wait()
+        # We remove the last line of the archive (normally an 'exit 0')
+        sharFile.seek(-5, os.SEEK_END)
+        pos = sharFile.tell()
+        while pos > 0 and sharFile.read(1) != "\n":
+            pos -=1
+            sharFile.seek(pos, os.SEEK_SET)
+        if pos > 0:
+            sharFile.truncate(pos + 1)
+        # We set the archive to execute the script(s) after self-extracting
+        sharFile.writelines(self._scriptLines(sourceFiles, depFiles))
+        # On some versions, shar ignores the --quiet-unshar option and talks too much
+        # We replace echo= statements with echo=true as a dirty fix
+        sharFile.seek(0)
+        sharLines = []
+        for l in sharFile:
+            sharLines.append(l.replace('echo=echo', 'echo=true').replace('echo="$gettext_dir/gettext -s"', 'echo=true'))
+        sharFile.seek(0)
+        sharFile.truncate(0)
+        sharFile.writelines(sharLines)
+        sharFile.close()
+        # We set the archive executable bits
+        os.chmod(os.path.join(ownDir, name + '.exe'), 493) # chmod 755
+        # We build a dummy report
+        report = {'timeLimitMs': compilationParams['timeLimitMs'],
+                'memoryLimitKb': compilationParams['memoryLimitKb'],
+                'commandLine': '[shell script built]',
+                'timeTakenMs': 0,
+                'realTimeTakenMs': 0,
+                'wasKilled': False,
+                'wasCached': False,
+                'exitCode': 0}
+
+        return report
+
+class LanguageShell(LanguageScript):
+    lang = 'sh'
+
+    def _scriptLines(self, sourceFiles, depFiles):
+        lines = ["export TASKGRADER_DEPFILES=\"%s\"\n" % ' '.join(depFiles)]
+        lines.extend(map(lambda x: "/bin/sh %s $@\n" % x, sourceFiles))
+        return lines
+
+class LanguagePython2(LanguageScript):
+    lang = 'py2'
+
+    def _getPossiblePaths(self, baseDir, filename):
+        return [
+            # We search for [language]-[name] in the libs directory
+            os.path.join(baseDir, 'libs', '%s-%s' % (self.lang, filename)),
+            # For Python langs, we search for run-[name] in the libs directory
+            os.path.join(baseDir, 'libs', 'run-%s' % filename),
+            # We search for [name] in the libs directory
+            os.path.join(baseDir, 'libs', filename)]
+
+    def _scriptLines(self, sourceFiles, depFiles):
+        return ["/usr/bin/python2 %s $@\n" % ' '.join(sourceFiles)]
+
+class LanguagePython3(LanguageScript):
+    lang = 'py3'
+
+    def _getPossiblePaths(self, baseDir, filename):
+        return [
+            # We search for [language]-[name] in the libs directory
+            os.path.join(baseDir, 'libs', '%s-%s' % (self.lang, filename)),
+            # For Python langs, we search for run-[name] in the libs directory
+            os.path.join(baseDir, 'libs', 'run-%s' % filename),
+            # We search for [name] in the libs directory
+            os.path.join(baseDir, 'libs', filename)]
+
+    def _scriptLines(self, sourceFiles, depFiles):
+        return ["/usr/bin/python3 %s $@\n" % ' '.join(sourceFiles)]
+
 
 class Program():
     def __init__(self, compilationDescr, compilationParams, ownDir, baseDir, cache, name='executable'):
@@ -425,12 +551,22 @@ class Program():
         self.compiled = False
         self.execution = None
 
-        self.language = DummyLanguage()
-        self.language.setLanguage(self.compilationDescr['language'])
-        #try:
-        #    self.language = CFG_LANGUAGES[compilationDescr['language']] # XXX make CFG_LANGUAGES
-        #except:
-        #    raise Exception("Taskgrader not configured to use language '%s'." % compilationDescr['language'])
+        CFG_LANGUAGES = {'c': LanguageC,
+                        'cpp': LanguageCpp,
+                        'cpp11': LanguageCpp11,
+                        'ocaml': LanguageOcaml,
+                        'ml': LanguageOcaml,
+                        'java': LanguageJava,
+                        'javascool': LanguageJavascool,
+                        'sh': LanguageShell,
+                        'py': LanguagePython2,
+                        'py2': LanguagePython2,
+                        'py3': LanguagePython3}
+
+        try:
+            self.language = CFG_LANGUAGES[compilationDescr['language']]()
+        except:
+            raise Exception("Taskgrader not configured to use language '%s'." % compilationDescr['language'])
 
 
     def _getFile(self, fileDescr):
@@ -484,77 +620,9 @@ class Program():
         # We fetch dependencies into the workingDir
         depFiles = map(self._getFile, compilationDescr['dependencies'])
 
-        # TODO :: split into classes
-        # We compile according to the source type
-        if compilationDescr['language'] == 'c':
-            cmdLine = "/usr/bin/gcc -static -std=gnu99 -O2 -Wall -o %s.exe %s -lm" % (self.name, ' '.join(sourceFiles))
-            report = Execution(None, compilationParams, cmdLine).execute(self.ownDir)
-        elif compilationDescr['language'] == 'cpp':
-            cmdLine = "/usr/bin/g++ -static -O2 -Wall -o %s.exe %s -lm" % (self.name, ' '.join(sourceFiles))
-            report = Execution(None, compilationParams, cmdLine).execute(self.ownDir)
-        elif compilationDescr['language'] == 'cpp11':
-            cmdLine = "/usr/bin/g++ -std=gnu++11 -static -O2 -Wall -o %s.exe %s -lm" % (self.name, ' '.join(sourceFiles))
-            report = Execution(None, compilationParams, cmdLine).execute(self.ownDir)
-        elif compilationDescr['language'] == 'ocaml':
-            cmdLine = "/usr/bin/ocamlopt -ccopt -static -o %s.exe %s" % (self.name, ' '.join(sourceFiles))
-            report = Execution(None, compilationParams, cmdLine).execute(self.ownDir)
-        elif compilationDescr['language'] == 'pascal':
-            cmdLine = "/usr/bin/fpc -o%s.exe %s" % (self.name, ' '.join(sourceFiles))
-            report = Execution(None, compilationParams, cmdLine).execute(self.ownDir)
-        elif compilationDescr['language'] == 'java':
-            cmdLine = "/usr/bin/gcj --encoding=utf8 --main=Main -o %s.exe %s" % (self.name, ' '.join(sourceFiles))
-            report = Execution(None, compilationParams, cmdLine).execute(self.ownDir)
-        elif compilationDescr['language'] == 'javascool':
-            # Javascool needs to be transformed before being executed
-            cmdLine = "%s %s source.java %s" % (CFG_JAVASCOOLBIN, sourceFiles[0], ' '.join(depFiles))
-            Execution(None, compilationParams, cmdLine).execute(self.ownDir)
-            cmdLine = "/usr/bin/gcj --encoding=utf8 --main=Main -o %s.exe source.java" % self.name
-            report = Execution(None, compilationParams, cmdLine).execute(self.ownDir)
-        # TODO :: compilation de PHP5
-        elif compilationDescr['language'] in ['sh', 'py', 'py3']:
-            # Scripts are not "compiled", we make an archive out of the source files
-            # shar makes a self-extracting "shell archive"
-            sharFile = open(self.ownDir + self.name + '.exe', 'w+')
-            subprocess.Popen(['shar', '--quiet-unshar', '--quiet'] + sourceFiles + depFiles, stdout=sharFile, cwd=self.ownDir).wait()
-            # We remove the last line of the archive (normally an 'exit 0')
-            sharFile.seek(-5, os.SEEK_END)
-            pos = sharFile.tell()
-            while pos > 0 and sharFile.read(1) != "\n":
-                pos -=1
-                sharFile.seek(pos, os.SEEK_SET)
-            if pos > 0:
-                sharFile.truncate(pos + 1)
-            # We set the archive to execute the script(s) after self-extracting
-            if compilationDescr['language'] == 'sh':
-                sharFile.write("export TASKGRADER_DEPFILES=\"%s\"\n" % ' '.join(depFiles))
-                sharFile.writelines(map(lambda x: "/bin/sh %s $@\n" % x, sourceFiles))
-            elif compilationDescr['language'] == 'py':
-                sharFile.write("/usr/bin/python2 %s $@" % ' '.join(sourceFiles))
-            elif compilationDescr['language'] == 'py3':
-                sharFile.write("/usr/bin/python3 %s $@" % ' '.join(sourceFiles))
-            # On some versions, shar ignores the --quiet-unshar option and talks too much
-            # We replace echo= statements with echo=true as a dirty fix
-            sharFile.seek(0)
-            sharLines = []
-            for l in sharFile:
-                sharLines.append(l.replace('echo=echo', 'echo=true').replace('echo="$gettext_dir/gettext -s"', 'echo=true'))
-            sharFile.seek(0)
-            sharFile.truncate(0)
-            sharFile.writelines(sharLines)
-            sharFile.close()
-            # We set the archive executable bits
-            os.chmod(self.ownDir + self.name + '.exe', 493) # chmod 755
-            # We build a dummy report
-            report = {'timeLimitMs': compilationParams['timeLimitMs'],
-                    'memoryLimitKb': compilationParams['memoryLimitKb'],
-                    'commandLine': '[shell script built]',
-                    'timeTakenMs': 0,
-                    'realTimeTakenMs': 0,
-                    'wasKilled': False,
-                    'wasCached': False,
-                    'exitCode': 0}
+        # We call the language-specific compilation process
+        return self.language.compile(self.compilationParams, self.ownDir, sourceFiles, depFiles, self.name)
 
-        return report
 
     def compile(self):
         if self.compilationParams['useCache']:
