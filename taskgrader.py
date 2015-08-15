@@ -18,7 +18,12 @@ from jsonschema import validate
 
 
 class CacheFolder():
+    """CacheFolder represents a folder of the cache, caching a specific
+    execution. The class gives functions for reading from and writing to this
+    folder."""
+
     def __init__(self, cacheId):
+        """cacheId is the ID number of the cache folder."""
         self.cacheId = cacheId
         self.cacheFolder = os.path.join(CFG_CACHEDIR, "%s/" % cacheId)
         # TODO :: add some locking mechanism?
@@ -36,12 +41,14 @@ class CacheFolder():
                 pass
 
     def _makePath(self, f=None):
+        """Makes the path to the file f in the cache folder."""
         if f:
             return os.path.join(CFG_CACHEDIR, str(self.cacheId), f)
         else:
             return os.path.join(CFG_CACHEDIR, "%s/" % self.cacheId)
 
     def invalidate(self):
+        """Invalidates the cache folder, removing all files."""
         try:
             shutil.rmtree(self._makePath())
         except:
@@ -51,6 +58,8 @@ class CacheFolder():
         self.files = []
 
     def addFile(self, path, isExecutable=False):
+        """Add a file to the cache. save() must be called in order for the
+        cache to be considered as complete."""
         # If the cache has already been made, we don't allow modification.
         if self.isCached:
             raise Exception("Tried to modify an already cached version (ID %d)." % self.cacheId)
@@ -62,6 +71,8 @@ class CacheFolder():
         self.files.append(filename)
 
     def addReport(self, data):
+        """Add the execution report to the cache. save() must be called in
+        order for the cache to be considered as complete."""
         # If the cache has already been made, we don't allow modification.
         if self.isCached:
             raise Exception("Tried to modify an already cached version (ID %d)." % self.cacheId)
@@ -69,11 +80,14 @@ class CacheFolder():
         json.dump(data, open(self._makePath('report.json'), 'w'))
 
     def save(self):
+        """Save the cache, marking it as complete and usable."""
         cPickle.dump(self.files, open(self._makePath('cache.files'), 'w'))
         open(self._makePath('cache.ok'), 'w').write(' ')
         self.isCached = True
 
     def loadFiles(self, path):
+        """Load files from the cache into the folder path. Will behave as if
+        the execution took place in that folder."""
         if not self.isCached:
             raise Execption("Tried to load non-cached files from cache (ID %d)." % self.cacheId)
 
@@ -81,6 +95,7 @@ class CacheFolder():
             symlink(self._makePath(f), os.path.join(path, f))
 
     def loadReport(self):
+        """Load the execution report from the cache."""
         if not self.isCached:
             raise Execption("Tried to load non-cached files from cache (ID %d)." % self.cacheId)
 
@@ -88,7 +103,13 @@ class CacheFolder():
 
 
 class CacheHandle():
+    """CacheHandle represents a program in the cache. It allows to get
+    CacheFolder instances related to that program."""
+
     def __init__(self, database, programFiles):
+        """database is the cache database.
+        programFiles is the list of fileDescr elements representing the
+        program."""
         self.database = database
 
         fileIdList = []
@@ -99,11 +120,14 @@ class CacheHandle():
                 # File content is given, we use the name given and the hash as reference
                 md5sum = hashlib.md5(fileDescr['content']).hexdigest()
                 fileIdList.append("file:%s:%s" % (fileDescr['name'], md5sum))
-            else:
+            elif fileDescr.has_key('path'):
                 # File path is given, we use the path as reference
                 md5sum = hashlib.md5(open(fileDescr['path'], 'rb').read()).hexdigest()
                 fileIdList.append("path:%s" % fileDescr['path'])
                 fileHashList.append(md5sum)
+            else:
+                # It's a local dependency
+                fileIdList.append("local:%s" % fileDescr['name'])
 
         fileIdList.sort()
         fileHashList.sort() # Both lists won't be sorted the same but it's not an issue
@@ -113,14 +137,10 @@ class CacheHandle():
 
 
     def getCacheFolder(self, cacheType, args='', inputFiles=[]):
-        """For a list of source files and the type (compilation or execution),
-        returns a tuple containing:
-        -whether some related files have been cached
-        -the folder containing cache files.
-        It hits the cache when the file list and corresponding MD5 hashes are
-        the same; it uses a SQLite3 database to store the information.
-        Cache will consist of folders, each folder named after the ID in the
-        database and containing all the cached files."""
+        """Returns the CacheFolder for the program executed with args and
+        inputFiles as input.
+        cacheType represents the type of cache (compilation, execution); it
+        must be the same string among all executions of the program."""
 
         inputIdList = []
         # We add identifiers for input files (local name and md5sum)
@@ -158,6 +178,8 @@ class CacheHandle():
 
 
 class CacheDatabase():
+    """Represents the cache database."""
+
     def __init__(self):
         self.database = sqlite3.connect(CFG_CACHEDBPATH)
         self.database.row_factory = sqlite3.Row
@@ -167,6 +189,12 @@ class CacheDatabase():
 
 
 class Execution():
+    """Represents an execution of a program.
+    It is first created with the program parameters: executable, parameters of
+    execution, command-line; the function execute then allows multiple
+    executions of the program in different folders and with different
+    arguments."""
+
     def __init__(self, executablePath, executionParams, cmd, language=''):
         # Check time and memory limits
         if executionParams['timeLimitMs'] > CFG_MAX_TIMELIMIT:
@@ -194,6 +222,9 @@ class Execution():
 
 
     def _prepareExecute(self, workingDir, stdinFile=None, stdoutFile=None):
+        """Prepares the execution in workingDir, checks stdinFile and
+        stdoutFile paths."""
+
         # Copy executable to workingDir
         if self.executablePath:
             try:
@@ -221,6 +252,8 @@ class Execution():
 
 
     def _doExecute(self, workingDir, args=None):
+        """Executes the command in workingDir with args."""
+
         cmdLine = self.cmd + ((' ' + args) if args else '')
 
         # Open stdin file
@@ -255,12 +288,17 @@ class Execution():
 
 
     def execute(self, workingDir, args=None, stdinFile=None, stdoutFile=None):
+        """Execute the program in workingDir, with command-line arguments args,
+        and standard input and output redirected from stdinFile and to
+        stdoutFile."""
         self.workingDir = workingDir
         self._prepareExecute(workingDir, stdinFile, stdoutFile)
         return self._doExecute(workingDir, args)
 
 
 class IsolatedExecution(Execution):
+    """Represents an execution encapsulated in isolate."""
+
     def _doExecute(self, workingDir, args=None):
         cmdLine = self.cmd + ((' ' + args) if args else '')
         report = {}
@@ -373,9 +411,14 @@ class IsolatedExecution(Execution):
 
 
 class Language():
+    """Represents a language, gives functions for aspects specific to each
+    language."""
+
     lang = 'default'
 
     def _getPossiblePaths(self, baseDir, filename):
+        """Returns the possible paths for a dependency filename, for a build
+        based in baseDir. Used by getSource."""
         return [
             # We search for [language]-[name] in the libs directory
             os.path.join(baseDir, 'libs', '%s-%s' % (self.lang, filename)),
@@ -383,6 +426,8 @@ class Language():
             os.path.join(baseDir, 'libs', filename)]
 
     def getSource(self, baseDir, filename):
+        """Returns the path for a dependency filename, for a build based in
+        baseDir."""
         for path in self._getPossiblePaths(baseDir, filename):
             if os.path.isfile(path):
                 return path
@@ -390,6 +435,8 @@ class Language():
             raise Exception("Dependency not found: `%s` (language: %s)." % (filename, self.lang))
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+        """Compile an executable in ownDir, from source files sourceFiles,
+        dependencies depFiles."""
         raise Exception("Can't compile files from language %s." % self.lang)
 
 class LanguageC(Language):
@@ -538,7 +585,12 @@ class LanguagePython3(LanguageScript):
 
 
 class Program():
+    """Represents a program, from compilation to execution."""
+
     def __init__(self, compilationDescr, compilationParams, ownDir, baseDir, cache, name='executable'):
+        """Create a new Program described by compilationDescr, to be compiled
+        in ownDir, with a build based in baseDir and with the cache database
+        being cache."""
         self.compilationDescr = compilationDescr
         self.compilationParams = compilationParams
         self.ownDir = ownDir
@@ -570,10 +622,9 @@ class Program():
 
 
     def _getFile(self, fileDescr):
-        """Fetch a file contents from a fileDescr object into workingDir.
-        If only the file name is given, getFile will search for a file with that
-        name in buildDir. If language is defined, it will search for a file
-        related to that language first."""
+        """Fetch a file contents from a fileDescr object into the Program
+        folder. If only the file name is given, getFile will search for a file
+        with that name in buildDir, with the language-specific function."""
 
         # The filename is safe as checked by the JSON schema
         filename = fileDescr['name']
@@ -625,6 +676,8 @@ class Program():
 
 
     def compile(self):
+        """Compile the Program, fetching the executable from the cache if possible."""
+
         if self.compilationParams['useCache']:
             cachef = self.cacheHandle.getCacheFolder('compilation-' + self.name)
             # Check cache
@@ -649,12 +702,19 @@ class Program():
         return report
 
     def prepareExecution(self, executionParams):
+        """Set the executionParams for the program."""
+
         if not self.compiled:
             raise Exception("Program has not yet been compiled, execution impossible.")
         self.execution = IsolatedExecution(self.executablePath, executionParams, os.path.basename(self.executablePath), language=self.compilationDescr['language'])
         self.executionParams = executionParams
 
     def execute(self, workingDir, args=None, stdinFile=None, stdoutFile=None, otherInputs=[], outputFiles=[]):
+        """Execute the Program in workingDir, with command-line arguments args.
+        otherInputs represent the files the Program execution will depend on,
+        to differentiate executions in the cache; outputFiles represents the
+        output files to save in the cache."""
+
         if not self.compiled:
             raise Exception("Program has not yet been compiled, execution impossible.")
         if not self.execution:
