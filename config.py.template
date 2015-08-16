@@ -28,6 +28,9 @@ CFG_JAVASCOOLBIN = os.path.join(CFG_BINDIR, 'jvs2java')
 # Does the kernel support control groups?
 CFG_CONTROLGROUPS = False
 
+# Timeout for accessing the cache
+CFG_CACHE_TIMEOUT = 60
+
 # jsonschema-related variables
 CFG_JSONSCHEMA = os.path.join(CFG_BINDIR, 'jsonschema')
 CFG_INPUTSCHEMA = os.path.join(CFG_BINDIR, 'schema_input.json')

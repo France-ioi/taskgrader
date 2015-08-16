@@ -10,14 +10,15 @@
 # See README.md for more information.
 
 
-import cPickle, glob, hashlib, json, os, random, shlex, shutil, sqlite3, stat, sys, subprocess
+import cPickle, fcntl, glob, hashlib, json, os, random, shlex, shutil, sqlite3
+import stat, sys, subprocess, time
 from config import *
 
 sys.path.append(CFG_JSONSCHEMA)
 from jsonschema import validate
 
 
-class CacheFolder():
+class CacheFolder(object):
     """CacheFolder represents a folder of the cache, caching a specific
     execution. The class gives functions for reading from and writing to this
     folder."""
@@ -26,7 +27,25 @@ class CacheFolder():
         """cacheId is the ID number of the cache folder."""
         self.cacheId = cacheId
         self.cacheFolder = os.path.join(CFG_CACHEDIR, "%s/" % cacheId)
-        # TODO :: add some locking mechanism?
+
+        try:
+            os.mkdir(self._makePath())
+        except:
+            pass
+
+        # Lock the cache folder
+        locking_start = time.time()
+        self.cacheLock = open(self._makePath('cache.lock'), 'w+')
+        while time.time() - locking_start < CFG_CACHE_TIMEOUT:
+            # There's no internal timeout function, we have to do it manually
+            try:
+                fcntl.lockf(self.cacheLock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except IOError:
+                continue
+        if time.time() - locking_start > CFG_CACHE_TIMEOUT:
+            raise Exception("Failed to acquire lock on cache folder #%d after %d seconds." % (self.cacheId, CFG_CACHE_TIMEOUT))
+
         self.isCached = os.path.isfile(self._makePath('cache.ok'))
         self.files = []
         if self.isCached:
@@ -34,11 +53,10 @@ class CacheFolder():
                 self.files = cPickle.load(open(self._makePath('cache.files'), 'r'))
             except:
                 pass
-        else:
-            try:
-                os.mkdir(self._makePath())
-            except:
-                pass
+
+    def __del__(self):
+        # Unlock the cache folder
+        fcntl.lockf(self.cacheLock, fcntl.LOCK_UN)
 
     def _makePath(self, f=None):
         """Makes the path to the file f in the cache folder."""
