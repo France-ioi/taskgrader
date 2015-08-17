@@ -11,11 +11,23 @@
 
 
 import cPickle, fcntl, glob, hashlib, json, os, random, shlex, shutil, sqlite3
-import stat, sys, subprocess, time
+import stat, sys, subprocess, time, traceback
 from config import *
 
 sys.path.append(CFG_JSONSCHEMA)
 from jsonschema import validate
+
+
+class TemporaryException(Exception):
+    """TemporaryException is a special exception representing a temporary
+    error, for which reexecuting the exact same evaluation can succeed at a
+    later time."""
+
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return repr(self.msg)
 
 
 class CacheFolder(object):
@@ -44,7 +56,7 @@ class CacheFolder(object):
             except IOError:
                 continue
         if time.time() - locking_start > CFG_CACHE_TIMEOUT:
-            raise Exception("Failed to acquire lock on cache folder #%d after %d seconds." % (self.cacheId, CFG_CACHE_TIMEOUT))
+            raise TemporaryException("Failed to acquire lock on cache folder #%d after %d seconds." % (self.cacheId, CFG_CACHE_TIMEOUT))
 
         self.isCached = os.path.isfile(self._makePath('cache.ok'))
         self.files = []
@@ -1114,4 +1126,9 @@ if __name__ == '__main__':
         inJson = json.load(sys.stdin)
     except Exception as err:
         raise Exception("Input data is not valid JSON: %s" % err)
-    json.dump(evaluation(inJson), sys.stdout)
+    try:
+        json.dump(evaluation(inJson), sys.stdout)
+    except TemporaryException as err:
+        # We use a different return code for TemporaryException
+        traceback.print_exc()
+        sys.exit(2)
