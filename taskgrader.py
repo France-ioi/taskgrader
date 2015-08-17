@@ -26,8 +26,11 @@ def preprocessJson(json, varData):
     if (type(json) is str or type(json) is unicode) and len(json) > 0:
         if json[0] == '@':
             # It's a variable, we replace it with the JSON data
-            # It will return an error if the variable doesn't exist, it's intended
-            return preprocessJson(varData[json[1:]], varData)
+            varName = json[1:]
+            if varData.has_key(varName):
+                return preprocessJson(varData[varName], varData)
+            else:
+                raise Exception("varData doesn't have key `%s`, contents of varData:\n%s" % (varName, str(varData)))
         elif '$' in json:
             if '$BUILD_PATH' in json:
                 return preprocessJson(json.replace('$BUILD_PATH', varData['BUILD_PATH']), varData)
