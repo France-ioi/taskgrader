@@ -537,6 +537,20 @@ def evaluation(evaluationParams):
 
     global restrictToPaths
 
+    # Check root path and task path
+    # We need to check the keys exist as the JSON schema check is done later
+    if not evaluationParams.has_key('rootPath'):
+        raise Exception("Input JSON missing 'rootPath' key.")
+    if not os.path.isdir(evaluationParams['rootPath']):
+        raise Exception("Root path `%s` invalid." % evaluationParams['rootPath'])
+
+    evaluationParams['taskPath'] = evaluationParams['taskPath'].replace('$ROOT_PATH', evaluationParams['rootPath'])
+
+    if not evaluationParams.has_key('taskPath'):
+        raise Exception("Input JSON missing 'taskPath' key.")
+    if not os.path.isdir(evaluationParams['taskPath']):
+        raise Exception("Task path `%s` invalid." % evaluationParams['taskPath'])
+
     # *** Variables handling
     varData = {'ROOT_PATH': evaluationParams['rootPath'],
                'TASK_PATH': evaluationParams['taskPath']}
@@ -549,7 +563,7 @@ def evaluation(evaluationParams):
 
     # We load a "preprocessing" JSON node or file
     try:
-        varData.update(json.load(open(os.path.join(evaluationParams['taskPath'].replace('$ROOT_PATH', evaluationParams['rootPath']), 'defaultParams.json'), 'r')))
+        varData.update(json.load(open(os.path.join(evaluationParams['taskPath'], 'defaultParams.json'), 'r')))
     except:
         pass
     if evaluationParams.has_key('extraParams'):
