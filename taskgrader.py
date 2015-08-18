@@ -477,12 +477,12 @@ def compile(compilationDescr, executionParams, workingDir, buildDir='./', name='
         if pos > 0:
             sharFile.truncate(pos + 1)
         # We set the archive to execute the script(s) after self-extracting
-        if compilationDescr['language'] == 'sh':
+        if compilationDescr['language'] == 'shell':
             sharFile.write("export TASKGRADER_DEPFILES=\"%s\"\n" % ' '.join(depFiles))
             sharFile.writelines(map(lambda x: "/bin/sh %s $@\n" % x, sourceFiles))
-        elif compilationDescr['language'] == 'python' or compilationDescr['language'] == 'python2':
+        elif compilationDescr['language'] == 'python2':
             sharFile.write("/usr/bin/python2 %s $@" % ' '.join(sourceFiles))
-        elif compilationDescr['language'] == 'python3':
+        elif compilationDescr['language'] == 'python3' or compilationDescr['language'] == 'python':
             sharFile.write("/usr/bin/python3 %s $@" % ' '.join(sourceFiles))
         # On some versions, shar ignores the --quiet-unshar option and talks too much
         # We replace echo= statements with echo=true as a dirty fix
@@ -505,6 +505,8 @@ def compile(compilationDescr, executionParams, workingDir, buildDir='./', name='
                 'wasKilled': False,
                 'wasCached': False,
                 'exitCode': 0}
+    else:
+        report = {'errorcode': 2, 'errormsg': 'unknown language: %s' % compilationDescr['language']}
     return report
 
 
