@@ -131,7 +131,7 @@ def getFile(fileDescr, workingDir, buildDir=None, language=''):
         elif language == 'cpp' and os.path.isfile('%slibs/c-%s' % (buildDir, fileDescr['name'])):
             # For cpp, we also search for c-[name] in the libs directory
             symlink('%slibs/c-%s' % (buildDir, fileDescr['name']), workingDir + fileDescr['name'])
-        elif language in ['py', 'py2', 'py3'] and os.path.isfile('%slibs/run-%s' % (buildDir, fileDescr['name'])):
+        elif language in ['python', 'python2', 'python3'] and os.path.isfile('%slibs/run-%s' % (buildDir, fileDescr['name'])):
             # For Python languages, we search for run-[name] in the libs directory
             symlink('%slibs/run-%s' % (buildDir, fileDescr['name']), workingDir + fileDescr['name'])
         elif os.path.isfile('%slibs/%s' % (buildDir, fileDescr['name'])):
@@ -463,7 +463,7 @@ def compile(compilationDescr, executionParams, workingDir, buildDir='./', name='
         cmdLine = "/usr/bin/gcj --encoding=utf8 --main=Main -o %s.exe source.java" % name
         report = execute(executionParams, cmdLine, workingDir, isolate=False)
     # TODO :: compilation de PHP5
-    elif compilationDescr['language'] in ['sh', 'py', 'py3']:
+    elif compilationDescr['language'] in ['shell', 'python', 'python2', 'python3']:
         # Scripts are not "compiled", we make an archive out of the source files
         # shar makes a self-extracting "shell archive"
         sharFile = open(workingDir + name + '.exe', 'w+')
@@ -477,12 +477,12 @@ def compile(compilationDescr, executionParams, workingDir, buildDir='./', name='
         if pos > 0:
             sharFile.truncate(pos + 1)
         # We set the archive to execute the script(s) after self-extracting
-        if compilationDescr['language'] == 'sh':
+        if compilationDescr['language'] == 'shell':
             sharFile.write("export TASKGRADER_DEPFILES=\"%s\"\n" % ' '.join(depFiles))
             sharFile.writelines(map(lambda x: "/bin/sh %s $@\n" % x, sourceFiles))
-        elif compilationDescr['language'] == 'py':
+        elif compilationDescr['language'] == 'python2':
             sharFile.write("/usr/bin/python2 %s $@" % ' '.join(sourceFiles))
-        elif compilationDescr['language'] == 'py3':
+        elif compilationDescr['language'] == 'python3' or compilationDescr['language'] == 'python':
             sharFile.write("/usr/bin/python3 %s $@" % ' '.join(sourceFiles))
         # On some versions, shar ignores the --quiet-unshar option and talks too much
         # We replace echo= statements with echo=true as a dirty fix
@@ -505,6 +505,8 @@ def compile(compilationDescr, executionParams, workingDir, buildDir='./', name='
                 'wasKilled': False,
                 'wasCached': False,
                 'exitCode': 0}
+    else:
+        report = {'errorcode': 2, 'errormsg': 'unknown language: %s' % compilationDescr['language']}
     return report
 
 
