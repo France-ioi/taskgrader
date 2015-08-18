@@ -152,8 +152,9 @@ class CacheHandle():
                 fileIdList.append("file:%s:%s" % (fileDescr['name'], md5sum))
             elif fileDescr.has_key('path'):
                 # File path is given, we use the path as reference
-                md5sum = hashlib.md5(open(fileDescr['path'], 'rb').read()).hexdigest()
-                fileIdList.append("path:%s" % fileDescr['path'])
+                filePath = os.path.abspath(os.path.realpath(fileDescr['path']))
+                md5sum = hashlib.md5(open(filePath, 'rb').read()).hexdigest()
+                fileIdList.append("path:%s" % filePath)
                 fileHashList.append(md5sum)
             else:
                 # It's a local dependency
