@@ -16,6 +16,14 @@ from config import *
 sys.path.append(CFG_JSONSCHEMA)
 from jsonschema import validate
 
+# Temporary debug switch
+debugIsolate = True
+
+
+def printErr(text, debugVar=True):
+    if debugVar:
+        sys.stderr.write(text + "\n")
+
 
 def preprocessJson(json, varData):
     """Preprocess some JSON data, replacing variables with their values.
@@ -262,6 +270,7 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
         raise Exception("Writing to file `%s` not allowed." % stdoutFile)
 
     if isolate:
+        printErr('Starting isolated execution for `%s` in folder `%s`' % (cmdLine, workingDir), debugIsolate)
         # Box ID is required if multiple isolate instances are running concurrently
         boxId = (os.getpid() % 100)
 
@@ -270,9 +279,11 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
             isolateCommonOpts.append('--cg')
 
         # Initialize isolate box
+        printErr('Isolate init: `%s`' % ' '.join([CFG_ISOLATEBIN, '--init'] + isolateCommonOpts), debugIsolate)
         initProc = subprocess.Popen([CFG_ISOLATEBIN, '--init'] + isolateCommonOpts, stdout=subprocess.PIPE, cwd=workingDir)
         (isolateDir, isolateErr) = initProc.communicate()
         initProc.wait()
+        printErr('Init ended, return code %d, output "%s"' % (initProc.returncode, isolateDir.strip()), debugIsolate)
         # isolatePath will be the path of the sandbox, as given by isolate
         isolateDir = isolateDir.strip() + '/box/'
 
@@ -308,8 +319,23 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
         open(workingDir + 'isolate.meta', 'w')
 
         # Execute the isolated program
+        printErr('Isolate run: `%s`' % isolatedCmdLine, debugIsolate)
         proc = subprocess.Popen(shlex.split(isolatedCmdLine), cwd=workingDir)
         proc.wait()
+        printErr('Run ended, return code %d' % proc.returncode, debugIsolate)
+
+        # Get metadata from isolate execution
+        isolateMeta = {}
+        try:
+            for l in open(workingDir + 'isolate.meta', 'r').readlines():
+                [name, val] = l.split(':', 1)
+                isolateMeta[name] = val.strip()
+        except:
+            pass
+
+        if proc.returncode > 1:
+            raise Exception("""Internal isolate error, please check installation: #%d %s
+                while trying to execute `%s` from folder `%s`""" % (proc.returncode, isolateMeta.get('status', ''), cmdLine, workingDir))
 
         # Set file rights so that we can access the files
         rightsProc = subprocess.Popen([CFG_RIGHTSBIN])
@@ -320,12 +346,6 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
             if os.path.isfile(isolateDir + f):
                 filecopy(isolateDir + f, workingDir + f)
         filecopy(isolateDir + 'isolated.stdout', stdoutFile)
-
-        # Get metadata from isolate execution
-        isolateMeta = {}
-        for l in open(workingDir + 'isolate.meta', 'r').readlines():
-            [name, val] = l.split(':', 1)
-            isolateMeta[name] = val.strip()
 
         # Generate execution report
         if isolateMeta.has_key('time'):
@@ -351,8 +371,10 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
                 truncateSize=executionParams['stderrTruncateKb'] * 1024)
 
         # Cleanup sandbox
+        printErr('Isolate cleanup: `%s`' % ' '.join([CFG_ISOLATEBIN, '--cleanup'] + isolateCommonOpts), debugIsolate)
         cleanProc = subprocess.Popen([CFG_ISOLATEBIN, '--cleanup'] + isolateCommonOpts, cwd=workingDir)
         cleanProc.wait()
+        printErr('Cleanup ended, return code %d' % cleanProc.returncode, debugIsolate)
     else:
         # We don't use isolate
         if stdinFile:
