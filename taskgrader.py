@@ -344,6 +344,7 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
             report['memoryUsedKb'] = -1
         report['wasKilled'] = isolateMeta.has_key('killed')
         report['exitCode'] = int(isolateMeta.get('exitcode', proc.returncode))
+        report['exitSig'] = int(isolateMeta.get('exitsig', 0))
 
         report['stdout'] = capture(workingDir + 'isolated.stdout', name='stdout',
                 truncateSize=executionParams['stdoutTruncateKb'] * 1024)
@@ -372,6 +373,7 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
         report['realTimeTakenMs'] = -1 # We don't know
         report['wasKilled'] = False
         report['exitCode'] = proc.returncode
+        report['exitSig'] = -1 # We don't know
 
         report['stdout'] = capture(stdoutFile, name='stdout',
                 truncateSize=executionParams['stdoutTruncateKb'] * 1024)
