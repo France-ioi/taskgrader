@@ -344,7 +344,13 @@ def execute(executionParams, cmdLine, workingDir, stdinFile=None, stdoutFile=Non
             report['memoryUsedKb'] = -1
         report['wasKilled'] = isolateMeta.has_key('killed')
         report['exitCode'] = int(isolateMeta.get('exitcode', proc.returncode))
-        report['exitSig'] = int(isolateMeta.get('exitsig', 0))
+        if isolateMeta.get('status', '') == 'TO':
+            # Timed-out, custom value
+            report['exitSig'] = 137
+        elif isolateMeta.get('status', '') == 'SG':
+            report['exitSig'] = int(isolateMeta.get('exitsig', 0))
+        else:
+            report['exitSig'] = 0
 
         report['stdout'] = capture(workingDir + 'isolated.stdout', name='stdout',
                 truncateSize=executionParams['stdoutTruncateKb'] * 1024)
