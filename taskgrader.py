@@ -377,6 +377,15 @@ class IsolatedExecution(Execution):
         isolatedCmdLine += ' --stdout=isolated.stdout --stderr=isolated.stderr'
         isolatedCmdLine += ' --run -- ' + cmdLine
 
+        # Clean old stdout/stderr files
+        try:
+            os.unlink(os.path.join(workingDir, 'isolated.stdout'))
+        except:
+            pass
+        try:
+            os.unlink(os.path.join(workingDir, 'isolated.stderr'))
+        except:
+            pass
         # Copy files from working directory to sandbox
         for f in os.listdir(workingDir):
             filecopy(workingDir + f, isolateDir + f)
