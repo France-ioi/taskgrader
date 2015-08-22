@@ -23,6 +23,7 @@
                 "wasKilled": {"type": "boolean", "description": "Whether the execution was killed by the sandbox."},
                 "wasCached": {"type": "boolean", "description": "Whether the results of the execution were taken from cache. In that case, the report comes from the original execution."},
                 "exitCode": {"type": "integer", "description": "Exit code of the execution."},
+                "exitSig": {"type": "integer", "description": "If >0, the program has exited after receiving this fatal signal."},
                 "stdout": {"$ref": "#/definitions/captureReport", "description": "Standard output of the execution."},
                 "stderr": {"$ref": "#/definitions/captureReport", "description": "Standard error output of the execution."},
                 "files": {"type": "array", "description": "Files captured from the execution.", "items": {"$ref": "#/definitions/captureReport"}}},

@@ -49,10 +49,8 @@ gcj --encoding=utf8 --main=Jvs2Java -o jvs2java Jvs2Java/Jvs2Java.java
 
 ### Compile isolate
 echo "*** Compiling isolate..."
-cd isolate
-make
-mv isolate ../isolate-bin
-cd ..
+make -C isolate isolate
+mv isolate/isolate isolate-bin
 
 ### Compile C programs
 echo "*** Setting isolate-bin rights..."

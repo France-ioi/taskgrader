@@ -148,7 +148,7 @@ class CacheHandle():
         for fileDescr in programFiles:
             if fileDescr.has_key('content'):
                 # File content is given, we use the name given and the hash as reference
-                md5sum = hashlib.md5(fileDescr['content']).hexdigest()
+                md5sum = hashlib.md5(fileDescr['content'].encode('utf-8', errors='ignore')).hexdigest()
                 fileIdList.append("file:%s:%s" % (fileDescr['name'], md5sum))
             elif fileDescr.has_key('path'):
                 # File path is given, we use the path as reference
@@ -302,7 +302,9 @@ class Execution():
                 'timeTakenMs': -1, # We don't know
                 'realTimeTakenMs': -1, # We don't know
                 'wasKilled': False,
-                'exitCode': proc.returncode})
+                'exitCode': proc.returncode,
+                'exitSig': -1 # We don't know
+            })
 
         report['stdout'] = capture(self.stdoutFile, name='stdout',
                 truncateSize=self.executionParams['stdoutTruncateKb'] * 1024)
@@ -338,8 +340,12 @@ class IsolatedExecution(Execution):
         # Box ID is required if multiple isolate instances are running concurrently
         boxId = (os.getpid() % 100)
 
+        isolateCommonOpts = ['--box-id=%d' % boxId]
+        if CFG_CONTROLGROUPS:
+            isolateCommonOpts.append('--cg')
+
         # Initialize isolate box
-        initProc = subprocess.Popen([CFG_ISOLATEBIN, '--init', '--box-id=%d' % boxId], stdout=subprocess.PIPE, cwd=workingDir)
+        initProc = subprocess.Popen([CFG_ISOLATEBIN, '--init'] + isolateCommonOpts, stdout=subprocess.PIPE, cwd=workingDir)
         (isolateDir, isolateErr) = initProc.communicate()
         initProc.wait()
 
@@ -428,6 +434,13 @@ class IsolatedExecution(Execution):
         report['commandLine'] = cmdLine
         report['wasKilled'] = isolateMeta.has_key('killed')
         report['exitCode'] = int(isolateMeta.get('exitcode', proc.returncode))
+        if isolateMeta.get('status', '') == 'TO':
+            # Timed-out, custom value
+            report['exitSig'] = 137
+        elif isolateMeta.get('status', '') == 'SG':
+            report['exitSig'] = int(isolateMeta.get('exitsig', 0))
+        else:
+            report['exitSig'] = 0
 
         report['stdout'] = capture(workingDir + 'isolated.stdout', name='stdout',
                 truncateSize=self.executionParams['stdoutTruncateKb'] * 1024)
@@ -435,7 +448,7 @@ class IsolatedExecution(Execution):
                 truncateSize=self.executionParams['stderrTruncateKb'] * 1024)
 
         # Cleanup sandbox
-        cleanProc = subprocess.Popen([CFG_ISOLATEBIN, '--cleanup', '--box-id=%d' % boxId], cwd=workingDir)
+        cleanProc = subprocess.Popen([CFG_ISOLATEBIN, '--cleanup'] + isolateCommonOpts, cwd=workingDir)
         cleanProc.wait()
 
         return report
@@ -673,7 +686,7 @@ class Program():
                 pass
 
         if fileDescr.has_key('content'): # Content given in descr
-            open(filepath, 'w').write(fileDescr['content'])
+            open(filepath, 'w').write(fileDescr['content'].encode('utf-8'))
         elif fileDescr.has_key('path'): # Get file by path
             if os.path.isfile(fileDescr['path']):
                 symlink(fileDescr['path'], filepath, fromlocal=True)
@@ -791,7 +804,11 @@ def preprocessJson(json, varData):
         if json[0] == '@':
             # It's a variable, we replace it with the JSON data
             # It will return an error if the variable doesn't exist, it's intended
-            return preprocessJson(varData[json[1:]], varData)
+            varName = json[1:]
+            if varData.has_key(varName):
+                return preprocessJson(varData[varName], varData)
+            else:
+                raise Exception("varData doesn't have key `%s`, contents of varData:\n%s" % (varName, str(varData)))
         elif '$' in json:
             if '$BUILD_PATH' in json:
                 return preprocessJson(json.replace('$BUILD_PATH', varData['BUILD_PATH']), varData)
@@ -799,6 +816,8 @@ def preprocessJson(json, varData):
                 return preprocessJson(json.replace('$ROOT_PATH', varData['ROOT_PATH']), varData)
             elif '$TASK_PATH' in json:
                 return preprocessJson(json.replace('$TASK_PATH', varData['TASK_PATH']), varData)
+            else:
+                return json
         else:
             return json
     elif type(json) is dict:
@@ -877,6 +896,20 @@ def evaluation(evaluationParams):
 
     global restrictToPaths
 
+    # Check root path and task path
+    # We need to check the keys exist as the JSON schema check is done later
+    if not evaluationParams.has_key('rootPath'):
+        raise Exception("Input JSON missing 'rootPath' key.")
+    if not os.path.isdir(evaluationParams['rootPath']):
+        raise Exception("Root path `%s` invalid." % evaluationParams['rootPath'])
+
+    evaluationParams['taskPath'] = evaluationParams['taskPath'].replace('$ROOT_PATH', evaluationParams['rootPath'])
+
+    if not evaluationParams.has_key('taskPath'):
+        raise Exception("Input JSON missing 'taskPath' key.")
+    if not os.path.isdir(evaluationParams['taskPath']):
+        raise Exception("Task path `%s` invalid." % evaluationParams['taskPath'])
+
     # *** Variables handling
     varData = {'ROOT_PATH': evaluationParams['rootPath'],
                'TASK_PATH': evaluationParams['taskPath']}
@@ -889,7 +922,7 @@ def evaluation(evaluationParams):
 
     # We load a "preprocessing" JSON node or file
     try:
-        varData.update(json.load(open(os.path.join(evaluationParams['taskPath'].replace('$ROOT_PATH', evaluationParams['rootPath']), 'defaultParams.json'), 'r')))
+        varData.update(json.load(open(os.path.join(evaluationParams['taskPath'], 'defaultParams.json'), 'r')))
     except:
         pass
     if evaluationParams.has_key('extraParams'):
@@ -1011,7 +1044,7 @@ def evaluation(evaluationParams):
         for et in evaluationParams['extraTests']:
             filepath = os.path.join(baseWorkingDir, "tests", et['name'])
             if et.has_key('content'): # Content given in descr
-                open(filepath, 'w').write(et['content'])
+                open(filepath, 'w').write(et['content'].encode('utf-8'))
             elif et.has_key('path'): # Get file by path
                 if os.path.isfile(et['path']):
                     symlink(et['path'], filepath, fromlocal=True)

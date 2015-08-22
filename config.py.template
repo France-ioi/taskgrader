@@ -65,12 +65,14 @@ CFG_EXECPARAMS = {'timeLimitMs': 60000,
 # Languages supported, file extension -> language
 CFG_LANGEXTS = {'.c': 'c',
                 '.cpp': 'cpp',
-                '.py': 'py',
+                '.py': 'python',
+                '.py2': 'python2',
+                '.py3': 'python3',
                 '.ml': 'ocaml',
                 '.java': 'java',
                 '.jvs': 'javascool',
                 '.pas': 'pascal',
-                '.sh': 'sh',
+                '.sh': 'shell',
                 '': 'sh'}
 
 
