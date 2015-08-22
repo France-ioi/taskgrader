@@ -651,13 +651,12 @@ class Program():
                         'cpp': LanguageCpp,
                         'cpp11': LanguageCpp11,
                         'ocaml': LanguageOcaml,
-                        'ml': LanguageOcaml,
                         'java': LanguageJava,
                         'javascool': LanguageJavascool,
-                        'sh': LanguageShell,
-                        'py': LanguagePython2,
-                        'py2': LanguagePython2,
-                        'py3': LanguagePython3}
+                        'shell': LanguageShell,
+                        'python': LanguagePython2,
+                        'python2': LanguagePython2,
+                        'python3': LanguagePython3}
 
         try:
             self.language = CFG_LANGUAGES[compilationDescr['language']]()
