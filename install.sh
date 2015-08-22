@@ -102,9 +102,14 @@ mkdir -p files/builds
 ./schema_db.py
 
 ### Modify config.py
-cp -p config.py.template config.py
-sed -i "s|^CFG_BASEDIR.*$|CFG_BASEDIR=\"`pwd`/files/\"|" config.py
-sed -i "s|^CFG_BINDIR.*$|CFG_BINDIR=\"`pwd`/\"|" config.py
+if ! [ -f config.py ]
+then
+  cp -p config.py.template config.py
+  sed -i "s|^CFG_BASEDIR.*$|CFG_BASEDIR=\"`pwd`/files/\"|" config.py
+  sed -i "s|^CFG_BINDIR.*$|CFG_BINDIR=\"`pwd`/\"|" config.py
+else
+  echo "/!\ config.py detected, no new config.py file written."
+fi
 
 
 if [ $ERROR -eq 1 ]
