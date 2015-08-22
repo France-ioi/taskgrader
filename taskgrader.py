@@ -645,6 +645,7 @@ class Program():
         self.cacheHandle = cache.getHandle(compilationDescr['files'] + compilationDescr['dependencies'])
 
         self.compiled = False
+        self.triedCompile = False
         self.execution = None
 
         CFG_LANGUAGES = {'c': LanguageC,
@@ -736,16 +737,19 @@ class Program():
             else:
                 report = self._compile()
                 # Make the executable u=rwx,g=rx,a=rx
-                os.chmod(self.executablePath, 493)
                 cachef.addReport(report)
-                cachef.addFile(self.executablePath, isExecutable=True)
+                if not isExecError(report):
+                    os.chmod(self.executablePath, 493)
+                    cachef.addFile(self.executablePath, isExecutable=True)
                 cachef.save()
         else:
             # We don't use cache at all
             report = self._compile()
-            os.chmod(self.executablePath, 493)
+            if not isExecError(report):
+                os.chmod(self.executablePath, 493)
 
-        self.compiled = True
+        self.compiled = not isExecError(report)
+        self.triedCompile = True
 
         return report
 
@@ -753,7 +757,10 @@ class Program():
         """Set the executionParams for the program."""
 
         if not self.compiled:
-            raise Exception("Program has not yet been compiled, execution impossible.")
+            if self.triedCompile:
+                raise Exception("Program failed compilation, execution impossible.")
+            else:
+                raise Exception("Program has not yet been compiled, execution impossible.")
         self.execution = IsolatedExecution(self.executablePath, executionParams, os.path.basename(self.executablePath), language=self.compilationDescr['language'])
         self.executionParams = executionParams
 
@@ -764,7 +771,10 @@ class Program():
         output files to save in the cache."""
 
         if not self.compiled:
-            raise Exception("Program has not yet been compiled, execution impossible.")
+            if self.triedCompile:
+                raise Exception("Program failed compilation, execution impossible.")
+            else:
+                raise Exception("Program has not yet been compiled, execution impossible.")
         if not self.execution:
             raise Exception("Execution has not yet been prepared, execution impossible.")
 
