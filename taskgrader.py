@@ -650,11 +650,16 @@ class Program():
         CFG_LANGUAGES = {'c': LanguageC,
                         'cpp': LanguageCpp,
                         'cpp11': LanguageCpp11,
+                        'ml': LanguageOcaml,
                         'ocaml': LanguageOcaml,
                         'java': LanguageJava,
                         'javascool': LanguageJavascool,
+                        'sh': LanguageShell,
                         'shell': LanguageShell,
-                        'python': LanguagePython2,
+                        'py': LanguagePython3,
+                        'py2': LanguagePython2,
+                        'py3': LanguagePython3,
+                        'python': LanguagePython3,
                         'python2': LanguagePython2,
                         'python3': LanguagePython3}
 
