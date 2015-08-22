@@ -86,7 +86,7 @@ fi
 
 ### Initialize data directories
 echo "*** Initializing (or resetting) data directories..."
-if [ -d files ]
+if [ -d files ]
 then
     # We reset the data folder, but do not delete it as a safety measure
     echo "/!\ Data folder 'files' already exists, moving it to files.old ."
