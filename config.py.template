@@ -25,6 +25,11 @@ CFG_ISOLATEBIN = os.path.join(CFG_BINDIR, 'isolate-bin')
 CFG_RIGHTSBIN = os.path.join(CFG_BINDIR, 'box-rights')
 CFG_JAVASCOOLBIN = os.path.join(CFG_BINDIR, 'jvs2java')
 
+# Log file (when not specified on command-line)
+CFG_LOGFILE = None
+# Log level, must be 'CRITICAL', 'ERROR', 'WARNING', 'INFO' or 'DEBUG'
+CFG_LOGLEVEL = "WARNING"
+
 # Does the kernel support control groups?
 CFG_CONTROLGROUPS = False
 

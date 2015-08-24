@@ -10,8 +10,8 @@
 # See README.md for more information.
 
 
-import cPickle, fcntl, glob, hashlib, json, os, random, shlex, shutil, sqlite3
-import stat, sys, subprocess, time, traceback
+import argparse, cPickle, fcntl, glob, hashlib, json, logging, os, random
+import shlex, shutil, sqlite3, stat, sys, subprocess, time, traceback
 from config import *
 
 sys.path.append(CFG_JSONSCHEMA)
@@ -37,6 +37,8 @@ class CacheFolder(object):
 
     def __init__(self, cacheId):
         """cacheId is the ID number of the cache folder."""
+        logging.debug("Opening CacheFolder #%d." % cacheId)
+
         self.cacheId = cacheId
         self.cacheFolder = os.path.join(CFG_CACHEDIR, "%s/" % cacheId)
 
@@ -65,6 +67,10 @@ class CacheFolder(object):
                 self.files = cPickle.load(open(self._makePath('cache.files'), 'r'))
             except:
                 pass
+            logging.debug("CacheFolder #%d is cached, files: %s." % (cacheId, ', '.join(self.files)))
+        else:
+            logging.debug("CacheFolder #%d is not cached." % cacheId)
+
 
     def __del__(self):
         # Unlock the cache folder
@@ -79,6 +85,7 @@ class CacheFolder(object):
 
     def invalidate(self):
         """Invalidates the cache folder, removing all files."""
+        logging.info("Invalidating CacheFolder #%d" % self.cacheId)
         try:
             shutil.rmtree(self._makePath())
         except:
@@ -91,6 +98,7 @@ class CacheFolder(object):
         """Add a file to the cache. save() must be called in order for the
         cache to be considered as complete."""
         # If the cache has already been made, we don't allow modification.
+        logging.debug("Adding file `%s` to CacheFolder #%d" % (path, self.cacheId))
         if self.isCached:
             raise Exception("Tried to modify an already cached version (ID %d)." % self.cacheId)
 
@@ -107,10 +115,12 @@ class CacheFolder(object):
         if self.isCached:
             raise Exception("Tried to modify an already cached version (ID %d)." % self.cacheId)
 
+        logging.debug("Adding report to CacheFolder #%d" % self.cacheId)
         json.dump(data, open(self._makePath('report.json'), 'w'))
 
     def save(self):
         """Save the cache, marking it as complete and usable."""
+        logging.debug("Saving CacheFolder #%d, files: %s" % (self.cacheId, ', '.join(self.files)))
         cPickle.dump(self.files, open(self._makePath('cache.files'), 'w'))
         open(self._makePath('cache.ok'), 'w').write(' ')
         self.isCached = True
@@ -121,6 +131,7 @@ class CacheFolder(object):
         if not self.isCached:
             raise Execption("Tried to load non-cached files from cache (ID %d)." % self.cacheId)
 
+        logging.debug("Loading CacheFolder #%d into folder `%s`" % (self.cacheId, path))
         for f in self.files:
             symlink(self._makePath(f), os.path.join(path, f))
 
@@ -166,6 +177,8 @@ class CacheHandle():
         self.programId = "program:%s" % (';'.join(fileIdList))
         self.programHashes = ';'.join(fileHashList)
 
+        logging.debug("New CacheHandle, programId `%s`" % self.programId)
+
 
     def getCacheFolder(self, cacheType, args='', inputFiles=[]):
         """Returns the CacheFolder for the program executed with args and
@@ -181,6 +194,8 @@ class CacheHandle():
 
         # This will be the ID string in the database, containing the cache type and the input files list
         filesId = "%s;cache:%s;args:%s;%s" % (self.programId, cacheType, args, ";".join(inputIdList))
+
+        logging.debug("Getting CacheFolder for filesId `%s`" % filesId)
 
         # Read cache information from database
         dbCur = self.database.cursor()
@@ -203,6 +218,7 @@ class CacheHandle():
         else:
             # New entry in database
             dbCur.execute("INSERT INTO cache(filesid, hashlist) VALUES(?, ?)", [filesId, self.programHashes])
+            logging.debug("Added new entry into cache database")
             self.database.commit()
             newId = dbCur.lastrowid
             return CacheFolder(newId)
@@ -250,6 +266,8 @@ class Execution():
             'wasCached': False,
             'realMemoryLimitKb': self.realMemoryLimitKb,
             'realTimeLimitMs': self.realTimeLimit}
+
+        logging.debug("New Execution initialized for executable `%s`, cmd `%s`" % (executablePath, cmd))
 
 
     def _prepareExecute(self, workingDir, stdinFile=None, stdoutFile=None):
@@ -303,7 +321,7 @@ class Execution():
                 'realTimeTakenMs': -1, # We don't know
                 'wasKilled': False,
                 'exitCode': proc.returncode,
-                'exitSig': -1 # We don't know
+                'exitSig': -1 # We don't know
             })
 
         report['stdout'] = capture(self.stdoutFile, name='stdout',
@@ -324,6 +342,7 @@ class Execution():
         """Execute the program in workingDir, with command-line arguments args,
         and standard input and output redirected from stdinFile and to
         stdoutFile."""
+        logging.info("Executing executable `%s`, cmd `%s`, args `%s` in dir `%s`" % (self.executablePath, self.cmd, args, workingDir))
         self.workingDir = workingDir
         self._prepareExecute(workingDir, stdinFile, stdoutFile)
         return self._doExecute(workingDir, args)
@@ -355,7 +374,7 @@ class IsolatedExecution(Execution):
         # isolatePath will be the path of the sandbox, as given by isolate
         isolateDir = isolateDir.strip() + '/box/'
 
-        # Build isolate command line
+        # Build isolate command line
         isolatedCmdLine  = CFG_ISOLATEBIN
         isolatedCmdLine += ' --processes'
         isolatedCmdLine += ' --env=HOME --env=PATH'
@@ -394,8 +413,8 @@ class IsolatedExecution(Execution):
         open(workingDir + 'isolate.meta', 'w')
 
         # Execute the isolated program
-        proc = subprocess.Popen(shlex.split(isolatedCmdLine), cwd=workingDir)
-        proc.wait()
+        proc = subprocess.Popen(shlex.split(isolatedCmdLine), cwd=workingDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (procOut, procErr) = proc.communicate()
 
         # Get metadata from isolate execution
         isolateMeta = {}
@@ -433,7 +452,7 @@ class IsolatedExecution(Execution):
             report['realTimeTakenMs'] = -1
             report['timeTakenMs'] = -1
         # Memory used: cg-mem is only available when control groups are
-        # enabled, and max-rss can be slightly inaccurate
+        # enabled, and max-rss can be slightly inaccurate
         if isolateMeta.has_key('cg-mem'):
             report['memoryUsedKb'] = int(isolateMeta['cg-mem'])
         elif isolateMeta.has_key('max-rss'):
@@ -644,6 +663,7 @@ class Program():
         """Create a new Program described by compilationDescr, to be compiled
         in ownDir, with a build based in baseDir and with the cache database
         being cache."""
+        logging.info("Creating new Program `%s` in dir `%s`" % (name, ownDir))
         self.compilationDescr = compilationDescr
         self.compilationParams = compilationParams
         self.ownDir = ownDir
@@ -729,21 +749,25 @@ class Program():
         # We fetch dependencies into the workingDir
         depFiles = map(self._getFile, compilationDescr['dependencies'])
 
-        # We call the language-specific compilation process
+        # We call the language-specific compilation process
         return self.language.compile(self.compilationParams, self.ownDir, sourceFiles, depFiles, self.name)
 
 
     def compile(self):
         """Compile the Program, fetching the executable from the cache if possible."""
 
+        logging.info("Compiling Program `%s`" % self.name)
+
         if self.compilationParams['useCache']:
             cachef = self.cacheHandle.getCacheFolder('compilation-' + self.name)
-            # Check cache
+            # Check cache
             if cachef.isCached:
+                logging.debug("Compiled version was cached")
                 report = cachef.loadReport()
                 report['wasCached'] = True
                 cachef.loadFiles(self.ownDir)
             else:
+                logging.debug("No cached version")
                 report = self._compile()
                 # Make the executable u=rwx,g=rx,a=rx
                 cachef.addReport(report)
@@ -752,13 +776,19 @@ class Program():
                     cachef.addFile(self.executablePath, isExecutable=True)
                 cachef.save()
         else:
-            # We don't use cache at all
+            # We don't use cache at all
+            logging.debug("Not using cache")
             report = self._compile()
             if not isExecError(report):
                 os.chmod(self.executablePath, 493)
 
         self.compiled = not isExecError(report)
         self.triedCompile = True
+
+        if isExecError(report):
+            logging.info("Compilation failed.")
+        else:
+            logging.info("Compilation successful.")
 
         return report
 
@@ -787,6 +817,8 @@ class Program():
         if not self.execution:
             raise Exception("Execution has not yet been prepared, execution impossible.")
 
+        logging.info("Executing Program `%s`, args `%s`, in dir `%s`" % (self.name, args, workingDir))
+
         if self.executionParams['useCache']:
             # Check cache
             inputFiles = []
@@ -796,13 +828,15 @@ class Program():
 
             if cachef.isCached:
                 # It is cached, we load the report and output files
+                logging.debug("Version in cache")
                 report = cachef.loadReport()
                 report['wasCached'] = True
                 cachef.loadFiles(workingDir)
             else:
+                logging.debug("No version in cache")
                 # It is not cached, we execute the program
                 report = self.execution.execute(workingDir, args, stdinFile, stdoutFile)
-                # Save the report and output files
+                # Save the report and output files
                 cachef.addReport(report)
                 if stdoutFile:
                     cachef.addFile(stdoutFile)
@@ -812,7 +846,13 @@ class Program():
                 cachef.save()
         else:
             # We don't use cache at all
+            logging.debug("Not using cache")
             report = self.execution.execute(workingDir, args, stdinFile, stdoutFile)
+
+        if isExecError(report):
+            logging.info("Execution failed.")
+        else:
+            logging.info("Execution successful.")
 
         return report
 
@@ -919,6 +959,8 @@ def evaluation(evaluationParams):
 
     global restrictToPaths
 
+    logging.info("Initializing evaluation")
+
     # Check root path and task path
     # We need to check the keys exist as the JSON schema check is done later
     if not evaluationParams.has_key('rootPath'):
@@ -987,11 +1029,14 @@ def evaluation(evaluationParams):
 
     errorSoFar = False
 
+    logging.info("Evaluation taking place in dir `%s`" % baseWorkingDir)
+
     # *** Generators
     os.mkdir(baseWorkingDir + "generators/")
     report['generators'] = []
     generators = {}
     for gen in evaluationParams['generators']:
+        logging.info("Compiling generator ID `%s`" % gen['id'])
         genDir = "%sgenerators/%s/" % (baseWorkingDir, gen['id'])
         os.mkdir(genDir)
         # We compile the generator
@@ -1006,6 +1051,7 @@ def evaluation(evaluationParams):
     os.mkdir(baseWorkingDir + "generations/")
     report['generations'] = []
     for gen in evaluationParams['generations']:
+        logging.info("Generation ID `%s`" % gen['id'])
         genDir = "%sgenerations/%s/" % (baseWorkingDir, gen['id'])
         os.mkdir(genDir)
 
@@ -1064,6 +1110,7 @@ def evaluation(evaluationParams):
 
     # We add extra tests
     if evaluationParams.has_key('extraTests'):
+        logging.info("Adding extraTests")
         for et in evaluationParams['extraTests']:
             filepath = os.path.join(baseWorkingDir, "tests", et['name'])
             if et.has_key('content'): # Content given in descr
@@ -1073,6 +1120,8 @@ def evaluation(evaluationParams):
                     symlink(et['path'], filepath, fromlocal=True)
                 else:
                     raise Exception("File not found: %s" % et['path'])
+
+    logging.info("Preparing sanitizer and checker")
 
     # *** Sanitizer
     os.mkdir(baseWorkingDir + "sanitizer/")
@@ -1099,6 +1148,7 @@ def evaluation(evaluationParams):
     solutions = {} # Language and source files of solutions, need this for the evaluations
     solutionsWithErrors = []
     for sol in evaluationParams['solutions']:
+        logging.info("Compiling solution ID `%s`" % sol['id'])
         solDir = "%ssolutions/%s/" % (baseWorkingDir, sol['id'])
         os.mkdir(solDir)
         # We only compile the solution
@@ -1115,6 +1165,7 @@ def evaluation(evaluationParams):
     os.mkdir(baseWorkingDir + "executions/")
     report['executions'] = []
     for test in evaluationParams['executions']:
+        logging.info("Starting evaluation execution")
         if test['idSolution'] in solutionsWithErrors:
             # This solution didn't compile
             continue
@@ -1133,6 +1184,7 @@ def evaluation(evaluationParams):
             testFiles.extend(glob.glob(baseWorkingDir + 'tests/' + filterGlob))
 
         for tf in testFiles:
+            logging.debug("Test file `%s`" % tf)
             # We execute everything for each test file tf
             if '.' in os.path.basename(tf):
                 baseTfName = '.'.join(os.path.basename(tf).split('.')[:-1])
@@ -1179,13 +1231,55 @@ def evaluation(evaluationParams):
 
 
 if __name__ == '__main__':
+    # Read command line options
+    argParser = argparse.ArgumentParser(description="This simple tool manages every step of grading a contest task, from the generation of test data to the grading of a solution output.")
+
+    argParser.add_argument('-d', '--debug', help='Show debug information (implies -v)', action='store_true')
+    argParser.add_argument('-L', '--logfile', help='Write logs into file LOGFILE', action='store', metavar='LOGFILE')
+    argParser.add_argument('-v', '--verbose', help='Be more verbose', action='store_true')
+
+    args = argParser.parse_args()
+
+    # Some options imply others
+    args.verbose = args.verbose or args.debug
+
+    # Add configuration from config.py
+    if CFG_LOGFILE and not args.logfile:
+        args.logfile = CFG_LOGFILE
+
+    # Set logging options
+    logLevel = getattr(logging, CFG_LOGLEVEL, logging.CRITICAL)
+    if args.debug: logLevel = min(logLevel, logging.DEBUG)
+    if args.verbose: logLevel = min(logLevel, logging.INFO)
+
+    logConfig = {'level': logLevel,
+        'format': '%(asctime)s - taskgrader - %(levelname)s - %(message)s'}
+    if args.logfile: logConfig['filename'] = args.logfile
+    logging.basicConfig(**logConfig)
+
+    if args.logfile and args.verbose:
+        # Also show messages on stderr
+        logStderr = logging.StreamHandler()
+        logStderr.setFormatter(logging.Formatter('%(asctime)s - taskgrader - %(levelname)s - %(message)s'))
+        logging.getLogger().addHandler(logStderr)
+
+    # Read input JSON
     try:
         inJson = json.load(sys.stdin)
     except Exception as err:
         raise Exception("Input data is not valid JSON: %s" % err)
+
+    # Evaluation
     try:
         json.dump(evaluation(inJson), sys.stdout)
     except TemporaryException as err:
-        # We use a different return code for TemporaryException
+        # We use a different return code for TemporaryException
+        logging.critical("TemporaryException raised")
+        logging.critical(traceback.format_exc())
         traceback.print_exc()
         sys.exit(2)
+    except:
+        logging.critical("Exception raised")
+        logging.critical(traceback.format_exc())
+        traceback.print_exc()
+        sys.exit(1)
