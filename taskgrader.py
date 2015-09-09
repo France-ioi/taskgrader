@@ -276,8 +276,14 @@ class Execution():
 
         # Copy executable to workingDir
         if self.executablePath:
+            deployPath = os.path.join(workingDir, os.path.basename(self.executablePath))
+            if os.path.islink(deployPath):
+                try:
+                    os.unlink(deployPath)
+                except:
+                    pass
             try:
-                symlink(self.executablePath, os.path.join(workingDir, os.path.basename(self.executablePath)))
+                symlink(self.executablePath, deployPath)
             except:
                 # The executable was probably already imported
                 pass
@@ -985,11 +991,14 @@ def evaluation(evaluationParams):
     else:
         restrictToPaths = []
 
-    # We load a "preprocessing" JSON node or file
-    try:
-        varData.update(json.load(open(os.path.join(evaluationParams['taskPath'], 'defaultParams.json'), 'r')))
-    except:
-        pass
+    # Load a "preprocessing" JSON node or file
+    defParamsPath = os.path.join(evaluationParams['taskPath'], 'defaultParams.json')
+    if os.path.isfile(defParamsPath):
+        try:
+            varData.update(json.load(open(defParamsPath, 'r')))
+        except:
+            raise Exception("defaultParams.json in `%s` is invalid." % evaluationParams['taskPath'])
+
     if evaluationParams.has_key('extraParams'):
         if type(evaluationParams['extraParams']) is str and isInRestrict(evaluationParams['extraParams']):
             varData.update(json.load(open(evaluationParams['extraParams'], 'r')))

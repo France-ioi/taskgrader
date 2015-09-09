@@ -79,7 +79,7 @@
                     "testCases": {"type": "array", "description": "List of specific test cases to generate.",
                         "items": {"type": "object", "properties": {
                             "name": {"$ref": "#/definitions/filename", "description": "Filename of the test to generate."},
-                            "params": {"type": "array", "description": "Command-line arguments for the generator.", "items": {"type": "string"}}},
+                            "params": {"type": "string", "description": "Command-line arguments for the generator."}},
                             "required": ["name", "params"]}}},
                 "required": ["id", "idGenerator", "genExecution"]}},
 
