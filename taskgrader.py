@@ -395,7 +395,7 @@ class IsolatedExecution(Execution):
             else:
                 isolatedCmdLine += ' --mem=' + str(self.realMemoryLimitKb)
         if self.stdinFile:
-            filecopy(self.stdinFile, isolateDir + 'isolated.stdin', fromlocal=True)
+            filecopy(self.stdinFile, workingDir + 'isolated.stdin', fromlocal=True)
             isolatedCmdLine += ' --stdin=isolated.stdin'
         if CFG_CONTROLGROUPS:
             isolatedCmdLine += ' --cg --cg-timing'
