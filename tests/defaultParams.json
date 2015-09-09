@@ -1,0 +1,182 @@
+{
+"testExecParams": {
+    "timeLimitMs": 60000,
+    "memoryLimitKb": 131072,
+    "useCache": true,
+    "stdoutTruncateKb": -1,
+    "stderrTruncateKb": -1,
+    "getFiles": []},
+
+"testRealExecParams": {
+    "timeLimitMs": 1000,
+    "memoryLimitKb": 131072,
+    "useCache": true,
+    "stdoutTruncateKb": -1,
+    "stderrTruncateKb": -1,
+    "getFiles": []},
+
+"testGenerator1": {
+    "id": "tGenerator1",
+    "compilationDescr": {
+        "language": "sh",
+        "files": [{
+            "name": "gen1.sh",
+            "path": "$TASK_PATH/gen1.sh"}],
+        "dependencies": [{
+            "name": "gen1-data.dat",
+            "content": "14263"}]},
+    "compilationExecution": "@testExecParams"},
+
+"testGenerator2": {
+    "id": "tGenerator2",
+    "compilationDescr": {
+        "language": "sh",
+        "files": [{
+            "name": "gen2.sh",
+            "path": "$TASK_PATH/gen2.sh"}],
+        "dependencies": []},
+    "compilationExecution": "@testExecParams"},
+
+"testGenerator2out": {
+    "id": "tGenerator2out",
+    "compilationDescr": {
+        "language": "sh",
+        "files": [{
+            "name": "gen2out.sh",
+            "path": "$TASK_PATH/gen2out.sh"}],
+        "dependencies": []},
+    "compilationExecution": "@testExecParams"},
+
+"testGenerationSingle": {
+    "id": "tGenerationSingle",
+    "idGenerator": "tGenerator1",
+    "genExecution": "@testExecParams"},
+
+"testGenerationCases": {
+    "id": "tGenerationCases",
+    "idGenerator": "tGenerator2",
+    "idOutputGenerator": "tGenerator2out",
+    "genExecution": "@testExecParams",
+    "outGenExecution": "@testExecParams",
+    "testCases": [{
+        "name": "test20",
+        "params": "20"}]},
+
+"testExtraSimple": {
+    "name": "testextra.in",
+    "content": "30"},
+
+"testExtraBad": {
+    "name": "badtest.in",
+    "content": "badtest"},
+
+"testSanitizer": {
+    "compilationDescr": {
+        "language": "sh",
+        "files": [{
+            "name": "sanitizer.sh",
+            "path": "$TASK_PATH/sanitizer.sh"}],
+        "dependencies": []},
+    "compilationExecution": "@testExecParams",
+    "runExecution": "@testExecParams"},
+
+"testChecker": {
+    "compilationDescr": {
+        "language": "sh",
+        "files": [{
+            "name": "checker.sh",
+            "path": "$TASK_PATH/checker.sh"}],
+        "dependencies": []},
+    "compilationExecution": "@testExecParams",
+    "runExecution": "@testExecParams"},
+
+"testBadProgram": {
+    "compilationDescr": {
+        "language": "c",
+        "files": [{
+            "name": "badprog.c",
+            "content": "i am a bad program"}],
+        "dependencies": []},
+    "compilationExecution": "@testExecParams",
+    "runExecution": "@testExecParams"},
+
+"testSolution1": {
+    "id": "tSolution1",
+    "compilationDescr": {
+        "language": "c",
+        "files": [{
+            "name": "sol1.c",
+            "path": "$TASK_PATH/sol1.c"}],
+        "dependencies": []},
+    "compilationExecution": "@testExecParams"},
+
+"testSolutionInvalid": {
+    "id": "tSolutionInvalid",
+    "compilationDescr": {
+        "language": "c",
+        "files": [{
+            "name": "sol2.c",
+            "path": "$TASK_PATH/sol2.c"}],
+        "dependencies": []},
+    "compilationExecution": "@testExecParams"},
+
+"testSolutionUncomp": {
+    "id": "tSolutionUncomp",
+    "compilationDescr": {
+        "language": "c",
+        "files": [{
+            "name": "badsol.c",
+            "content": "i am a bad solution"}],
+        "dependencies": []},
+    "compilationExecution": "@testExecParams"},
+
+"testSolutionMemoverflow": {
+    "id": "tSolutionMemoverflow",
+    "compilationDescr": {
+        "language": "python2",
+        "files": [{
+            "name": "sol3.py",
+            "path": "$TASK_PATH/sol3.py"}],
+        "dependencies": []},
+    "compilationExecution": "@testExecParams"},
+
+"testSolutionTimeout": {
+    "id": "tSolutionTimeout",
+    "compilationDescr": {
+        "language": "python2",
+        "files": [{
+            "name": "sol4.py",
+            "path": "$TASK_PATH/sol4.py"}],
+        "dependencies": []},
+    "compilationExecution": "@testExecParams"},
+
+"testExecution1": {
+    "id": "tExecution1",
+    "idSolution": "tSolution1",
+    "filterTests": ["*.in"],
+    "runExecution": "@testExecParams"},
+
+"testExecutionInvalid": {
+    "id": "tExecutionInvalid",
+    "idSolution": "tSolutionInvalid",
+    "filterTests": ["*.in"],
+    "runExecution": "@testExecParams"},
+
+"testExecutionUncomp": {
+    "id": "tExecutionUncomp",
+    "idSolution": "tSolutionUncomp",
+    "filterTests": ["*.in"],
+    "runExecution": "@testExecParams"},
+
+"testExecutionMemoverflow": {
+    "id": "tExecutionMemoverflow",
+    "idSolution": "tSolutionMemoverflow",
+    "filterTests": ["*.in"],
+    "runExecution": "@testRealExecParams"},
+
+"testExecutionTimeout": {
+    "id": "tExecutionTimeout",
+    "idSolution": "tSolutionTimeout",
+    "filterTests": ["*.in"],
+    "runExecution": "@testRealExecParams"}
+}
