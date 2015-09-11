@@ -336,9 +336,8 @@ class Execution():
                 truncateSize=self.executionParams['stderrTruncateKb'] * 1024)
 
         filesReports = []
-        for globf in self.executionParams['getFiles']:
-            for f in glob.glob(workingDir + globf):
-                filesReports.append(capture(f, name=os.path.basename(f), truncateSize=CFG_MAX_GETFILE))
+        for f in globOfGlobs(workingDir, self.executionParams['getFiles']):
+            filesReports.append(capture(f, name=os.path.basename(f), truncateSize=CFG_MAX_GETFILE))
         report['files'] = filesReports
 
         return report
@@ -846,9 +845,8 @@ class Program():
                 cachef.addReport(report)
                 if stdoutFile:
                     cachef.addFile(stdoutFile)
-                for globPattern in outputFiles:
-                    for f in glob.glob(os.path.join(workingDir + globPattern)):
-                        cachef.addFile(f)
+                for f in globOfGlobs(workingDir, globPattern):
+                    cachef.addFile(f)
                 cachef.save()
         else:
             # We don't use cache at all
@@ -916,6 +914,21 @@ def isInRestrict(path):
             return True
     return False
 
+
+def globOfGlobs(folder, globlist):
+    """Makes the combined list of files corresponding to a list of globs in a
+    folder."""
+    filelist = []
+    for g in globlist:
+        # We sort file list for each glob, but keep the original glob order, so
+        # that ['test*.in', 'mytest.in'] will give a predictable
+        # ['test1.in', 'test2.in', 'mytest.in']
+        curglob = glob.glob(os.path.join(folder, g))
+        curglob.sort()
+        for f in curglob:
+            if f not in filelist:
+                filelist.append(f)
+    return filelist
 
 def symlink(filefrom, fileto, fromlocal=False, tolocal=False):
     """Make a symlink. *local variables indicate whether the paths must be
@@ -1108,13 +1121,10 @@ def evaluation(evaluationParams):
             report['generations'].append(genReport)
 
             # We copy the generated test files
-            for f in (glob.glob(genDir + '*.in') + glob.glob(genDir + '*.out')):
+            for f in globOfGlobs(genDir, ['*.in', '*.out']):
                 filecopy(f, baseWorkingDir + 'tests/')
             # We copy the generated lib files
-            libFiles = []
-            for ext in ['*.h', '*.java', '*.ml', '*.mli', '*.pas', '*.py']:
-                libFiles.extend(glob.glob(genDir + ext))
-            for f in libFiles:
+            for f in globOfGlobs(genDir, ['*.h', '*.java', '*.ml', '*.mli', '*.pas', '*.py']):
                 filecopy(f, baseWorkingDir + 'libs/')
 
     # We add extra tests
@@ -1188,10 +1198,7 @@ def evaluation(evaluationParams):
         solution.prepareExecution(test['runExecution'])
 
         # Files to test as input
-        testFiles = []
-        for filterGlob in test['filterTests']:
-            testFiles.extend(glob.glob(baseWorkingDir + 'tests/' + filterGlob))
-
+        testFiles = globOfGlobs(os.path.join(baseWorkingDir, 'tests/'), test['filterTests'])
         for tf in testFiles:
             logging.debug("Test file `%s`" % tf)
             # We execute everything for each test file tf
