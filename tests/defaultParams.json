@@ -62,9 +62,17 @@
         "name": "test20",
         "params": "20"}]},
 
-"testExtraSimple": {
-    "name": "testextra.in",
+"testExtraSimple1": {
+    "name": "testextra1.in",
     "content": "30"},
+
+"testExtraSimple2": {
+    "name": "testextra2.in",
+    "content": "45"},
+
+"testExtraSimple3": {
+    "name": "testextra3.in",
+    "content": "192"},
 
 "testExtraBad": {
     "name": "badtest.in",

@@ -13,7 +13,14 @@ you also need to have a binary called `gcj` (not provided by Debian/stable):
 
 Execute `install.sh` in the taskgrader directory to install. It will help you install everything. If needed, modify `config.py` to suit your needs.
 
+## Testing
+
+After configuration, you can test that the taskgrader is configured properly and is behaving as expected by running `tests/test.py`. By default, it will run all tests and give you a summary.
+
+Full usage instructions are given by `test.py -h`.
+
 ## Executing
+
 The taskgrader itself can be executed with
 
     python taskgrader.py
