@@ -123,8 +123,8 @@
     "compilationDescr": {
         "language": "c",
         "files": [{
-            "name": "sol2.c",
-            "path": "$TASK_PATH/sol2.c"}],
+            "name": "sol-invalid.c",
+            "path": "$TASK_PATH/sol-invalid.c"}],
         "dependencies": []},
     "compilationExecution": "@testExecParams"},
 
@@ -143,18 +143,38 @@
     "compilationDescr": {
         "language": "python2",
         "files": [{
-            "name": "sol3.py",
-            "path": "$TASK_PATH/sol3.py"}],
+            "name": "sol-memoverflow.py",
+            "path": "$TASK_PATH/sol-memoverflow.py"}],
         "dependencies": []},
     "compilationExecution": "@testExecParams"},
 
-"testSolutionTimeout": {
-    "id": "tSolutionTimeout",
+"testSolutionTimeout1": {
+    "id": "tSolutionTimeout1",
     "compilationDescr": {
         "language": "python2",
         "files": [{
-            "name": "sol4.py",
-            "path": "$TASK_PATH/sol4.py"}],
+            "name": "sol-timeout1.py",
+            "path": "$TASK_PATH/sol-timeout1.py"}],
+        "dependencies": []},
+    "compilationExecution": "@testExecParams"},
+
+"testSolutionTimeout2": {
+    "id": "tSolutionTimeout2",
+    "compilationDescr": {
+        "language": "python2",
+        "files": [{
+            "name": "sol-timeout2.py",
+            "path": "$TASK_PATH/sol-timeout2.py"}],
+        "dependencies": []},
+    "compilationExecution": "@testExecParams"},
+
+"testSolutionChanging": {
+    "id": "tSolutionChanging",
+    "compilationDescr": {
+        "language": "python2",
+        "files": [{
+            "name": "sol-changing.py",
+            "path": "$TASK_PATH/sol-changing.py"}],
         "dependencies": []},
     "compilationExecution": "@testExecParams"},
 
@@ -182,9 +202,27 @@
     "filterTests": ["*.in"],
     "runExecution": "@testRealExecParams"},
 
-"testExecutionTimeout": {
-    "id": "tExecutionTimeout",
-    "idSolution": "tSolutionTimeout",
+"testExecutionTimeout1": {
+    "id": "tExecutionTimeout1",
+    "idSolution": "tSolutionTimeout1",
     "filterTests": ["*.in"],
-    "runExecution": "@testRealExecParams"}
+    "runExecution": "@testRealExecParams"},
+
+"testExecutionTimeout2": {
+    "id": "tExecutionTimeout2",
+    "idSolution": "tSolutionTimeout2",
+    "filterTests": ["*.in"],
+    "runExecution": "@testRealExecParams"},
+
+"testExecutionChanging1": {
+    "id": "tExecutionChanging1",
+    "idSolution": "tSolutionChanging",
+    "filterTests": ["*.in"],
+    "runExecution": "@testExecParams"},
+
+"testExecutionChanging2": {
+    "id": "tExecutionChanging2",
+    "idSolution": "tSolutionChanging",
+    "filterTests": ["*.in"],
+    "runExecution": "@testExecParams"}
 }

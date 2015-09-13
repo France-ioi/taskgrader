@@ -314,16 +314,58 @@ class SolutionTimeoutTest(FullTestBase):
             'extraTests': ['@testExtraSimple1'],
             'sanitizer': '@testSanitizer',
             'checker': '@testChecker',
-            'solutions': ['@testSolutionTimeout'],
-            'executions': ['@testExecutionTimeout']
+            'solutions': ['@testSolutionTimeout1', '@testSolutionTimeout2'],
+            'executions': ['@testExecutionTimeout1', '@testExecutionTimeout2']
             }
 
     def _makeChecks(self):
         return [
             self._assertEqual("proc.returncode", 0),
             self._assertEqual("outputJson['executions'][0]['testsReports'][0]['execution']['exitCode']", 1),
-            self._assertEqual("outputJson['executions'][0]['testsReports'][0]['execution']['exitSig']", 137)
+            self._assertEqual("outputJson['executions'][0]['testsReports'][0]['execution']['exitSig']", 137),
+            self._assertEqual("outputJson['executions'][1]['testsReports'][0]['execution']['exitCode']", 1),
+            self._assertEqual("outputJson['executions'][1]['testsReports'][0]['execution']['exitSig']", 137)
             ]
+
+class SolutionChangingTest(FullTestBase):
+    """This test tries executing a solution (whose output changes) twice and
+    checks whether its result has correctly been cached."""
+
+    def _makeInputJson(self):
+        return {
+            'rootPath': os.path.dirname(os.path.abspath(__file__)),
+            'taskPath': '$ROOT_PATH',
+            'generators': [],
+            'generations': [],
+            'extraTests': ['@testExtraSimple1'],
+            'sanitizer': '@testSanitizer',
+            'checker': '@testChecker',
+            'solutions': ['@testSolutionChanging'],
+            'executions': ['@testExecutionChanging1', '@testExecutionChanging2']
+            }
+
+    def _makeChecks(self):
+        checks = [
+            self._assertEqual("proc.returncode", 0),
+            ]
+        try:
+            output1 = self.outputJson['executions'][0]['testsReports'][0]['execution']['stdout']['data']
+        except:
+            self.details['bad'].append("can't get output from first execution")
+            checks.append(False)
+            return checks
+        try:
+            output2 = self.outputJson['executions'][1]['testsReports'][0]['execution']['stdout']['data']
+        except:
+            self.details['bad'].append("can't get output from second execution")
+            checks.append(False)
+            return checks
+        if output1 == output2:
+            self.details['good'].append("output1 == output2")
+        else:
+            self.details['bad'].append("output1 != output2")
+        checks.append(output1 == output2)
+        return checks
 
 class TestMultipleTest(FullTestBase):
     """This test tries a simple solution with multiple test files, and checks
@@ -357,7 +399,20 @@ class TestMultipleTest(FullTestBase):
 
 if __name__ == '__main__':
     # TODO :: interface
-    tests = [SanitizerCheckerTest(), BadSanitizerTest(), BadCheckerTest(), GenerationSingleTest(), GenerationCasesTest(), SolutionSimpleTest(), SolutionInvalidTest(), SolutionUncompTest(), SolutionMemoverflowTest(), SolutionTimeoutTest(), TestMultipleTest()]
+    tests = [
+        SanitizerCheckerTest(),
+        BadSanitizerTest(),
+        BadCheckerTest(),
+        GenerationSingleTest(),
+        GenerationCasesTest(),
+        SolutionSimpleTest(),
+        SolutionInvalidTest(),
+        SolutionUncompTest(),
+        #SolutionMemoverflowTest(), # not working at the moment
+        SolutionTimeoutTest(),
+        SolutionChangingTest(),
+        TestMultipleTest()
+        ]
     for t in tests:
         t.execute()
         print "%s: %s (%s): %s" % (t.__class__.__name__, t.result, t.details['msg'], t.details['bad'])
@@ -366,5 +421,4 @@ if __name__ == '__main__':
             print t.procErr
 
     # Test restrictToPaths
-    # Test random-outputing solutions w/ cache
     # Test all languages

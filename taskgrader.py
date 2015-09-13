@@ -388,6 +388,7 @@ class IsolatedExecution(Execution):
         isolatedCmdLine += ' --box-id=%d' % boxId
         if self.executionParams['timeLimitMs'] > 0:
             isolatedCmdLine += ' --time=' + str(self.realTimeLimit / 1000.)
+            isolatedCmdLine += ' --wall-time=' + str(3 * self.realTimeLimit / 1000.)
         if self.executionParams['memoryLimitKb'] > 0:
             if CFG_CONTROLGROUPS:
                 isolatedCmdLine += ' --cg-mem=' + str(self.realMemoryLimitKb)
@@ -845,7 +846,7 @@ class Program():
                 cachef.addReport(report)
                 if stdoutFile:
                     cachef.addFile(stdoutFile)
-                for f in globOfGlobs(workingDir, globPattern):
+                for f in globOfGlobs(workingDir, outputFiles):
                     cachef.addFile(f)
                 cachef.save()
         else:
