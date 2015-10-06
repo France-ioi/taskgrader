@@ -211,7 +211,7 @@ class GenerationCasesTest(FullTestBase):
             self._assertEqual("outputJson['generations'][0]['outputGeneratorExecution']['stdout']['data']", "40"),
             ]
 
-class SolutionSimpleTest(FullTestBase):
+class SolutionSimpleBase(FullTestBase):
     """This test tries a simple solution execution, with one test file, and
     checks the checker output."""
 
@@ -224,8 +224,8 @@ class SolutionSimpleTest(FullTestBase):
             'extraTests': ['@testExtraSimple1'],
             'sanitizer': '@testSanitizer',
             'checker': '@testChecker',
-            'solutions': ['@testSolution1'],
-            'executions': ['@testExecution1']
+            'solutions': [self._solution],
+            'executions': [self._execution]
             }
 
     def _makeChecks(self):
@@ -233,6 +233,38 @@ class SolutionSimpleTest(FullTestBase):
             self._assertEqual("proc.returncode", 0),
             self._assertEqual("outputJson['executions'][0]['testsReports'][0]['checker']['stdout']['data']", "100")
             ]
+
+class SolutionSimpleC(SolutionSimpleBase):
+    _solution = '@testSolutionC'
+    _execution = '@testExecutionC'
+
+class SolutionSimpleCpp(SolutionSimpleBase):
+    _solution = '@testSolutionCpp'
+    _execution = '@testExecutionCpp'
+
+class SolutionSimpleJava(SolutionSimpleBase):
+    _solution = '@testSolutionJava'
+    _execution = '@testExecutionJava'
+
+class SolutionSimpleJavascool(SolutionSimpleBase):
+    _solution = '@testSolutionJavascool'
+    _execution = '@testExecutionJavascool'
+
+class SolutionSimpleOcaml(SolutionSimpleBase):
+    _solution = '@testSolutionOcaml'
+    _execution = '@testExecutionOcaml'
+
+class SolutionSimplePascal(SolutionSimpleBase):
+    _solution = '@testSolutionPascal'
+    _execution = '@testExecutionPascal'
+
+class SolutionSimplePython(SolutionSimpleBase):
+    _solution = '@testSolutionPython'
+    _execution = '@testExecutionPython'
+
+class SolutionSimpleShell(SolutionSimpleBase):
+    _solution = '@testSolutionShell'
+    _execution = '@testExecutionShell'
 
 class SolutionInvalidTest(FullTestBase):
     """This test tries an invalid solution (giving a wrong result), with one
@@ -380,8 +412,8 @@ class TestMultipleTest(FullTestBase):
             'extraTests': ['@testExtraSimple1', '@testExtraSimple2', '@testExtraSimple3'],
             'sanitizer': '@testSanitizer',
             'checker': '@testChecker',
-            'solutions': ['@testSolution1'],
-            'executions': ['@testExecution1']
+            'solutions': ['@testSolutionC'],
+            'executions': ['@testExecutionC']
             }
 
     def _makeChecks(self):
@@ -405,7 +437,14 @@ if __name__ == '__main__':
         BadCheckerTest(),
         GenerationSingleTest(),
         GenerationCasesTest(),
-        SolutionSimpleTest(),
+        SolutionSimpleC(),
+        SolutionSimpleCpp(),
+        #SolutionSimpleJava(),
+        #SolutionSimpleJavascool(),
+        SolutionSimpleOcaml(),
+        SolutionSimplePascal(),
+        SolutionSimplePython(),
+        SolutionSimpleShell(),
         SolutionInvalidTest(),
         SolutionUncompTest(),
         #SolutionMemoverflowTest(), # not working at the moment
@@ -421,4 +460,3 @@ if __name__ == '__main__':
             print t.procErr
 
     # Test restrictToPaths
-    # Test all languages

@@ -1,4 +1,30 @@
 {
+"defaultToolCompParams": "@testExecParams",
+"defaultToolExecParams": "@defaultToolCompParams",
+
+"defaultGenerator": "@testGenerator1",
+"defaultGeneration": "@testGeneration1",
+"defaultChecker": "@testChecker",
+"defaultSanitizer": "@testSanitizer",
+
+"defaultExtraTests": [],
+"defaultFilterTests": ["*.in"],
+
+"defaultDependencies-c": [],
+"defaultDependencies-cpp": [],
+"defaultDependencies-java": [],
+"defaultDependencies-javascool": [],
+"defaultDependencies-ocaml": [],
+"defaultDependencies-pascal": [],
+"defaultDependencies-python": [],
+"defaultFilterTests-c": "@defaultFilterTests",
+"defaultFilterTests-cpp": "@defaultFilterTests",
+"defaultFilterTests-java": "@defaultFilterTests",
+"defaultFilterTests-javascool": "@defaultFilterTests",
+"defaultFilterTests-ocaml": "@defaultFilterTests",
+"defaultFilterTests-pascal": "@defaultFilterTests",
+"defaultFilterTests-python": "@defaultFilterTests",
+
 "testExecParams": {
     "timeLimitMs": 60000,
     "memoryLimitKb": 131072,
@@ -108,13 +134,83 @@
     "compilationExecution": "@testExecParams",
     "runExecution": "@testExecParams"},
 
-"testSolution1": {
-    "id": "tSolution1",
+"testSolutionC": {
+    "id": "tSolutionC",
     "compilationDescr": {
         "language": "c",
         "files": [{
-            "name": "sol1.c",
-            "path": "$TASK_PATH/sol1.c"}],
+            "name": "sol-ok-c.c",
+            "path": "$TASK_PATH/sol-ok-c.c"}],
+        "dependencies": []},
+    "compilationExecution": "@testExecParams"},
+
+"testSolutionCpp": {
+    "id": "tSolutionCpp",
+    "compilationDescr": {
+        "language": "cpp",
+        "files": [{
+            "name": "sol-ok-cpp.cpp",
+            "path": "$TASK_PATH/sol-ok-cpp.cpp"}],
+        "dependencies": []},
+    "compilationExecution": "@testExecParams"},
+
+"testSolutionJava": {
+    "id": "tSolutionJava",
+    "compilationDescr": {
+        "language": "java",
+        "files": [{
+            "name": "sol-ok-java.java",
+            "path": "$TASK_PATH/sol-ok-java.java"}],
+        "dependencies": []},
+    "compilationExecution": "@testExecParams"},
+
+"testSolutionJavascool": {
+    "id": "tSolutionJavascool",
+    "compilationDescr": {
+        "language": "javascool",
+        "files": [{
+            "name": "sol-ok-javascool.jvs",
+            "path": "$TASK_PATH/sol-ok-javascool.jvs"}],
+        "dependencies": []},
+    "compilationExecution": "@testExecParams"},
+
+"testSolutionOcaml": {
+    "id": "tSolutionOcaml",
+    "compilationDescr": {
+        "language": "ocaml",
+        "files": [{
+            "name": "sol-ok-ocaml.ml",
+            "path": "$TASK_PATH/sol-ok-ocaml.ml"}],
+        "dependencies": []},
+    "compilationExecution": "@testExecParams"},
+
+"testSolutionPascal": {
+    "id": "tSolutionPascal",
+    "compilationDescr": {
+        "language": "pascal",
+        "files": [{
+            "name": "sol-ok-pascal.pas",
+            "path": "$TASK_PATH/sol-ok-pascal.pas"}],
+        "dependencies": []},
+    "compilationExecution": "@testExecParams"},
+
+"testSolutionPython": {
+    "id": "tSolutionPython",
+    "compilationDescr": {
+        "language": "python2",
+        "files": [{
+            "name": "sol-ok-python.py",
+            "path": "$TASK_PATH/sol-ok-python.py"}],
+        "dependencies": []},
+    "compilationExecution": "@testExecParams"},
+
+"testSolutionShell": {
+    "id": "tSolutionShell",
+    "compilationDescr": {
+        "language": "sh",
+        "files": [{
+            "name": "sol-ok-shell.sh",
+            "path": "$TASK_PATH/sol-ok-shell.sh"}],
         "dependencies": []},
     "compilationExecution": "@testExecParams"},
 
@@ -178,9 +274,51 @@
         "dependencies": []},
     "compilationExecution": "@testExecParams"},
 
-"testExecution1": {
-    "id": "tExecution1",
-    "idSolution": "tSolution1",
+"testExecutionC": {
+    "id": "tExecutionC",
+    "idSolution": "tSolutionC",
+    "filterTests": ["*.in"],
+    "runExecution": "@testExecParams"},
+
+"testExecutionCpp": {
+    "id": "tExecutionCpp",
+    "idSolution": "tSolutionCpp",
+    "filterTests": ["*.in"],
+    "runExecution": "@testExecParams"},
+
+"testExecutionJava": {
+    "id": "tExecutionJava",
+    "idSolution": "tSolutionJava",
+    "filterTests": ["*.in"],
+    "runExecution": "@testExecParams"},
+
+"testExecutionJavascool": {
+    "id": "tExecutionJavascool",
+    "idSolution": "tSolutionJavascool",
+    "filterTests": ["*.in"],
+    "runExecution": "@testExecParams"},
+
+"testExecutionOcaml": {
+    "id": "tExecutionOcaml",
+    "idSolution": "tSolutionOcaml",
+    "filterTests": ["*.in"],
+    "runExecution": "@testExecParams"},
+
+"testExecutionPascal": {
+    "id": "tExecutionPascal",
+    "idSolution": "tSolutionPascal",
+    "filterTests": ["*.in"],
+    "runExecution": "@testExecParams"},
+
+"testExecutionPython": {
+    "id": "tExecutionPython",
+    "idSolution": "tSolutionPython",
+    "filterTests": ["*.in"],
+    "runExecution": "@testExecParams"},
+
+"testExecutionShell": {
+    "id": "tExecutionShell",
+    "idSolution": "tSolutionShell",
     "filterTests": ["*.in"],
     "runExecution": "@testExecParams"},
 

@@ -1,0 +1,5 @@
+void main()
+{
+    int inputNum = readInt();
+    println(inputNum * 2);
+}

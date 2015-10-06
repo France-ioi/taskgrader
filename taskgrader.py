@@ -692,6 +692,7 @@ class Program():
                         'javascool': LanguageJavascool,
                         'sh': LanguageShell,
                         'shell': LanguageShell,
+                        'pascal': LanguagePascal,
                         'py': LanguagePython3,
                         'py2': LanguagePython2,
                         'py3': LanguagePython3,
