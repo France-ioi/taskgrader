@@ -180,11 +180,18 @@ class CacheHandle():
         logging.debug("New CacheHandle, programId `%s`" % self.programId)
 
 
-    def getCacheFolder(self, cacheType, args='', inputFiles=[]):
+    def getCacheFolder(self, cacheType, args='', execParams=None, inputFiles=[]):
         """Returns the CacheFolder for the program executed with args and
         inputFiles as input.
         cacheType represents the type of cache (compilation, execution); it
         must be the same string among all executions of the program."""
+
+        # We add an identifier for execution limits
+        params = ''
+        if execParams:
+            params = 'timelimit:%s;memlimit:%s' % (execParams['timeLimitMs'], execParams['memoryLimitKb'])
+        else:
+            params = ''
 
         inputIdList = []
         # We add identifiers for input files (local name and md5sum)
@@ -193,7 +200,7 @@ class CacheHandle():
             inputIdList.append("input:%s:%s" % (os.path.basename(f), md5sum))
 
         # This will be the ID string in the database, containing the cache type and the input files list
-        filesId = "%s;cache:%s;args:%s;%s" % (self.programId, cacheType, args, ";".join(inputIdList))
+        filesId = "%s;cache:%s;args:%s;%s;%s" % (self.programId, cacheType, args, params, ";".join(inputIdList))
 
         logging.debug("Getting CacheFolder for filesId `%s`" % filesId)
 
@@ -766,7 +773,7 @@ class Program():
         logging.info("Compiling Program `%s`" % self.name)
 
         if self.compilationParams['useCache']:
-            cachef = self.cacheHandle.getCacheFolder('compilation-' + self.name)
+            cachef = self.cacheHandle.getCacheFolder('compilation-' + self.name, execParams=self.compilationParams)
             # Check cache
             if cachef.isCached:
                 logging.debug("Compiled version was cached")
@@ -831,7 +838,7 @@ class Program():
             inputFiles = []
             inputFiles.extend(otherInputs)
             if stdinFile: inputFiles.append(stdinFile)
-            cachef = self.cacheHandle.getCacheFolder('execution-' + self.name, args=args, inputFiles=inputFiles)
+            cachef = self.cacheHandle.getCacheFolder('execution-' + self.name, args=args, execParams=self.executionParams, inputFiles=inputFiles)
 
             if cachef.isCached:
                 # It is cached, we load the report and output files
