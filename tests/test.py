@@ -9,10 +9,25 @@
 # is as expected and the local configuration is good.
 
 
-import argparse, json, os, subprocess, sys
+import argparse, json, os, subprocess, sys, threading
 
 # Path to the taskgrader executable
 CFG_TASKGRADER = os.path.normpath(os.path.dirname(os.path.abspath(__file__)) + '/../taskgrader.py')
+
+
+def communicateWithTimeout(subProc, timeout=0, input=None):
+    """Communicates with subProc until its completion or timeout seconds,
+    whichever comes first."""
+    if timeout > 0:
+        to = threading.Timer(timeout, subProc.kill)
+        try:
+            to.start()
+            return subProc.communicate(input=input)
+        finally:
+            to.cancel()
+    else:
+        return subProc.communicate(input=input)
+
 
 
 class FullTestBase(object):
@@ -72,7 +87,7 @@ class FullTestBase(object):
 
         self.inputJson = self._makeInputJson()
         self.proc = subprocess.Popen(['/usr/bin/python2', CFG_TASKGRADER], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (self.procOut, self.procErr) = self.proc.communicate(input=json.dumps(self.inputJson))
+        (self.procOut, self.procErr) = communicateWithTimeout(self.proc, 15, input=json.dumps(self.inputJson))
         self.details = {'stdout': self.procOut,
                 'stderr': self.procErr,
                 'returncode': self.proc.returncode,

@@ -11,7 +11,8 @@
 
 
 import argparse, cPickle, fcntl, glob, hashlib, json, logging, os, random
-import shlex, shutil, sqlite3, stat, sys, subprocess, time, traceback
+import shlex, shutil, sqlite3, stat, sys, subprocess, threading, time
+import traceback
 from config import *
 
 sys.path.append(CFG_JSONSCHEMA)
@@ -323,7 +324,8 @@ class Execution():
 
         proc = subprocess.Popen(shlex.split(cmdLine), stdin=stdinHandle, stdout=open(self.stdoutFile, 'w'),
                 stderr=open(workingDir + 'stderr', 'w'), cwd=workingDir)
-        proc.wait()
+        # We allow a wall time of 3 times the timeLimit
+        waitWithTimeout(proc, (1+int(self.executionParams['timeLimitMs']/1000))*3)
 
         # Make execution report
         report = {}
@@ -377,10 +379,9 @@ class IsolatedExecution(Execution):
 
         # Initialize isolate box
         initProc = subprocess.Popen([CFG_ISOLATEBIN, '--init'] + isolateCommonOpts, stdout=subprocess.PIPE, cwd=workingDir)
-        (isolateDir, isolateErr) = initProc.communicate()
-        initProc.wait()
+        (isolateDir, isolateErr) = communicateWithTimeout(initProc, 10)
 
-        if initProc.returncode > 0:
+        if initProc.returncode != 0:
             raise Exception("Error while initializing isolate box (#%d)." % initProc.returncode)
 
         # isolatePath will be the path of the sandbox, as given by isolate
@@ -427,7 +428,7 @@ class IsolatedExecution(Execution):
 
         # Execute the isolated program
         proc = subprocess.Popen(shlex.split(isolatedCmdLine), cwd=workingDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (procOut, procErr) = proc.communicate()
+        (procOut, procErr) = communicateWithTimeout(proc, int(10 + 3 * self.realTimeLimit / 1000.))
 
         # Get metadata from isolate execution
         isolateMeta = {}
@@ -442,14 +443,14 @@ class IsolatedExecution(Execution):
             # Isolate error (0 and 1 refer to the program inside the sandbox)
             # Try to cleanup sandbox
             cleanProc = subprocess.Popen([CFG_ISOLATEBIN, '--cleanup', '--box-id=%d' % boxId], cwd=workingDir)
-            cleanProc.wait()
+            waitWithTimeout(cleanProc, 10)
             raise Exception("""Internal isolate error, please check installation: #%d %s
                     while trying to execute `%s` in folder `%s`""" % (proc.returncode,
                     isolateMeta.get('status', ''), cmdLine, workingDir))
 
         # Set file rights so that we can access the files
         rightsProc = subprocess.Popen([CFG_RIGHTSBIN])
-        rightsProc.wait()
+        waitWithTimeout(rightsProc, 30)
 
         # Copy back the files from sandbox
         for f in os.listdir(isolateDir):
@@ -490,7 +491,7 @@ class IsolatedExecution(Execution):
 
         # Cleanup sandbox
         cleanProc = subprocess.Popen([CFG_ISOLATEBIN, '--cleanup'] + isolateCommonOpts, cwd=workingDir)
-        cleanProc.wait()
+        waitWithTimeout(cleanProc, 10)
 
         return report
 
@@ -595,7 +596,8 @@ class LanguageScript(Language):
         # Scripts are not "compiled", we make an archive out of the source files
         # shar makes a self-extracting "shell archive"
         sharFile = open(os.path.join(ownDir, name + '.exe'), 'w+')
-        subprocess.Popen(['shar', '--quiet-unshar', '--quiet'] + sourceFiles + depFiles, stdout=sharFile, cwd=ownDir).wait()
+        sharProc = subprocess.Popen(['shar', '--quiet-unshar', '--quiet'] + sourceFiles + depFiles, stdout=sharFile, cwd=ownDir)
+        waitWithTimeout(sharProc, 30)
         # We remove the last line of the archive (normally an 'exit 0')
         sharFile.seek(-5, os.SEEK_END)
         pos = sharFile.tell()
@@ -911,6 +913,34 @@ def preprocessJson(json, varData):
         return newjson
     else:
         return json
+
+
+def waitWithTimeout(subProc, timeout=0):
+    """Waits for subProc completion or timeout seconds, whichever comes
+    first."""
+    if timeout > 0:
+        to = threading.Timer(timeout, subProc.kill)
+        try:
+            to.start()
+            subProc.wait()
+        finally:
+            to.cancel()
+    else:
+        subProc.wait()
+
+
+def communicateWithTimeout(subProc, timeout=0, input=None):
+    """Communicates with subProc until its completion or timeout seconds,
+    whichever comes first."""
+    if timeout > 0:
+        to = threading.Timer(timeout, subProc.kill)
+        try:
+            to.start()
+            return subProc.communicate(input=input)
+        finally:
+            to.cancel()
+    else:
+        return subProc.communicate(input=input)
 
 
 def isInRestrict(path):
