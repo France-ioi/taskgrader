@@ -1,4 +1,6 @@
-import algorea.Scanner;
+import java.util.Scanner;
+
+// This solution is a valid Java solution.
  
 class Main {
    static Scanner stdin = new Scanner(System.in);

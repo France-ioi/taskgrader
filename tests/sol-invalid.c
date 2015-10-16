@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+// This solution gives a wrong result.
+
 int main() {
     int k;
     scanf("%d", &k);

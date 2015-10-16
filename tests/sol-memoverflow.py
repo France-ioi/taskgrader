@@ -1,5 +1,7 @@
 #!/usr/bin/env python2
 
+# This solution tries to use a lot of memory to test the memory limits.
+
 import sys
 
 t = 1

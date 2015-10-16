@@ -9,7 +9,7 @@
 # is as expected and the local configuration is good.
 
 
-import argparse, json, os, subprocess, sys, threading
+import argparse, json, os, subprocess, sys, threading, tempfile, unittest
 
 # Path to the taskgrader executable
 CFG_TASKGRADER = os.path.normpath(os.path.dirname(os.path.abspath(__file__)) + '/../taskgrader.py')
@@ -29,15 +29,11 @@ def communicateWithTimeout(subProc, timeout=0, input=None):
         return subProc.communicate(input=input)
 
 
-
-class FullTestBase(object):
+class FullTestBase(unittest.TestCase):
     """A full test is a test sending a full evaluation JSON to the taskgrader,
     and checking whether the outputJson returns expected results."""
 
-    def __init__(self):
-        self.details = {}
-
-    def _assertEqual(self, varName, assertedValue):
+    def assertVariableEqual(self, varName, assertedValue):
         """Tests whether the variable pointed by self.`varName` is equal to
         assertedValue."""
         try:
@@ -57,20 +53,20 @@ class FullTestBase(object):
             self.details['bad'].append('`%s` != `%s`' % (varName, assertedValue))
             return False
 
-    def _makeInputJson(self):
+    def makeInputJson(self):
         """Makes the data to be sent to the taskgrader."""
 
-        raise Exception("_makeInputJson must be overloaded.")
+        unittest.skip("makeInputJson must be overloaded.")
 
-    def _makeChecks(self):
+    def makeChecks(self):
         """Return the list of check resulsts."""
 
-        raise Exception("_makeChecks must be overloaded.")
+        unittest.skip("makeChecks must be overloaded.")
 
-    def _isCorrect(self):
+    def isCorrect(self):
         """Checks whether the results correspond to expectations."""
 
-        checkList = self._makeChecks()
+        checkList = self.makeChecks()
         good = len(filter(None, checkList))
         bad = len(checkList) - good
 
@@ -81,11 +77,13 @@ class FullTestBase(object):
             self.details['msg'] = 'Test passed, %d checks good.' % good
             return True
 
-    def execute(self):
-        """Execute the test and returns whether the test was passed or not.
-        self.details contains more details for debug."""
+    def runTest(self):
+        if self.__class__ == FullTestBase:
+            self.skipTest("Base class")
 
-        self.inputJson = self._makeInputJson()
+        self.details = {}
+
+        self.inputJson = self.makeInputJson()
         self.proc = subprocess.Popen(['/usr/bin/python2', CFG_TASKGRADER], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (self.procOut, self.procErr) = communicateWithTimeout(self.proc, 15, input=json.dumps(self.inputJson))
         self.details = {'stdout': self.procOut,
@@ -98,8 +96,8 @@ class FullTestBase(object):
             self.details['validjson'] = True
         except:
             self.details['validjson'] = False
-        self.result = self._isCorrect()
-        return self.result
+        self.result = self.isCorrect()
+        self.assertTrue(self.result)
 
 
 class SanitizerCheckerTest(FullTestBase):
@@ -108,7 +106,7 @@ class SanitizerCheckerTest(FullTestBase):
     without evaluating any solution."""
 
 
-    def _makeInputJson(self):
+    def makeInputJson(self):
         return {
             'rootPath': os.path.dirname(os.path.abspath(__file__)),
             'taskPath': '$ROOT_PATH',
@@ -121,11 +119,11 @@ class SanitizerCheckerTest(FullTestBase):
             'executions': []
             }
 
-    def _makeChecks(self):
+    def makeChecks(self):
         return [
-            self._assertEqual("proc.returncode", 0),
-            self._assertEqual("outputJson['sanitizer']['exitCode']", 0),
-            self._assertEqual("outputJson['checker']['exitCode']", 0)
+            self.assertVariableEqual("proc.returncode", 0),
+            self.assertVariableEqual("outputJson['sanitizer']['exitCode']", 0),
+            self.assertVariableEqual("outputJson['checker']['exitCode']", 0)
             ]
 
 class BadSanitizerTest(FullTestBase):
@@ -133,7 +131,7 @@ class BadSanitizerTest(FullTestBase):
     expected to exit with an error after being unable to compile the
     sanitizer."""
 
-    def _makeInputJson(self):
+    def makeInputJson(self):
         return {
             'rootPath': os.path.dirname(os.path.abspath(__file__)),
             'taskPath': '$ROOT_PATH',
@@ -146,9 +144,9 @@ class BadSanitizerTest(FullTestBase):
             'executions': []
             }
 
-    def _makeChecks(self):
+    def makeChecks(self):
         return [
-            self._assertEqual("proc.returncode", 1),
+            self.assertVariableEqual("proc.returncode", 1),
             ]
 
 class BadCheckerTest(FullTestBase):
@@ -156,7 +154,7 @@ class BadCheckerTest(FullTestBase):
     expected to exit with an error after being unable to compile the
     checker."""
 
-    def _makeInputJson(self):
+    def makeInputJson(self):
         return {
             'rootPath': os.path.dirname(os.path.abspath(__file__)),
             'taskPath': '$ROOT_PATH',
@@ -169,16 +167,16 @@ class BadCheckerTest(FullTestBase):
             'executions': []
             }
 
-    def _makeChecks(self):
+    def makeChecks(self):
         return [
-            self._assertEqual("proc.returncode", 1)
+            self.assertVariableEqual("proc.returncode", 1)
             ]
 
 class GenerationSingleTest(FullTestBase):
     """This test uses a simple generator, and checks whether it is executed
     successfully."""
 
-    def _makeInputJson(self):
+    def makeInputJson(self):
         return {
             'rootPath': os.path.dirname(os.path.abspath(__file__)),
             'taskPath': '$ROOT_PATH',
@@ -191,18 +189,18 @@ class GenerationSingleTest(FullTestBase):
             'executions': []
             }
 
-    def _makeChecks(self):
+    def makeChecks(self):
         return [
-            self._assertEqual("proc.returncode", 0),
-            self._assertEqual("outputJson['generators'][0]['compilationExecution']['exitCode']", 0),
-            self._assertEqual("outputJson['generations'][0]['generatorExecution']['exitCode']", 0)
+            self.assertVariableEqual("proc.returncode", 0),
+            self.assertVariableEqual("outputJson['generators'][0]['compilationExecution']['exitCode']", 0),
+            self.assertVariableEqual("outputJson['generations'][0]['generatorExecution']['exitCode']", 0)
             ]
 
 class GenerationCasesTest(FullTestBase):
     """This test uses the "testCases" feature: it generates an input test file
     and the expected output with a couple generator + output generator."""
 
-    def _makeInputJson(self):
+    def makeInputJson(self):
         return {
             'rootPath': os.path.dirname(os.path.abspath(__file__)),
             'taskPath': '$ROOT_PATH',
@@ -215,22 +213,27 @@ class GenerationCasesTest(FullTestBase):
             'executions': []
             }
 
-    def _makeChecks(self):
+    def makeChecks(self):
         return [
-            self._assertEqual("proc.returncode", 0),
-            self._assertEqual("outputJson['generators'][0]['compilationExecution']['exitCode']", 0),
-            self._assertEqual("outputJson['generators'][1]['compilationExecution']['exitCode']", 0),
-            self._assertEqual("outputJson['generations'][0]['generatorExecution']['exitCode']", 0),
-            self._assertEqual("outputJson['generations'][0]['outputGeneratorExecution']['exitCode']", 0),
-            self._assertEqual("outputJson['generations'][0]['generatorExecution']['stdout']['data']", "20"),
-            self._assertEqual("outputJson['generations'][0]['outputGeneratorExecution']['stdout']['data']", "40"),
+            self.assertVariableEqual("proc.returncode", 0),
+            self.assertVariableEqual("outputJson['generators'][0]['compilationExecution']['exitCode']", 0),
+            self.assertVariableEqual("outputJson['generators'][1]['compilationExecution']['exitCode']", 0),
+            self.assertVariableEqual("outputJson['generations'][0]['generatorExecution']['exitCode']", 0),
+            self.assertVariableEqual("outputJson['generations'][0]['outputGeneratorExecution']['exitCode']", 0),
+            self.assertVariableEqual("outputJson['generations'][0]['generatorExecution']['stdout']['data']", "20"),
+            self.assertVariableEqual("outputJson['generations'][0]['outputGeneratorExecution']['stdout']['data']", "40"),
             ]
 
 class SolutionSimpleBase(FullTestBase):
     """This test tries a simple solution execution, with one test file, and
     checks the checker output."""
 
-    def _makeInputJson(self):
+    _solution = None
+    _execution = None
+
+    def makeInputJson(self):
+        if not (self._solution and self._execution):
+            self.skipTest("No solution defined.")
         return {
             'rootPath': os.path.dirname(os.path.abspath(__file__)),
             'taskPath': '$ROOT_PATH',
@@ -243,10 +246,10 @@ class SolutionSimpleBase(FullTestBase):
             'executions': [self._execution]
             }
 
-    def _makeChecks(self):
+    def makeChecks(self):
         return [
-            self._assertEqual("proc.returncode", 0),
-            self._assertEqual("outputJson['executions'][0]['testsReports'][0]['checker']['stdout']['data']", "100")
+            self.assertVariableEqual("proc.returncode", 0),
+            self.assertVariableEqual("outputJson['executions'][0]['testsReports'][0]['checker']['stdout']['data']", "100")
             ]
 
 class SolutionSimpleC(SolutionSimpleBase):
@@ -261,6 +264,7 @@ class SolutionSimpleJava(SolutionSimpleBase):
     _solution = '@testSolutionJava'
     _execution = '@testExecutionJava'
 
+@unittest.skip('test not working') # TODO :: fix
 class SolutionSimpleJavascool(SolutionSimpleBase):
     _solution = '@testSolutionJavascool'
     _execution = '@testExecutionJavascool'
@@ -285,7 +289,7 @@ class SolutionInvalidTest(FullTestBase):
     """This test tries an invalid solution (giving a wrong result), with one
     test file, and checks the checker output."""
 
-    def _makeInputJson(self):
+    def makeInputJson(self):
         return {
             'rootPath': os.path.dirname(os.path.abspath(__file__)),
             'taskPath': '$ROOT_PATH',
@@ -298,16 +302,16 @@ class SolutionInvalidTest(FullTestBase):
             'executions': ['@testExecutionInvalid']
             }
 
-    def _makeChecks(self):
+    def makeChecks(self):
         return [
-            self._assertEqual("proc.returncode", 0),
-            self._assertEqual("outputJson['executions'][0]['testsReports'][0]['checker']['stdout']['data']", "0")
+            self.assertVariableEqual("proc.returncode", 0),
+            self.assertVariableEqual("outputJson['executions'][0]['testsReports'][0]['checker']['stdout']['data']", "0")
             ]
 
 class SolutionUncompTest(FullTestBase):
     """This test tries a bad solution which cannot be compiled."""
 
-    def _makeInputJson(self):
+    def makeInputJson(self):
         return {
             'rootPath': os.path.dirname(os.path.abspath(__file__)),
             'taskPath': '$ROOT_PATH',
@@ -320,16 +324,17 @@ class SolutionUncompTest(FullTestBase):
             'executions': ['@testExecutionUncomp']
             }
 
-    def _makeChecks(self):
+    def makeChecks(self):
         return [
-            self._assertEqual("proc.returncode", 0),
-            self._assertEqual("outputJson['solutions'][0]['compilationExecution']['exitCode']", 1)
+            self.assertVariableEqual("proc.returncode", 0),
+            self.assertVariableEqual("outputJson['solutions'][0]['compilationExecution']['exitCode']", 1)
             ]
 
+@unittest.skip('test not working') # TODO :: fix
 class SolutionMemoverflowTest(FullTestBase):
     """This test tries a solution using more memory than the allowed limit."""
 
-    def _makeInputJson(self):
+    def makeInputJson(self):
         return {
             'rootPath': os.path.dirname(os.path.abspath(__file__)),
             'taskPath': '$ROOT_PATH',
@@ -342,17 +347,17 @@ class SolutionMemoverflowTest(FullTestBase):
             'executions': ['@testExecutionMemoverflow']
             }
 
-    def _makeChecks(self):
+    def makeChecks(self):
         return [
-            self._assertEqual("proc.returncode", 0),
-            self._assertEqual("outputJson['executions'][0]['testsReports'][0]['execution']['exitCode']", 1),
-            self._assertEqual("outputJson['executions'][0]['testsReports'][0]['execution']['exitSig']", 11)
+            self.assertVariableEqual("proc.returncode", 0),
+            self.assertVariableEqual("outputJson['executions'][0]['testsReports'][0]['execution']['exitCode']", 1),
+            self.assertVariableEqual("outputJson['executions'][0]['testsReports'][0]['execution']['exitSig']", 11)
             ]
 
 class SolutionTimeoutTest(FullTestBase):
     """This test tries a solution using more time than the allowed limit."""
 
-    def _makeInputJson(self):
+    def makeInputJson(self):
         return {
             'rootPath': os.path.dirname(os.path.abspath(__file__)),
             'taskPath': '$ROOT_PATH',
@@ -365,20 +370,20 @@ class SolutionTimeoutTest(FullTestBase):
             'executions': ['@testExecutionTimeout1', '@testExecutionTimeout2']
             }
 
-    def _makeChecks(self):
+    def makeChecks(self):
         return [
-            self._assertEqual("proc.returncode", 0),
-            self._assertEqual("outputJson['executions'][0]['testsReports'][0]['execution']['exitCode']", 1),
-            self._assertEqual("outputJson['executions'][0]['testsReports'][0]['execution']['exitSig']", 137),
-            self._assertEqual("outputJson['executions'][1]['testsReports'][0]['execution']['exitCode']", 1),
-            self._assertEqual("outputJson['executions'][1]['testsReports'][0]['execution']['exitSig']", 137)
+            self.assertVariableEqual("proc.returncode", 0),
+            self.assertVariableEqual("outputJson['executions'][0]['testsReports'][0]['execution']['exitCode']", 1),
+            self.assertVariableEqual("outputJson['executions'][0]['testsReports'][0]['execution']['exitSig']", 137),
+            self.assertVariableEqual("outputJson['executions'][1]['testsReports'][0]['execution']['exitCode']", 1),
+            self.assertVariableEqual("outputJson['executions'][1]['testsReports'][0]['execution']['exitSig']", 137)
             ]
 
 class SolutionChangingTest(FullTestBase):
     """This test tries executing a solution (whose output changes) twice and
     checks whether its result has correctly been cached."""
 
-    def _makeInputJson(self):
+    def makeInputJson(self):
         return {
             'rootPath': os.path.dirname(os.path.abspath(__file__)),
             'taskPath': '$ROOT_PATH',
@@ -391,9 +396,9 @@ class SolutionChangingTest(FullTestBase):
             'executions': ['@testExecutionChanging1', '@testExecutionChanging2']
             }
 
-    def _makeChecks(self):
+    def makeChecks(self):
         checks = [
-            self._assertEqual("proc.returncode", 0),
+            self.assertVariableEqual("proc.returncode", 0),
             ]
         try:
             output1 = self.outputJson['executions'][0]['testsReports'][0]['execution']['stdout']['data']
@@ -418,7 +423,7 @@ class TestMultipleTest(FullTestBase):
     """This test tries a simple solution with multiple test files, and checks
     the solution and the checker output."""
 
-    def _makeInputJson(self):
+    def makeInputJson(self):
         return {
             'rootPath': os.path.dirname(os.path.abspath(__file__)),
             'taskPath': '$ROOT_PATH',
@@ -431,47 +436,51 @@ class TestMultipleTest(FullTestBase):
             'executions': ['@testExecutionC']
             }
 
-    def _makeChecks(self):
+    def makeChecks(self):
         return [
-            self._assertEqual("proc.returncode", 0),
-            self._assertEqual("outputJson['executions'][0]['testsReports'][0]['execution']['stdout']['data']", "60"),
-            self._assertEqual("outputJson['executions'][0]['testsReports'][0]['checker']['stdout']['data']", "100"),
-            self._assertEqual("outputJson['executions'][0]['testsReports'][1]['execution']['stdout']['data']", "90"),
-            self._assertEqual("outputJson['executions'][0]['testsReports'][1]['checker']['stdout']['data']", "100"),
-            self._assertEqual("outputJson['executions'][0]['testsReports'][2]['execution']['stdout']['data']", "384"),
-            self._assertEqual("outputJson['executions'][0]['testsReports'][2]['checker']['stdout']['data']", "100")
+            self.assertVariableEqual("proc.returncode", 0),
+            self.assertVariableEqual("outputJson['executions'][0]['testsReports'][0]['execution']['stdout']['data']", "60"),
+            self.assertVariableEqual("outputJson['executions'][0]['testsReports'][0]['checker']['stdout']['data']", "100"),
+            self.assertVariableEqual("outputJson['executions'][0]['testsReports'][1]['execution']['stdout']['data']", "90"),
+            self.assertVariableEqual("outputJson['executions'][0]['testsReports'][1]['checker']['stdout']['data']", "100"),
+            self.assertVariableEqual("outputJson['executions'][0]['testsReports'][2]['execution']['stdout']['data']", "384"),
+            self.assertVariableEqual("outputJson['executions'][0]['testsReports'][2]['checker']['stdout']['data']", "100")
+            ]
+
+class TestRestrictPath(FullTestBase):
+    """This test tries to load a file which is not in the paths allowed by
+    restrictToPaths."""
+
+    def setUp(self):
+        """Create a temporary file that we'll use as the test file."""
+        (fd, self.tempfileName) = tempfile.mkstemp()
+        open(self.tempfileName, 'w').write("2")
+
+    def tearDown(self):
+        """Delete the temporary file."""
+        os.unlink(self.tempfileName)
+
+    def makeInputJson(self):
+        return {
+            'rootPath': os.path.dirname(os.path.abspath(__file__)),
+            'taskPath': '$ROOT_PATH',
+            'restrictToPaths': ['$ROOT_PATH'],
+            'generators': [],
+            'generations': [],
+            'extraTests': [{"name": "notinrestrict.in", "path": self.tempfileName}],
+            'sanitizer': '@testSanitizer',
+            'checker': '@testChecker',
+            'solutions': ['@testSolutionC'],
+            'executions': ['@testExecutionC']
+            }
+
+    def makeChecks(self):
+        return [
+            self.assertVariableEqual("proc.returncode", 1),
             ]
 
 
 
 if __name__ == '__main__':
-    # TODO :: interface
-    tests = [
-        SanitizerCheckerTest(),
-        BadSanitizerTest(),
-        BadCheckerTest(),
-        GenerationSingleTest(),
-        GenerationCasesTest(),
-        SolutionSimpleC(),
-        SolutionSimpleCpp(),
-        #SolutionSimpleJava(),
-        #SolutionSimpleJavascool(),
-        SolutionSimpleOcaml(),
-        SolutionSimplePascal(),
-        SolutionSimplePython(),
-        SolutionSimpleShell(),
-        SolutionInvalidTest(),
-        SolutionUncompTest(),
-        #SolutionMemoverflowTest(), # not working at the moment
-        SolutionTimeoutTest(),
-        SolutionChangingTest(),
-        TestMultipleTest()
-        ]
-    for t in tests:
-        t.execute()
-        print "%s: %s (%s): %s" % (t.__class__.__name__, t.result, t.details['msg'], t.details['bad'])
-        if not t.result:
-            print t.procOut
-            print t.procErr
-
-    # Test restrictToPaths
+    # Start all tests
+    unittest.main()

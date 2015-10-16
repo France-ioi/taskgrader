@@ -1,5 +1,7 @@
 #include <iostream>
 
+// This solution is a valid C++ solution.
+
 int main() {
     int n;
     std::cin >> n;

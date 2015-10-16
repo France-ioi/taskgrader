@@ -1,3 +1,4 @@
+(* This program is a valid Pascal solution. *)
 program Solution;
 var
    inputNum: LongInt;

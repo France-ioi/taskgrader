@@ -1,5 +1,7 @@
 #!/usr/bin/env python2
 
+# This program tests the wall time limit, waiting for 6 seconds before finishing.
+
 import sys, time
 
 time.sleep(6)

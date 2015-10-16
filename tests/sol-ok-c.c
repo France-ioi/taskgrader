@@ -1,5 +1,8 @@
 #include <stdio.h>
 
+// This solution is a valid C solution.
+
+
 int main() {
     int k;
     scanf("%d", &k);
