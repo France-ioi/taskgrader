@@ -1,0 +1,4 @@
+{'generator': '$TASK_PATH/tests/gen/gen.sh',
+ 'checker': '$TASK_PATH/tests/gen/check.cpp',
+ 'sanitizer': '$TASK_PATH/tests/gen/sanitizer.cpp'
+}
