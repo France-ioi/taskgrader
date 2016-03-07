@@ -1,0 +1,53 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# Copyright (c) 2015 France-IOI, MIT license
+#
+# http://opensource.org/licenses/MIT
+
+### genJson.py configuration
+# Base directory for tasks files, should contain the _common folder
+# This directory will be used as rootPath
+# All paths generated will be relative to this rootPath
+CFG_ROOTDIR = 'CHANGE_ME/COMMON/TASK/FILES'
+# Path to the taskgrader for auto-evaluation
+CFG_TASKGRADER = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../taskgrader.py'))
+# Languages to generate defaultParams for
+CFG_LANGUAGES = ['c', 'cpp', 'java', 'javascool', 'ocaml', 'pascal', 'python']
+# Old FranceIOI language to new language mapping
+CFG_LANGUAGES_OLD_NEW = {'c': 'c', 'cpp': 'cpp', 'java': 'java', 'jvs': 'javascool', 'ocaml': 'ocaml', 'ml': 'ocaml', 'pascal': 'pascal', 'pas': 'pascal', 'py': 'python', 'python': 'python', 'javascool': 'javascool'}
+
+
+### Default data
+# Default task settings: default generator, checker, sanitizer, ...
+CFG_DEF_TASKSETTINGS = {
+    'generator': 'tests/gen/gen.sh',
+    'generatorDeps': [],
+    'extraDir': 'files/',
+    'sanitizer': 'tests/gen/sanitizer.cpp',
+    'sanitizerDeps': [],
+    'checker': 'tests/gen/checker.cpp',
+    'checkerDeps': []
+    }
+
+# Tool default compilation parameters
+defToolCompParams = {'timeLimitMs': 60000,
+                    'memoryLimitKb': 128*1024,
+                    'useCache': True,
+                    'stdoutTruncateKb': -1,
+                    'stderrTruncateKb': -1,
+                    'getFiles': []
+                    }
+
+# Tool default execution parameters
+defToolExecParams = '@defaultToolCompParams'
+
+
+### We raise an exception if we don't have all configuration variables
+for var in ['CFG_ROOTDIR', 'CFG_TASKGRADER', 'CFG_LANGUAGES']:
+    if var not in globals():
+        raise Exception("Configuration variable %s missing. Please edit config.py." % var)
+
+for var in [CFG_ROOTDIR, CFG_TASKGRADER]:
+    if var == '':
+        raise Exception("Configuration variable %s empty. Please edit config.py." % var)
