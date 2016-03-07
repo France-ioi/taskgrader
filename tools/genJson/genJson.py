@@ -59,12 +59,8 @@ def getTaskFile(path):
             'path': os.path.join('$TASK_PATH', path)}
 
 
-def genDefaultParams(path, taskSettings):
+def genDefaultParams(taskPath, taskSettings):
     """Generates the defaultParams.json for a path pointing to a task."""
-
-    basePath = path
-
-    taskPath = os.path.relpath(basePath, CFG_ROOTDIR)
 
     # defaultParams from config.py
     defaultParams = {'rootPath': CFG_ROOTDIR,
@@ -85,7 +81,7 @@ def genDefaultParams(path, taskSettings):
     devnull = open(os.devnull, 'w')
 
     ### Generator(s)
-    if taskSettings.has_key('generator') and os.path.isfile(basePath + taskSettings['generator']): # TODO
+    if taskSettings.has_key('generator') and os.path.isfile(os.path.join(taskPath, taskSettings['generator'])):
         print 'generator found'
         # We have a 'gen.sh' generator(s) wrapper
         defGenerator = {'id': 'defaultGenerator',
@@ -123,7 +119,7 @@ def genDefaultParams(path, taskSettings):
                 genCurDeps.extend(genDepPaths[x])
             genNewDeps = []
             for d in genCurDeps:
-                data = open(os.path.join(basePath, genDir, d), 'r').read() # Memory-inefficient
+                data = open(os.path.join(taskPath, genDir, d), 'r').read() # Memory-inefficient
                 for possdep in genPossibleDeps[:]:
                     if re.search('\W%s\W' % possdep.replace('.', '\\.'), data):
                         # This dependency is probably needed
@@ -139,7 +135,7 @@ def genDefaultParams(path, taskSettings):
                     genDepPaths[possdep]))
 
         # Extra dependencies to check for and add
-        extraGenDeps = globOfGlobs(basePath, ['tests/gen/Makefile', 'tests/files/lib/*/*', 'tests/files/run/*']) # TODO
+        extraGenDeps = globOfGlobs(taskPath, ['tests/gen/Makefile', 'tests/files/lib/*/*', 'tests/files/run/*']) # TODO
         for f in extraGenDeps:
             genDependencies.append(getTaskFile(f))
         defGenerator['compilationDescr']['dependencies'] = genDependencies
@@ -155,7 +151,7 @@ def genDefaultParams(path, taskSettings):
         os.mkdir(tmpDir + '/gen')
         for f in [CFG_ROOTDIR + '/_common/generators/generators.py', CFG_ROOTDIR + '/_common/generators/libRobot.py']: # TODO
             shutil.copy(f, tmpDir + '/gen/')
-        for f in globOfGlobs(basePath + 'tests/gen/', ['gen*', 'Makefile']):
+        for f in globOfGlobs(taskPath + 'tests/gen/', ['gen*', 'Makefile']):
             shutil.copy(f, tmpDir + '/gen/')
         proc = subprocess.Popen(['/bin/sh', tmpDir + '/gen/gen.sh'], cwd=tmpDir + '/gen/', stdout=devnull, stderr=devnull)
         for i in range(60): # Timeout after 60 seconds TODO configuration
@@ -190,34 +186,34 @@ def genDefaultParams(path, taskSettings):
 
 
     # Detect files given directly without generator
-    if taskSettings.has_key('extraDir') and os.path.isdir(os.path.join(basePath, taskSettings['extraDir'])):
-        print 'Extra files detected' # TODO :: less specific
+    if taskSettings.has_key('extraDir') and os.path.isdir(os.path.join(taskPath, taskSettings['extraDir'])):
+        print 'Extra files detected'
         # Extra tests
-        if os.path.isdir(basePath + 'files/all/') and os.path.isdir(basePath + 'files/python/'):
+        extraDir = os.path.join(taskPath, taskSettings['extraDir']) + '/'
+        if os.path.isdir(extraDir + 'all/') and os.path.isdir(extraDir + 'python/'):
             # We have specific tests for python
-            for f in globOfGlobs(basePath, ['files/all/*.in', 'files/all/*.out']):
+            for f in globOfGlobs(extraDir, ['all/*.in', 'all/*.out']):
                 defExtraTests.append({'name': 'all-' + os.path.basename(f),
-                                      'path': '$TASK_PATH/tests/' + os.path.relpath(f, basePath)})
-            for f in globOfGlobs(basePath, ['files/*.in', 'files/*.out']):
+                                      'path': os.path.join('$TASK_PATH', os.path.relpath(f, taskPath))})
+            for f in globOfGlobs(taskPath, ['files/*.in', 'files/*.out']):
                 defExtraTests.append({'name': 'py-' + os.path.basename(f),
-                                      'path': '$TASK_PATH/tests/' + os.path.relpath(f, basePath)})
+                                      'path': '$TASK_PATH/tests/' + os.path.relpath(f, taskPath)})
             defFilterTests = ['all-*.in']
             defFilterTestsPy = ['py-*.in']
         else:
-            for f in globOfGlobs(basePath, ['files/*.in', 'files/*.out']):
+            # Tests are the same for all languages
+            for f in globOfGlobs(taskPath, ['*.in', '*.out']):
+                defExtraTests.append(getTaskFile(os.path.relpath(f, taskPath)))
+            for f in globOfGlobs(taskPath, ['*.in', '*.out']):
                 defExtraTests.append({'name': os.path.basename(f),
-                                      'path': '$TASK_PATH/tests/' + os.path.relpath(f, basePath)})
+                                      'path': '$TASK_PATH/tests/' + os.path.relpath(f, taskPath)})
 
         # Auto-detected dependencies
-        for f in glob.glob(basePath + 'files/lib/*/*'):
-            lang = CFG_LANGUAGES_OLD_NEW[f.split('/')[-2]] # TODO
-            defDependencies[lang].append({
-                    'name': os.path.basename(f),
-                    'path': '$TASK_PATH/tests/' + os.path.relpath(f, basePath)})
-        for f in glob.glob(basePath + 'files/run/*'):
-            defDependencies['python'].append({
-                    'name': os.path.basename(f),
-                    'path': '$TASK_PATH/tests' + os.path.relpath(f, basePath)})
+        for f in glob.glob(extraDir + 'lib/*/*'):
+            lang = CFG_LANGUAGES_OLD_NEW[f.split('/')[-2]]
+            defDependencies[lang].append(getTaskFile(os.path.relpath(f, taskPath)))
+        for f in glob.glob(extraDir + 'run/*'):
+            defDependencies['python'].append(getTaskFile(os.path.relpath(f, taskPath)))
 
     # Update default params
     defaultParams.update({'defaultGenerator': defGenerator,
@@ -240,15 +236,15 @@ def genDefaultParams(path, taskSettings):
 
 
     ### Sanitizer
-    if taskSettings.has_key('sanitizer') and os.path.isfile(os.path.join(basePath, taskSettings['sanitizer'])):
+    if taskSettings.has_key('sanitizer') and os.path.isfile(os.path.join(taskPath, taskSettings['sanitizer'])):
         print 'sanitizer.cpp detected'
         # We test whether the sanitizer is C++11 or C++
         tmpDir = tempfile.mkdtemp()
-        for f in [basePath + 'tests/gen/sanitizer.cpp', # TODO
+        for f in [taskPath + 'tests/gen/sanitizer.cpp', # TODO
                   CFG_ROOTDIR + '/_common/sanitizer/sanitizer.h',
                   CFG_ROOTDIR + '/_common/sanitizer/BuffChecker.h',
                   CFG_ROOTDIR + '/_common/sanitizer/SaniDate.h',
-                  basePath + 'tests/gen/constants.h']:
+                  taskPath + 'tests/gen/constants.h']:
             try:
                 shutil.copy(f, tmpDir)
             except:
@@ -276,7 +272,7 @@ def genDefaultParams(path, taskSettings):
                     'dependencies': taskSettings.get('sanitizerDeps', [])},
                 'compilationExecution': '@defaultToolCompParams',
                 'runExecution': '@defaultToolExecParams'}
-        if os.path.isfile(basePath + 'gen/constants.h'): # TODO
+        if os.path.isfile(taskPath + 'gen/constants.h'): # TODO
             defSanitizer['compilationDescr']['dependencies'].append({
                     'name': 'constants.h',
                     'path': '$TASK_PATH/tests/gen/constants.h'})
@@ -294,7 +290,7 @@ def genDefaultParams(path, taskSettings):
 
 
     ### Checker
-    if taskSettings.has_key('checker') and os.path.isfile(os.path.join(basePath, taskSettings['checker'])):
+    if taskSettings.has_key('checker') and os.path.isfile(os.path.join(taskPath, taskSettings['checker'])):
         print 'checker detected'
         # A checker is given
         defChecker = {

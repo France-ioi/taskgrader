@@ -8,7 +8,7 @@
 # This tool helps task writers create and test their tasks.
 
 
-import argparse, distutils.dir_util, os, subprocess, sys
+import argparse, distutils.dir_util, json, os, subprocess, sys
 
 SELFDIR = os.path.normpath(os.path.dirname(os.path.abspath(__file__)))
 CFG_GENJSON = os.path.normpath(os.path.join(SELFDIR, '../genJson/genJson.py'))

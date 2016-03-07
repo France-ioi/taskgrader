@@ -26,7 +26,7 @@ CFG_DEF_TASKSETTINGS = {
     'extraDir': 'files/',
     'sanitizer': 'tests/gen/sanitizer.cpp',
     'sanitizerDeps': [],
-    'checker': 'tests/gen/checker.cpp',
+    'checker': 'tests/gen/check.cpp',
     'checkerDeps': []
     }
 
