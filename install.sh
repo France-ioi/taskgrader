@@ -36,7 +36,6 @@ done
 if [ $ERROR -eq 1 ]
 then
     echo "/!\ Some optional binaries missing, some languages won't compile properly."
-    read -p "Press Enter to continue. "
 fi
 
 ### Fetch jsonschema and moe
@@ -89,7 +88,7 @@ echo "*** Initializing (or resetting) data directories..."
 if [ -d files ]
 then
     # We reset the data folder, but do not delete it as a safety measure
-    echo "/!\ Data folder 'files' already exists, moving it to files.old ."
+    echo "/!\ Data folder 'files' already exists, moving it to 'files.old'."
     echo "If you don't need anything from this folder, you can delete it safely."
     mv files files.old
 fi
@@ -109,6 +108,14 @@ then
   sed -i "s|^CFG_BINDIR.*$|CFG_BINDIR=\"`pwd`/\"|" config.py
 else
   echo "/!\ config.py detected, no new config.py file written."
+fi
+
+### Initialize genJson config.py
+if ! [ -f tools/genJson/config.py ]
+then
+  cp -p tools/genJson/config.py.template tools/genJson/config.py
+else
+  echo "/!\ genJson config.py detected, no new config.py file written."
 fi
 
 
