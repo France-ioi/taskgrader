@@ -15,7 +15,7 @@ if __name__ == '__main__':
     inputData = sys.stdin.read()
 
     try:
-        resultJson = json.loads(procOut)
+        resultJson = json.loads(inputData)
     except:
         print 'Error: no valid JSON data read from stdin. Received:'
         print inputData

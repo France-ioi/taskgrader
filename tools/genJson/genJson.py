@@ -462,8 +462,9 @@ if __name__ == '__main__':
             tasksWithErrors.append(path)
             continue
 
-        if taskSettings.has_key('correctSolutions'): # TODO :: function
+        if taskSettings.has_key('correctSolutions'):
             # Check execution of the "correct solutions"
+            # Their test was integrated in the test evaluation
             cError = False
             if len(outJson['executions']) != len(taskSettings['correctSolutions']):
                 print "Test failed : %d correct solutions tested / %d total" % (len(outJson['executions']), len(taskSettings['correctSolutions']))

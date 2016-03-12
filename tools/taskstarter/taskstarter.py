@@ -1,18 +1,24 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015 France-IOI, MIT license
+# Copyright (c) 2016 France-IOI, MIT license
 #
 # http://opensource.org/licenses/MIT
 
 # This tool helps task writers create and test their tasks.
+# It handles simple tasks, and is not suited for tasks using more advanced
+# features of the taskgrader.
 
 
 import argparse, distutils.dir_util, json, os, subprocess, sys
 
 SELFDIR = os.path.normpath(os.path.dirname(os.path.abspath(__file__)))
-CFG_GENJSON = os.path.normpath(os.path.join(SELFDIR, '../genJson/genJson.py'))
 
+CFG_GENJSON = os.path.normpath(os.path.join(SELFDIR, '../genJson/genJson.py'))
+CFG_STDGRADE = os.path.normpath(os.path.join(SELFDIR, '../stdGrade/stdGrade.sh'))
+
+# subprocess.DEVNULL is only present in python 3.3+.
+DEVNULL = open(os.devnull, 'w')
 
 def getTaskSettings(path):
     """Get taskSettings from task path 'path', raise an error if there is no
@@ -25,14 +31,20 @@ def getTaskSettings(path):
 
     return taskSettings
 
+
 ### Action-handling functions
 def init(args):
     """Start a task in destination folder."""
     print("Copying base task files to '%s'..." % args.dest)
-    distutils.dir_util.copy_tree(os.path.join(SELFDIR, 'base'), args.dest)
-    print("""Task started at '%s'.
+    try:
+        distutils.dir_util.copy_tree(os.path.join(SELFDIR, 'base'), args.dest)
+        print("""Task started at '%s'.
 Edit the task files as described inside each file, then use
 `%s test` to test your task.""" % (args.dest, os.path.basename(sys.argv[0])))
+        return 0
+    except:
+        print("Error while starting task: %s" % sys.exc_info()[0])
+        return 1
 
 
 def add(args):
@@ -48,6 +60,8 @@ def add(args):
 
     # Save new taskSettings
     json.dump(taskSettings, open(os.path.join(args.taskpath, 'taskSettings.json'), 'w'))
+
+    return 0
 
 
 def addsol(args):
@@ -81,6 +95,8 @@ def addsol(args):
     json.dump(taskSettings, open(os.path.join(args.taskpath, 'taskSettings.json'), 'w'))
     print("Added solution `%s` successfully." % args.path)
 
+    return 0
+
     # TODO :: removesol?
 
 
@@ -99,18 +115,38 @@ tested. We will only test whether the task compiles.\n""")
     proc = subprocess.Popen([CFG_GENJSON, args.taskpath])
     proc.wait()
     if proc.returncode > 0:
-        print("genJson exited with return code %d." % proc.returncode)
+        print("genJson exited with return code %d, read output to check for errors." % proc.returncode)
     else:
-        print("genJson completed successfully.")
+        print("genJson completed successfully, task seems correct.")
 
     # Exit with the same returncode as genJson
-    sys.exit(proc.returncode)
+    return proc.returncode
+
+
+def testsol(args):
+    """Test a solution against a task."""
+    # User probably expects the defaultParams.json to be updated if he made
+    # modifications to his task, so we call genJson first (without output)
+    print("Calling genJson...")
+    proc = subprocess.Popen([CFG_GENJSON, args.taskpath], stdout=DEVNULL, stderr=DEVNULL)
+    proc.wait()
+
+    # If genJson failed, we cannot test
+    if proc.returncode > 0:
+        print("genJson exited with return code %d, use 'test' action to check the reason" % proc.returncode)
+        return proc.returncode
+
+    print("Testing with stdGrade.sh...")
+    proc = subprocess.Popen([CFG_STDGRADE, args.path], cwd=args.taskpath)
+    proc.wait()
+    return proc.returncode
 
 
 def remotetest(args):
     """Test a task with a remote taskgrader."""
     # TODO
-    pass
+    print("Not yet implemented.")
+    return 1
 
 
 if __name__ == '__main__':
@@ -162,6 +198,12 @@ if __name__ == '__main__':
         grades.""")
     testParser.add_argument('taskpath', help='Task folder', nargs='?', default='.')
 
+    testsolParser = subparsers.add_parser('testsol', help='Test a solution with the task', description="""
+        The 'testsol' action allows to test a solution with the task. It will
+        test with default parameters and give you a summary of the results.""")
+    testsolParser.add_argument('-t', '--taskpath', help='Task path', default='.')
+    testsolParser.add_argument('path', help='Path to the solution')
+
     remotetestParser = subparsers.add_parser('remotetest', help='Test a task with a remote taskgrader', description="""
         The 'remotetest' actions does the same test than the 'test' action, but
         uses a remote taskgrader.""")
@@ -177,6 +219,7 @@ if __name__ == '__main__':
         'add': {'p': addParser, 'f': add},
         'addsol': {'p': addsolParser, 'f': addsol},
         'test': {'p': testParser, 'f': test},
+        'testsol': {'p': testsolParser, 'f': testsol},
         'remotetest': {'p': remotetestParser, 'f': remotetest}
         }
 
@@ -188,4 +231,5 @@ if __name__ == '__main__':
         else:
             argParser.print_help()
     else:
-        ACTIONS[args.action]['f'](args)
+        # Execute the action; each action function returns an exitcode
+        sys.exit(ACTIONS[args.action]['f'](args))

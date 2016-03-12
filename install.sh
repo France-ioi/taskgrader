@@ -118,6 +118,14 @@ else
   echo "/!\ genJson config.py detected, no new config.py file written."
 fi
 
+### Initialize stdGrade config.py
+if ! [ -f tools/stdGrade/config.py ]
+then
+  cp -p tools/stdGrade/config.py.template tools/stdGrade/config.py
+else
+  echo "/!\ stdGrade config.py detected, no new config.py file written."
+fi
+
 
 if [ $ERROR -eq 1 ]
 then
