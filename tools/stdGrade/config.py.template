@@ -26,3 +26,8 @@ CFG_LANGEXTS = {'.c': 'c',
                 '.pas': 'pascal',
                 '.sh': 'shell',
                 '': 'sh'}
+
+### We raise an exception if we don't have all configuration variables
+for var in ['CFG_EXECPARAMS', 'CFG_LANGEXTS']:
+    if var not in globals():
+        raise Exception("Configuration variable %s missing. Please edit config.py." % var)

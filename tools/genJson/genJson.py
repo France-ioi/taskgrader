@@ -64,8 +64,8 @@ def genDefaultParams(taskPath, taskSettings):
 
     # defaultParams from config.py
     defaultParams = {'rootPath': CFG_ROOTDIR,
-                    'defaultToolCompParams': defToolCompParams, # TODO :: rename
-                    'defaultToolExecParams': defToolExecParams}
+                    'defaultToolCompParams': CFG_DEF_TOOLCOMPPARAMS,
+                    'defaultToolExecParams': CFG_DEF_TOOLEXECPARAMS}
 
     # Tests and libraries given as is
     defExtraTests = []
@@ -154,7 +154,7 @@ def genDefaultParams(taskPath, taskSettings):
         for f in globOfGlobs(taskPath + 'tests/gen/', ['gen*', 'Makefile']):
             shutil.copy(f, tmpDir + '/gen/')
         proc = subprocess.Popen(['/bin/sh', tmpDir + '/gen/gen.sh'], cwd=tmpDir + '/gen/', stdout=devnull, stderr=devnull)
-        for i in range(60): # Timeout after 60 seconds TODO configuration
+        for i in range(CFG_EXEC_TIMEOUT): # Timeout after 60 seconds
             if not (proc.poll() is None):
                 break
             time.sleep(1)
@@ -340,32 +340,25 @@ def genTestSolution(compParams, solId=1, solPath=None, solLang=None):
 def genTestEvaluation(relPath, correctSolutions=[]):
     """Generate the JSON describing a test evaluation of a solution."""
 
-    testSolCompParams = {'timeLimitMs': 5000, # TODO :: allow configuration
-                        'memoryLimitKb': 20000,
-                        'useCache': True,
-                        'stdoutTruncateKb': -1,
-                        'stderrTruncateKb': -1,
-                        'getFiles': []}
-
     if len(correctSolutions) > 0:
         testSolutions = []
         testExecutions = []
         # There are specific solutions to test
         for (i, sol) in enumerate(correctSolutions):
-            testSolutions.append(genTestSolution(testSolCompParams, i, sol['path'], sol['language']))
+            testSolutions.append(genTestSolution(CFG_TESTSOLPARAMS, i, sol['path'], sol['language']))
             testExecutions.append({
                 'id': 'testExecution%d' % i,
                 'idSolution': 'testSolution%d' % i,
                 'filterTests': '@defaultFilterTests',
-                'runExecution': testSolCompParams})
+                'runExecution': CFG_TESTSOLPARAMS})
     else:
         # There's no real solution to test, we just test a dummy one
-        testSolutions = [genTestSolution(testSolCompParams, 1)]
+        testSolutions = [genTestSolution(CFG_TESTSOLPARAMS, 1)]
 
         testExecutions = [{'id': 'testExecution1',
             'idSolution': 'testSolution1',
             'filterTests': '@defaultFilterTests',
-            'runExecution': testSolCompParams}]
+            'runExecution': CFG_TESTSOLPARAMS}]
 
     testEvaluation = {
             'rootPath': CFG_ROOTDIR,

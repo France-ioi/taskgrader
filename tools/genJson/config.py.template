@@ -12,10 +12,23 @@
 CFG_ROOTDIR = 'CHANGE_ME/COMMON/TASK/FILES'
 # Path to the taskgrader for auto-evaluation
 CFG_TASKGRADER = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../taskgrader.py'))
+
+# Timeout for test execution of components
+CFG_EXEC_TIMEOUT = 60
+
 # Languages to generate defaultParams for
 CFG_LANGUAGES = ['c', 'cpp', 'java', 'javascool', 'ocaml', 'pascal', 'python']
 # Old FranceIOI language to new language mapping
 CFG_LANGUAGES_OLD_NEW = {'c': 'c', 'cpp': 'cpp', 'java': 'java', 'jvs': 'javascool', 'ocaml': 'ocaml', 'ml': 'ocaml', 'pascal': 'pascal', 'pas': 'pascal', 'py': 'python', 'python': 'python', 'javascool': 'javascool'}
+
+# Correct solutions test compilation and execution parameters
+CFG_TESTSOLPARAMS = {
+    'timeLimitMs': 5000,
+    'memoryLimitKb': 20000,
+    'useCache': True,
+    'stdoutTruncateKb': -1,
+    'stderrTruncateKb': -1,
+    'getFiles': []}
 
 
 ### Default data
@@ -31,23 +44,23 @@ CFG_DEF_TASKSETTINGS = {
     }
 
 # Tool default compilation parameters
-defToolCompParams = {'timeLimitMs': 60000,
-                    'memoryLimitKb': 128*1024,
-                    'useCache': True,
-                    'stdoutTruncateKb': -1,
-                    'stderrTruncateKb': -1,
-                    'getFiles': []
-                    }
+CFG_DEF_TOOLCOMPPARAMS = {
+    'timeLimitMs': 60000,
+    'memoryLimitKb': 128*1024,
+    'useCache': True,
+    'stdoutTruncateKb': -1,
+    'stderrTruncateKb': -1,
+    'getFiles': []
+    }
 
 # Tool default execution parameters
-defToolExecParams = '@defaultToolCompParams'
+CFG_DEF_TOOLEXECPARAMS = '@defaultToolCompParams'
 
 
 ### We raise an exception if we don't have all configuration variables
-for var in ['CFG_ROOTDIR', 'CFG_TASKGRADER', 'CFG_LANGUAGES']:
+for var in ['CFG_ROOTDIR', 'CFG_TASKGRADER', 'CFG_EXEC_TIMEOUT',
+        'CFG_LANGUAGES', 'CFG_LANGUAGES_OLD_NEW', 'CFG_DEF_TASKSETTINGS',
+        'CFG_TESTSOLPARAMS', 'CFG_DEF_TOOLCOMPPARAMS',
+        'CFG_DEF_TOOLEXECPARAMS']:
     if var not in globals():
         raise Exception("Configuration variable %s missing. Please edit config.py." % var)
-
-for var in [CFG_ROOTDIR, CFG_TASKGRADER]:
-    if var == '':
-        raise Exception("Configuration variable %s empty. Please edit config.py." % var)
