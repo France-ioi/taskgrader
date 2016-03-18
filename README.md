@@ -86,13 +86,33 @@ The `checker` checks whether the output of a solution corresponds to the expecte
 
 All checkers are passed these three arguments, whether they use it or not. The checker outputs the grading of the solution; its exit code can indicate an error while checking (invalid arguments, missing files, ...).
 
-## Grading a solution
+## Tools
 
-`stdGrade.sh` allows to easily grade a solution. The task path must be the current directory, or must be specified with `-p`. It will expect to have a `defaultParams.json` file in the task directory, describing the task with some variables. Note that it's meant for fast and simple grading of solutions, it doesn't give a full control over the evaluation process,
+Various tools are available in the subfolder `tools`. They can be configured with their respective `config.py` files.
 
-### defaultParams.json
+### Creating a task
 
-The `defaultParams.json` must be JSON data pairing the following keys with the right objects:
+`taskstarter.py` helps task writers create and modify simple tasks. This simple tool is meant as a starting point for people not knowing how the taskgrader works but willing to write a task, and helps them through documented steps. It allows to do some operations in tasks folders, such as creating the base skeleton, giving some help on various components and testing the task. This tool creates a `taskSettings.json` in the task folder, that `genJson.py` can then use to create a `defaultParams.json` accordingly.
+
+### Preparing a task for grading
+
+`genJson.py` analyses tasks and creates the `defaultParams.json` file for them. It will read the `taskSettings.json` file in each task for some settings and try to automatically detect other settings.
+
+#### taskSettings.json
+
+The `taskSettings.json` is JSON data giving some parameters about the task, for use by `genJson.py`. It has the following keys:
+
+* `generator`: path to the generator of the task
+* `generatorDeps`: dependencies for the generator (list of fileDescr, see the input JSON schema for more information)
+* `sanitizer` and `sanitizerDeps`: sanitizer of the task (path and dependencies)
+* `checker` and `checkerDeps`: checker of the task (path and dependencies)
+* `extraDir`: folder with extra files (input test files and/or libraries)
+* `overrideParams`: JSON data to be copied directly into `defaultParams.json`, will replace any key with the same name from `genJson.py` generated JSON data
+* `correctSolutions`: list of solutions known as working with the task, will be tested by `genJson.py` which will check whether they get the right results. Each solution must have the following keys: `path`, `lang` and `grade` (the numerical grade the solution is supposed to get).
+
+#### defaultParams.json
+
+The `defaultParams.json` is a task file giving some information about the task, must be JSON data pairing the following keys with the right objects:
 
 * `rootPath`: the root path of the files
 * `defaultGenerator`: a default generator
@@ -103,19 +123,18 @@ The `defaultParams.json` must be JSON data pairing the following keys with the r
 * `defaultDependencies-[language]` (optional): default dependencies for that language; if not defined, it will fallback to `defaultDependencies` or to an empty list
 * `defaultFilterTests-[language]` (optional): default glob-style filters for the tests for that language; if not defined, it will fallback to `defaultFilterTests` or to an empty list
 
-### genStdTaskJson.py
+### Grading a solution
 
-Once you have a task directory with a `defaultParams.json`, you can use `genStdTaskJson.py` to generate the some standard JSON data (to use as input to the taskgrader) to evaluate a given solution against that task.
+`stdGrade.sh` allows to easily grade a solution. The task path must be the current directory, or must be specified with `-p`. It will expect to have a `defaultParams.json` file in the task directory, describing the task with some variables. Note that it's meant for fast and simple grading of solutions, it doesn't give a full control over the evaluation process. `stdGrade.sh` is a shortcut to two utilities present in its folder, for more options, see `genStdTaskJson.py -h`.
 
-Basic usage: `genStdTaskJson.py [SOLUTION]...` will generate the JSON data on standard output.
+Basic usage: `stdGrade.sh [SOLUTION]...` from a task folder.
 
-Use `genStdTaskJson.py -h` for the full options.
+## Internal workings (for developers)
 
-### stdGrade.sh
+`evaluation` is the evaluation process. It reads an input JSON and preprocesses it to replace the variables.
 
-`stdGrade.sh` is a simple script using `genStdTaskJson.py` to generate a standard JSON, pass it to the taskgrader and then summarize the results with `summarizeResults.py`. It will give you a simple evaluation of a solution against a task and give you summarized results.
+Each program is defined as an instance of the class Program, that we `compile`, then `prepareExecution` to set the execution parameters, then `execute` with the proper parameters.
 
+Languages are set as classes which define two functions: `getSource` which defines how to search for some dependencies for this language, and `compile` which is the compilation process.
 
-## Internal functions (for developers)
-
-`evaluation` is the evaluation process. It reads an input JSON and preprocesses it to replace the variables. It compiles and executes with the functions `cachedExecute` and `cachedCompile`. These functions need the informations from the function `getCacheDir` to know whether some results are already cached; if there are some, they fetch files from the cache, else they call their counterparts `execute` and `compile` to actually execute and compile. `compile` uses `getFile` to fetch the source and dependency files into the working directory. `execute` uses `capture` to save the contents of a file into a `captureReport` in the output JSON.
+The cache is handled by various Cache classes, each storing the cache parameters for a specific program and giving access to the various cache folders corresponding to compilation or execution of said programs.
