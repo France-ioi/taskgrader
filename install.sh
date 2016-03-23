@@ -87,10 +87,12 @@ fi
 echo "*** Initializing (or resetting) data directories..."
 if [ -d files ]
 then
-    # We reset the data folder, but do not delete it as a safety measure
-    echo "/!\ Data folder 'files' already exists, moving it to 'files.old'."
-    echo "If you don't need anything from this folder, you can delete it safely."
-    mv files files.old
+  # We reset the data folder, but do not delete it as a safety measure
+  OLDFILES="files.`date+%F_%H-%M-%S`"
+  echo "/!\ Data folder 'files' already exists, moving it to 'oldfiles/$OLDFILES'."
+  echo "If you don't need anything from this folder, you can delete it safely."
+  mkdir -p oldfiles
+  mv files "oldfiles/$OLDFILES"
 fi
 mkdir -p files
 mkdir -p files/cache
