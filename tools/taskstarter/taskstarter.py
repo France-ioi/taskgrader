@@ -50,7 +50,7 @@ Edit the task files as described inside each file, then use
 def add(args):
     """Add a program."""
     taskSettings = getTaskSettings(args.taskpath)
-    progpath = '$TASK_PATH/%s' % os.path.relpath(args.path, args.taskpath)
+    progpath = os.path.relpath(args.path, args.taskpath)
 
     if args.type in taskSettings:
         print("Updating %s from `%s` to `%s`" % (args.type, taskSettings[args.type], args.path))
@@ -74,7 +74,7 @@ def addsol(args):
     newcs = []
     for cs in taskSettings['correctSolutions']:
         if cs['path'] == solpath:
-            if cs['lang'] == args.lang and cs['grade'] == args.grade:
+            if cs['language'] == args.lang and cs['grade'] == args.grade:
                 print("Solution `%s` already registered." % args.path)
                 newcs = taskSettings['correctSolutions']
                 break
@@ -86,7 +86,7 @@ def addsol(args):
             newcs.append(cs)
     else:
         newcs.append({'path': solpath,
-            'lang': args.lang,
+            'language': args.lang,
             'grade': args.grade})
 
     taskSettings['correctSolutions'] = newcs

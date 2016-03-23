@@ -18,7 +18,7 @@ def getFileList(path):
     """Makes a list of sub-paths of files found in path."""
     l = []
     for x in os.listdir(path):
-        if x in ['.git', '.svn']: # Ignore list TODO
+        if x in CFG_IGNORE_PATHS:
             continue
         elif os.path.isfile(os.path.join(path, x)):
             l.append(x)
@@ -82,10 +82,10 @@ def genDefaultParams(taskPath, taskSettings):
 
     ### Generator(s)
     if taskSettings.has_key('generator') and os.path.isfile(os.path.join(taskPath, taskSettings['generator'])):
-        print 'generator found'
-        # We have a 'gen.sh' generator(s) wrapper
+        print 'Generator detected'
+        # We use a wrapper for the taskgrader to fetch all the files properly
         defGenerator = {'id': 'defaultGenerator',
-            'compilationDescr': {'language': 'shell',
+            'compilationDescr': {'language': 'sh',
                 'files': [getScript('wrapGen.sh')],
                 'dependencies': []},
             'compilationExecution': '@defaultToolCompParams'}
@@ -93,7 +93,7 @@ def genDefaultParams(taskPath, taskSettings):
         # Auto-detect generator dependencies
         (genDir, genFilename) = os.path.split(taskSettings['generator'])
 
-        genDependencies = taskSettings['generatorDeps'][:]
+        genDependencies = taskSettings.get('generatorDeps', [])[:]
         genDepPaths = {}
 
         # Make a list of basename of all files in the generator folder
@@ -135,7 +135,7 @@ def genDefaultParams(taskPath, taskSettings):
                     genDepPaths[possdep]))
 
         # Extra dependencies to check for and add
-        extraGenDeps = globOfGlobs(taskPath, ['tests/gen/Makefile', 'tests/files/lib/*/*', 'tests/files/run/*']) # TODO
+        extraGenDeps = globOfGlobs(taskPath, CFG_GEN_EXTRADEPS)
         for f in extraGenDeps:
             genDependencies.append(getTaskFile(f))
         defGenerator['compilationDescr']['dependencies'] = genDependencies
@@ -176,7 +176,7 @@ def genDefaultParams(taskPath, taskSettings):
         else:
             # We got a timeout while executing the generator
             proc.kill()
-            raise Exception("Generator didn't end in 60 seconds")
+            raise Exception("Generator didn't end in %d seconds.\n(change CFG_EXEC_TIMEOUT if required)" % CFG_EXEC_TIMEOUT)
 
     else:
         # No generator detected, the files are (normally) provided directly
@@ -197,16 +197,13 @@ def genDefaultParams(taskPath, taskSettings):
                                       'path': os.path.join('$TASK_PATH', os.path.relpath(f, taskPath))})
             for f in globOfGlobs(taskPath, ['files/*.in', 'files/*.out']):
                 defExtraTests.append({'name': 'py-' + os.path.basename(f),
-                                      'path': '$TASK_PATH/tests/' + os.path.relpath(f, taskPath)})
+                                      'path': '$TASK_PATH/' + os.path.relpath(f, taskPath)})
             defFilterTests = ['all-*.in']
             defFilterTestsPy = ['py-*.in']
         else:
             # Tests are the same for all languages
-            for f in globOfGlobs(taskPath, ['*.in', '*.out']):
+            for f in globOfGlobs(extraDir, ['*.in', '*.out']):
                 defExtraTests.append(getTaskFile(os.path.relpath(f, taskPath)))
-            for f in globOfGlobs(taskPath, ['*.in', '*.out']):
-                defExtraTests.append({'name': os.path.basename(f),
-                                      'path': '$TASK_PATH/tests/' + os.path.relpath(f, taskPath)})
 
         # Auto-detected dependencies
         for f in glob.glob(extraDir + 'lib/*/*'):
@@ -237,37 +234,48 @@ def genDefaultParams(taskPath, taskSettings):
 
     ### Sanitizer
     if taskSettings.has_key('sanitizer') and os.path.isfile(os.path.join(taskPath, taskSettings['sanitizer'])):
-        print 'sanitizer.cpp detected'
-        # We test whether the sanitizer is C++11 or C++
-        tmpDir = tempfile.mkdtemp()
-        for f in [taskPath + 'tests/gen/sanitizer.cpp', # TODO
-                  CFG_ROOTDIR + '/_common/sanitizer/sanitizer.h',
-                  CFG_ROOTDIR + '/_common/sanitizer/BuffChecker.h',
-                  CFG_ROOTDIR + '/_common/sanitizer/SaniDate.h',
-                  taskPath + 'tests/gen/constants.h']:
-            try:
-                shutil.copy(f, tmpDir)
-            except:
-                pass
-        proc = subprocess.Popen(['/usr/bin/g++', '-std=gnu++11', tmpDir + '/sanitizer.cpp'], # TODO
-                cwd=tmpDir, stdout=devnull, stderr=devnull)
-        for i in range(60): # Timeout after 60 seconds
-            if not (proc.poll() is None):
-                break
-            time.sleep(1)
-        if proc.poll() == 0:
-            lang = 'cpp11'
+        print 'Sanitizer detected'
+
+        # Find sanitizer language
+        (r, ext) = os.path.splitext(taskSettings['sanitizer'])
+        if taskSettings.has_key('sanitizerLang'):
+            sLang = taskSettings['sanitizerLang']
+        elif CFG_LANGEXTS.has_key(ext):
+            sLang = CFG_LANGEXTS[ext]
         else:
-            # We default to C++ (non-11)
-            lang = 'cpp'
-            try:
-                proc.kill()
-            except:
-                pass
-        shutil.rmtree(tmpDir)
+            raise Exception("Couldn't auto-detect language for `%s`.\nAdd language to taskSettings, key 'sanitizerLang', to specify language." % taskSettings['sanitizer'])
+
+#       TODO
+#        # We test whether the sanitizer is C++11 or C++
+#        tmpDir = tempfile.mkdtemp()
+#        for f in [taskPath + 'tests/gen/sanitizer.cpp', # TODO
+#                  CFG_ROOTDIR + '/_common/sanitizer/sanitizer.h',
+#                  CFG_ROOTDIR + '/_common/sanitizer/BuffChecker.h',
+#                  CFG_ROOTDIR + '/_common/sanitizer/SaniDate.h',
+#                  taskPath + 'tests/gen/constants.h']:
+#            try:
+#                shutil.copy(f, tmpDir)
+#            except:
+#                pass
+#        proc = subprocess.Popen(['/usr/bin/g++', '-std=gnu++11', tmpDir + '/sanitizer.cpp'], # TODO
+#                cwd=tmpDir, stdout=devnull, stderr=devnull)
+#        for i in range(60): # Timeout after 60 seconds
+#            if not (proc.poll() is None):
+#                break
+#            time.sleep(1)
+#        if proc.poll() == 0:
+#            lang = 'cpp11'
+#        else:
+#            # We default to C++ (non-11)
+#            lang = 'cpp'
+#            try:
+#                proc.kill()
+#            except:
+#                pass
+#        shutil.rmtree(tmpDir)
 
         defSanitizer = {
-                'compilationDescr': {'language': lang, # TODO :: lang
+                'compilationDescr': {'language': sLang,
                     'files': [getTaskFile(taskSettings['sanitizer'])],
                     'dependencies': taskSettings.get('sanitizerDeps', [])},
                 'compilationExecution': '@defaultToolCompParams',
@@ -280,7 +288,7 @@ def genDefaultParams(taskPath, taskSettings):
         print 'No sanitizer detected'
         # No sanitizer, we use /bin/true as a 'sanitizer'
         defSanitizer = {
-                'compilationDescr': {'language': 'shell',
+                'compilationDescr': {'language': 'sh',
                                     'files': [getScript('true.sh')],
                                     'dependencies': []},
                 'compilationExecution': '@defaultToolCompParams',
@@ -291,19 +299,29 @@ def genDefaultParams(taskPath, taskSettings):
 
     ### Checker
     if taskSettings.has_key('checker') and os.path.isfile(os.path.join(taskPath, taskSettings['checker'])):
-        print 'checker detected'
+        print 'Checker detected'
         # A checker is given
+
+        # Find checker language
+        (r, ext) = os.path.splitext(taskSettings['checker'])
+        if taskSettings.has_key('checkerLang'):
+            cLang = taskSettings['checkerLang']
+        elif CFG_LANGEXTS.has_key(ext):
+            cLang = CFG_LANGEXTS[ext]
+        else:
+            raise Exception("Couldn't auto-detect language for `%s`.\nAdd language to taskSettings, key 'checkerLang', to specify language." % taskSettings['checker'])
+
         defChecker = {
-            'compilationDescr': {'language': 'cpp', # TODO :: lang
+            'compilationDescr': {'language': cLang,
                 'files': [getTaskFile(taskSettings['checker'])],
                 'dependencies': taskSettings.get('checkerDeps', [])},
             'compilationExecution': '@defaultToolCompParams',
             'runExecution': '@defaultToolExecParams'}
     else:
-        print 'no checker detected, using defaultChecker.sh'
+        print 'No checker detected, using defaultChecker.sh'
         # We use a generic checker (a wrapper around diff)
         defChecker = {
-            'compilationDescr': {'language': 'shell',
+            'compilationDescr': {'language': 'sh',
                 'files': [getScript('defaultChecker.sh')],
                 'dependencies': []},
             'compilationExecution': '@defaultToolCompParams',
@@ -331,9 +349,9 @@ def genTestSolution(compParams, solId=1, solPath=None, solLang=None):
         # If no solution is given, we use `true.sh` default script
         return {'id': 'testSolution%d' % solId,
                 'compilationDescr': {
-                    'language': 'shell',
+                    'language': 'sh',
                     'files': [getScript('true.sh')],
-                    'dependencies': '@defaultDependencies-shell'},
+                    'dependencies': []},
                 'compilationExecution': compParams}
 
 
@@ -503,3 +521,4 @@ if __name__ == '__main__':
         print ''
         print "*** /!\ Some tasks returned errors:"
         print ', '.join(tasksWithErrors)
+        sys.exit(1)

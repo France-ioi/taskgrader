@@ -14,6 +14,7 @@
 # An usual generator will just generate files upon execution; for advanced
 # options please check the taskgrader documentation.
 
-# If you change the path of the checker, execute
+# If you change the path of the generator, execute
 #   taskstarter.py add generator [path_to_new_generator]
 # to update task settings.
+# Note that the generator must be a shell script.

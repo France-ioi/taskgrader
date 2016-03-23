@@ -24,24 +24,29 @@ def getDefault(defaultParams, field, lang, default):
         return default
 
 
-def genOneSol(filePath, defaultParams, execParams, solId):
+def genOneSol(filePath, defaultParams, execParams, solId, lang=None):
     """Make the compilation and execution JSON data for one solution in
     filePath."""
     solName = os.path.basename(filePath)
 
     # Auto-detect language from extension
     (r, ext) = os.path.splitext(filePath)
-    lang = CFG_LANGEXTS[ext]
+    if lang:
+        solLang = lang
+    elif CFG_LANGEXTS.has_key(ext):
+        solLang = CFG_LANGEXTS[ext]
+    else:
+        raise Exception("Couldn't auto-detect language for `%s`.\nUse '-l' option to specify language." % filePath)
 
     # Do we have the defaultDependencies in the defaultParams?
-    dep = getDefault(defaultParams, 'defaultDependencies', lang, [])
+    dep = getDefault(defaultParams, 'defaultDependencies', solLang, [])
     # Do we have the defaultFilterTests in the defaultParams?
-    ftests = getDefault(defaultParams, 'defaultFilterTests', lang, ['*.in'])
+    ftests = getDefault(defaultParams, 'defaultFilterTests', solLang, ['*.in'])
    
     jsonSolution = {
         'id': 'sol%d-%s' % (solId, solName),
         'compilationDescr': {
-            'language': lang,
+            'language': solLang,
             'files': [{'name': os.path.basename(filePath),
                        'path': filePath}],
             'dependencies': dep},
@@ -56,7 +61,7 @@ def genOneSol(filePath, defaultParams, execParams, solId):
     return (jsonSolution, jsonExecution)
 
 
-def genStdTaskJson(taskPath, files, execParams):
+def genStdTaskJson(taskPath, files, execParams, lang=None):
     """Make a default evaluation JSON, evaluating the solutions in files
     against the task in taskPath, using execParams as constraints for the
     compilation and execution."""
@@ -68,7 +73,7 @@ def genStdTaskJson(taskPath, files, execParams):
     testExecutions = []
     # We add the parameters for each solution file given
     for solId, filePath in enumerate(files):
-        (jsol, jexc) = genOneSol(filePath, defaultParams, execParams, solId)
+        (jsol, jexc) = genOneSol(filePath, defaultParams, execParams, solId, lang)
         testSolutions.append(jsol)
         testExecutions.append(jexc)
 
@@ -101,6 +106,7 @@ if __name__ == '__main__':
     argParser = argparse.ArgumentParser(description="Make a standard JSON to grade the program(s) in FILE(s) with the taskgrader, using default parameters.")
 
     argParser.add_argument('files', metavar='FILE', nargs='+', help='Executable to grade; must accept the task on stdin and output the results on stdout')
+    argParser.add_argument('-l', '--lang', help="Sets the language of the solution(s)")
     argParser.add_argument('-m', '--memory-limit', type=int, help="Sets the memory limit for compilation and execution, in kilobytes", default=execParams['memoryLimitKb'])
     argParser.add_argument('-t', '--time-limit', type=int, help="Sets the time limit for compilation and execution, in milliseconds", default=execParams['timeLimitMs'])
     argParser.add_argument('-p', '--task-path', help="Sets the task path; defaults to current directory")
@@ -127,4 +133,4 @@ if __name__ == '__main__':
         files = map(lambda f: os.path.join(os.getcwd(), f), args.files)
 
     # Make the JSON
-    print json.dumps(genStdTaskJson(args.task_path, files, execParams))
+    print json.dumps(genStdTaskJson(args.task_path, files, execParams, args.lang))

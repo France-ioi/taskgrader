@@ -192,8 +192,8 @@ The `taskSettings.json` is JSON data giving some parameters about the task, for 
 
 * `generator`: path to the generator of the task
 * `generatorDeps`: dependencies for the generator (list of fileDescr, see the input JSON schema for more information)
-* `sanitizer` and `sanitizerDeps`: sanitizer of the task (path and dependencies)
-* `checker` and `checkerDeps`: checker of the task (path and dependencies)
+* `sanitizer`, `sanitizerDeps`, `sanitizerLang`: sanitizer of the task (path, dependencies, language; default is no dependencies and auto-detect language depending on extension)
+* `checker`, `checkerDeps`, `checkerLang`: checker of the task (path, dependencies, language; default is no dependencies and auto-detect language depending on extension)
 * `extraDir`: folder with extra files (input test files and/or libraries)
 * `overrideParams`: JSON data to be copied directly into `defaultParams.json`, will replace any key with the same name from `genJson.py` generated JSON data
 * `correctSolutions`: list of solutions known as working with the task, will be tested by `genJson.py` which will check whether they get the right results. Each solution must have the following keys: `path`, `lang` and `grade` (the numerical grade the solution is supposed to get).
@@ -217,7 +217,7 @@ The `defaultParams.json` is a task file giving some information about the task, 
 
 Basic usage: `stdGrade.sh [SOLUTION]...` from a task folder.
 
-## Internal workings (for developers)
+## Internals (for developers)
 
 `evaluation` is the evaluation process. It reads an input JSON and preprocesses it to replace the variables.
 
