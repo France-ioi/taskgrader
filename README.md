@@ -47,7 +47,7 @@ Verbosity options are available, use `taskgrader.py -h` for more help.
 
 A "task" is a set of programs and files representing the problem the solutions will be evaluated against:
 
-* the test cases (input files),
+* the test cases (input files and the associated expected output),
 * the libraries the solutions can use
 * an optional generator which generates these two types of files
 * a sanitizer, checking the input files are in the required format
@@ -62,12 +62,12 @@ Here are some examples based around a simple problem: the program is given a num
 A task can be just test cases. The task can be built and tested like this:
 
 * We start our task in a folder with `taskstarter.py init`; it will give us a base task structure we can use as reference
-* We put in the right subfolder files `test1.in` and `test2.in`, the test cases input files
-* We put in the same subfolder `test1.out` and `test2.out`, the right output of these test cases
-* We can write a right solution, for instance `sol-ok-c.c` in this example
+* We put the test cases input files `test1.in` and `test2.in` in the subfolder `tests/files/`
+* We put in the same subfolder `test1.out` and `test2.out`, the correct output of these test cases
+* We can write a valid solution, for instance `sol-ok-c.c` in this example
 * We can test this solution with `taskstarter.py testsol tests/gen/sol-ok-c.c`, it will say the solution got a grade of 100 for each test
 
-When the task is only test cases, the tools will use default programs as sanitizer and checker. The solution will get a perfect grade (100) if its output is exactly the expected output (`test1.out` for the test case `test1.in`, ...), or a 0 grade if its output is different.
+When the task is only test cases, the tools will use default programs as sanitizer and checker. The solution will get a perfect grade (100) if its output is the expected output (`test1.out` for the test case `test1.in`, ...), or a 0 grade if its output is different.
 
 We can add our solution to the "correct solutions" with `taskstarter.py addsol -g 100 -l c tests/gen/sol-ok-c.c`. It means that each time we'll test the task, the solution will be tested against the task, and `-g 100` means we expect the solution to get a grade of 100 each time. It allows to test against regressions, that is to say that after modifications, that the task still gives the right grade to our known solutions.
 
@@ -77,7 +77,7 @@ We can finally test the task with `taskstarter.py test`.
 
 ### Example 2: adding a sanitizer and a checker
 
-It's generally recommended to use a sanitizer and a checker: the sanitizer will ensure only valid input test files are given to solutions, especially in cases where contestants are allowed to use their own test files as examples; the checker can give a more precise grade to solutions, and also handle cases where the solution output is not in the exact format expected (a newline missing for instance).
+It's generally recommended to use a sanitizer and a checker: the sanitizer will ensure only valid input test files are given to solutions, especially in cases where contestants are allowed to use their own test files as examples; the checker can give a more precise grade to solutions, and also handle cases where the solution output is not in the exact format expected.
 
 We add a sanitizer and a checker to our test like this:
 
@@ -155,7 +155,7 @@ The evaluation is made against a task which has multiple components.
 
 The `generators` are generating the testing environment. They are executed, optionally with various parameters, to generate files, which can be:
 
-* test files: inputs for the solution, and if necessary, expected results
+* test files: inputs for the solution, and if necessary, expected output results
 * libraries, for the compilation and execution of solutions
 
 Some of these files can be passed directly in the evaluation JSON, without the need of a generator.
@@ -180,7 +180,7 @@ Various tools are available in the subfolder `tools`. They can be configured wit
 
 ### Creating a task
 
-`taskstarter.py` helps task writers create and modify simple tasks. This simple tool is meant as a starting point for people not knowing how the taskgrader works but willing to write a task, and helps them through documented steps. It allows to do some operations in tasks folders, such as creating the base skeleton, giving some help on various components and testing the task. This tool creates a `taskSettings.json` in the task folder, that `genJson.py` can then use to create a `defaultParams.json` accordingly.
+`taskstarter.py` helps task writers create and modify simple tasks. This simple tool is meant as a starting point for people not knowing how the taskgrader works but willing to write a task, and helps them through documented steps. It allows to do some operations in tasks folders, such as creating the base skeleton, giving some help on various components and testing the task. This tool creates a `taskSettings.json` in the task folder, that `genJson.py` can then use to create a `defaultParams.json` accordingly. Read the "Getting started on writing a task" section for more information.
 
 ### Preparing a task for grading
 
