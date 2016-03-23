@@ -1,23 +1,37 @@
 # Task grader
-This simple tool manages every step of grading a contest task, from the generation of test data to the grading of a solution output.
+This tool manages every step of grading a contest task, from the generation of test data to the grading of a solution output.
+
+It is meant to be used both locally for tests and in contest evaluation settings.
 
 ## Installing
 
-Install dependencies: on Debian/stable:
+### Dependencies
 
-    apt install build-essential sharutils python2.7 fp-compiler gcj-4.9 cgroup-tools
+You first need to install a few dependencies; on Debian/stable, the required dependencies are:
 
-you also need to have a binary called `gcj` (not provided by Debian/stable):
+    apt-get install build-essential sharutils python2.7
+
+Some additional dependencies are required to support all languages:
+
+    apt-get install fp-compiler gcj-4.9 nodejs php5-cli
+
+and you need to have a binary called `gcj` (not provided by Debian/stable):
 
     ln -s /usr/bin/gcj-4.9 /usr/bin/gcj
 
-Execute `install.sh` in the taskgrader directory to install. It will help you install everything. If needed, modify `config.py` to suit your needs.
+Additionally, in a contest environment, you may want control groups enabled in your kernel:
 
-## Testing
+    apt-get install cgroup-tools
 
-After configuration, you can test that the taskgrader is configured properly and is behaving as expected by running `tests/test.py`. By default, it will run all tests and give you a summary.
+### Installation
 
-Full usage instructions are given by `test.py -h`.
+Execute `install.sh` in the taskgrader directory to install. It will help you install everything.
+
+If needed, edit `config.py` to suit your needs; however default values will work for simple tests.
+
+### Testing
+
+After configuration, you can test that the taskgrader is configured properly and is behaving as expected by running `tests/test.py`. By default, it will run all tests and give you a summary. Full usage instructions are given by `test.py -h`.
 
 ## Executing
 
@@ -25,13 +39,87 @@ The taskgrader itself can be executed with
 
     python taskgrader.py
 
-It will wait for an input JSON on its standard input, then proceed to evaluation and then output the result JSON on standard output. Read `schema_input.json` and `schema_output.json` for a description of the expected formats.
+It will wait for an input JSON on its standard input, then proceed to evaluation and then output the result JSON on standard output. Read `schema_input.json` and `schema_output.json` for a description of the expected formats. Various tools described later can help you write this input JSON.
 
-You can also use the grading tool, executed with
+Verbosity options are available, use `taskgrader.py -h` for more help.
 
-    python grade.py [option]... FILE...
+## Getting started on writing a task
 
-Full usage instructions are given by `grade.py -h`.
+A "task" is a set of programs and files representing the problem the solutions will be evaluated against:
+
+* the test cases (input files),
+* the libraries the solutions can use
+* an optional generator which generates these two types of files
+* a sanitizer, checking the input files are in the required format
+* the checker, grading each solution's output
+
+The script `tools/taskstarter/taskstarter.py` can assist with writing a task.
+
+Here are some examples based around a simple problem: the program is given a number as input, and must output the double of the number. These examples can be found in the `examples` folder.
+
+### Example 1: only test cases
+
+A task can be just test cases. The task can be built and tested like this:
+
+* We start our task in a folder with `taskstarter.py init`; it will give us a base task structure we can use as reference
+* We put in the right subfolder files `test1.in` and `test2.in`, the test cases input files
+* We put in the same subfolder `test1.out` and `test2.out`, the right output of these test cases
+* We can write a right solution, for instance `sol-ok-c.c` in this example
+* We can test this solution with `taskstarter.py testsol tests/gen/sol-ok-c.c`, it will say the solution got a grade of 100 for each test
+
+When the task is only test cases, the tools will use default programs as sanitizer and checker. The solution will get a perfect grade (100) if its output is exactly the expected output (`test1.out` for the test case `test1.in`, ...), or a 0 grade if its output is different.
+
+We can add our solution to the "correct solutions" with `taskstarter.py addsol -g 100 -l c tests/gen/sol-ok-c.c`. It means that each time we'll test the task, the solution will be tested against the task, and `-g 100` means we expect the solution to get a grade of 100 each time. It allows to test against regressions, that is to say that after modifications, that the task still gives the right grade to our known solutions.
+
+We can finally test the task with `taskstarter.py test`.
+
+*This example can be found in the `examples/example1` folder.*
+
+### Example 2: adding a sanitizer and a checker
+
+It's generally recommended to use a sanitizer and a checker: the sanitizer will ensure only valid input test files are given to solutions, especially in cases where contestants are allowed to use their own test files as examples; the checker can give a more precise grade to solutions, and also handle cases where the solution output is not in the exact format expected (a newline missing for instance).
+
+We add a sanitizer and a checker to our test like this:
+
+* We use the task made in the last example
+* We write a script `sanitizer.sh` which takes as input the test case, and sets its exit code to 0 if it's valid, 1 if it's not
+* We write a script `checker.sh` which takes three arguments, `test.in` the test case input, `test.solout` the solution output, `test.out` the reference (expected) output; and gives a grade to the solution based on its output
+* We add the sanitizer and the checker to the task with `taskstarter.py add checker tests/gen/checker.sh` and `taskstarter.py add sanitizer tests/gen/sanitizer.sh`
+* Finally, we test the task with `taskstarter.py test`. It will tell us whether our programs were detected, compiled and executed successfully, and whether the "correct solution" we defined passed the test and got the expected grade of 100.
+
+The sanitizer and the checker can be written in any language supported by the taskgrader.
+
+*This example can be found in the `examples/example2` folder.*
+
+### Example 3: adding a generator
+
+It can be handy to use a generator to generate the test cases and/or libraries for the task, instead of writing them all by hand.
+
+We add a generator like this:
+
+* We use the task made in the last example
+* We write a script `gen.sh` which generates the files upon execution; it must be a shell script, and it must write the files following the same tree as the `files` folder
+* We add the generator to the task with `taskstarter.py add generator tests/gen/gen.sh`
+* Finally, we test the task with `taskstarter.py test`.
+
+The generator is handy when a large number of test cases must be generated, and also for complex tasks where the expected output can take a long time to be computed, and thus needs to be precomputed.
+
+*This example can be found in the `examples/example3` folder.*
+
+### Testing tasks
+
+Tasks can be tested with:
+
+* `taskstarter.py test`, which will use the tool `genJson` to prepare the task for usage (read about `defaultParams.json` file below for more information) and test it for valid compilation, and test that the "correct solutions" get the expected grades.
+* `taskstarter.py testsol`, which if the test above passes, will test another solution against the task, for quick solution testing (it uses the `stdGrade` tool).
+
+### Using tasks
+
+The tool `genJson`, automatically called when using `taskstarter.py test`, prepares the task by writing its parameters into a `defaultParams.json` file. It contains all the required information to evaluate solutions against the task, and can be used by evaluation platforms directly to reference the task. The tool `stdGrade` will use this file to quickly evaluate solutions.
+
+### Complex task writing
+
+More complex tasks can be written for usage with the taskgrader, but this section and the `taskstarter` tool are meant for simple tasks. More complex options are available in the taskgrader, read the rest of this documentation for more information.
 
 ## How does it work?
 
