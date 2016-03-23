@@ -97,7 +97,7 @@ class FullTestBase(unittest.TestCase):
         except:
             self.details['validjson'] = False
         self.result = self.isCorrect()
-        self.assertTrue(self.result)
+        self.assertTrue(self.result, msg="Test %s failed, details: %s" % (self.__class__, self.details))
 
 
 class SanitizerCheckerTest(FullTestBase):
@@ -269,6 +269,10 @@ class SolutionSimpleJavascool(SolutionSimpleBase):
     _solution = '@testSolutionJavascool'
     _execution = '@testExecutionJavascool'
 
+class SolutionSimpleJs(SolutionSimpleBase):
+    _solution = '@testSolutionJs'
+    _execution = '@testExecutionJs'
+
 class SolutionSimpleOcaml(SolutionSimpleBase):
     _solution = '@testSolutionOcaml'
     _execution = '@testExecutionOcaml'
@@ -276,6 +280,10 @@ class SolutionSimpleOcaml(SolutionSimpleBase):
 class SolutionSimplePascal(SolutionSimpleBase):
     _solution = '@testSolutionPascal'
     _execution = '@testExecutionPascal'
+
+class SolutionSimplePhp(SolutionSimpleBase):
+    _solution = '@testSolutionPhp'
+    _execution = '@testExecutionPhp'
 
 class SolutionSimplePython(SolutionSimpleBase):
     _solution = '@testSolutionPython'

@@ -426,6 +426,8 @@ class IsolatedExecution(Execution):
         # Create meta file with right owner/permissions
         open(workingDir + 'isolate.meta', 'w')
 
+        logging.debug("Executing isolate: `%s`" % isolatedCmdLine)
+
         # Execute the isolated program
         proc = subprocess.Popen(shlex.split(isolatedCmdLine), cwd=workingDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (procOut, procErr) = communicateWithTimeout(proc, int(10 + 3 * self.realTimeLimit / 1000.))
@@ -640,6 +642,19 @@ class LanguageShell(LanguageScript):
         lines.extend(map(lambda x: "/bin/sh %s $@\n" % x, sourceFiles))
         return lines
 
+class LanguageNodejs(LanguageScript):
+    lang = 'js'
+
+    def _scriptLines(self, sourceFiles, depFiles):
+        # TODO :: try to configure nodejs to use less memory
+        return map(lambda x: "/usr/bin/nodejs %s $@\n" % x, sourceFiles)
+
+class LanguagePhp(LanguageScript):
+    lang = 'php'
+
+    def _scriptLines(self, sourceFiles, depFiles):
+        return map(lambda x: "/usr/bin/php5 --file %s $@\n" % x, sourceFiles)
+
 class LanguagePython2(LanguageScript):
     lang = 'py2'
 
@@ -692,22 +707,26 @@ class Program():
         self.triedCompile = False
         self.execution = None
 
-        CFG_LANGUAGES = {'c': LanguageC,
-                        'cpp': LanguageCpp,
-                        'cpp11': LanguageCpp11,
-                        'ml': LanguageOcaml,
-                        'ocaml': LanguageOcaml,
-                        'java': LanguageJava,
-                        'javascool': LanguageJavascool,
-                        'sh': LanguageShell,
-                        'shell': LanguageShell,
-                        'pascal': LanguagePascal,
-                        'py': LanguagePython3,
-                        'py2': LanguagePython2,
-                        'py3': LanguagePython3,
-                        'python': LanguagePython3,
-                        'python2': LanguagePython2,
-                        'python3': LanguagePython3}
+        # TODO :: move languages into libraries
+        CFG_LANGUAGES = {
+            'c': LanguageC,
+            'cpp': LanguageCpp,
+            'cpp11': LanguageCpp11,
+            'ml': LanguageOcaml,
+            'ocaml': LanguageOcaml,
+            'java': LanguageJava,
+            'javascool': LanguageJavascool,
+            'js': LanguageNodejs,
+            'sh': LanguageShell,
+            'shell': LanguageShell,
+            'pascal': LanguagePascal,
+            'php': LanguagePhp,
+            'py': LanguagePython3,
+            'py2': LanguagePython2,
+            'py3': LanguagePython3,
+            'python': LanguagePython3,
+            'python2': LanguagePython2,
+            'python3': LanguagePython3}
 
         try:
             self.language = CFG_LANGUAGES[compilationDescr['language']]()
@@ -728,7 +747,7 @@ class Program():
             # File already exists
             raise Exception("File %s already exists in %s" % (filename, self.ownDir))
 
-        if '/' in filename: # XXX :: ???
+        if '/' in filename:
             # Need to make a folder
             try:
                 os.makedirs(self.ownDir + '/'.join(filename.split('/')[:-1]))
