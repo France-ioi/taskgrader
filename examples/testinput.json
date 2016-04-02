@@ -1,0 +1,104 @@
+{
+  "rootPath": "\/",
+  "taskPath": "\/",
+  "generators": [],
+  "generations": [],
+  "extraTests": [
+    {
+      "content": "30",
+      "name": "testextra1.in"
+    }
+  ],
+  "sanitizer": {
+    "runExecution": {
+      "memoryLimitKb": 131072,
+      "stderrTruncateKb": -1,
+      "getFiles": [],
+      "useCache": true,
+      "timeLimitMs": 60000,
+      "stdoutTruncateKb": -1
+    },
+    "compilationDescr": {
+      "files": [
+        {
+          "content": "#!\/bin\/bash\n\n# This script is an example sanitizer.\n# It expects the input test content on its standard input, and its return code\n# indicates whether the test is of the right format (just a number) or not.\n\nINPUTDATA=`cat`\nif ! [ `echo \"$INPUTDATA\" |wc -l` -eq 1 ]\nthen\n  echo \"Input file must have only one line.\"\n  exit 1\nfi\nif ! [ \"$INPUTDATA\" -eq \"$INPUTDATA\" ] 2> \/dev\/null\nthen\n  echo \"Input file is not a positive number.\"\n  exit 1\nfi\nexit 0\n",
+          "name": "sanitizer.sh"
+        }
+      ],
+      "dependencies": [],
+      "language": "sh"
+    },
+    "compilationExecution": {
+      "memoryLimitKb": 131072,
+      "stderrTruncateKb": -1,
+      "getFiles": [],
+      "useCache": true,
+      "timeLimitMs": 60000,
+      "stdoutTruncateKb": -1
+    }
+  },
+  "checker": {
+    "runExecution": {
+      "memoryLimitKb": 131072,
+      "stderrTruncateKb": -1,
+      "getFiles": [],
+      "useCache": true,
+      "timeLimitMs": 60000,
+      "stdoutTruncateKb": -1
+    },
+    "compilationDescr": {
+      "files": [
+        {
+          "content": "#!\/bin\/bash\n\n# This script is an example checker.\n#\u00a0It will be called by taskgrader in the following manner:\n# checker.sh test.in test.solout test.out\n# Thus $1 will contain the input number, $2 the output of the solution.\n# The checker will give a grade of 100 if we got the expected result,\n# a grade of 0 if the solution gave a wrong answer.\n\nRESULT=$((`cat $2`*2))\nSOLOUTDATA=`cat $1`\nif ! [ \"$SOLOUTDATA\" -eq \"$RESULT\" ] 2> \/dev\/null\nthen\n  echo \"0\"\n  exit 1\nelse\n  echo \"100\"\n  exit 0\nfi\n",
+          "name": "checker.sh"
+        }
+      ],
+      "dependencies": [],
+      "language": "sh"
+    },
+    "compilationExecution": {
+      "memoryLimitKb": 131072,
+      "stderrTruncateKb": -1,
+      "getFiles": [],
+      "useCache": true,
+      "timeLimitMs": 60000,
+      "stdoutTruncateKb": -1
+    }
+  },
+  "solutions": [
+    {
+      "compilationDescr": {
+        "files": [{
+            "content": "#include <stdio.h>\n\n\/\/ This solution is a valid C solution.\n\n\nint main() {\n    int k;\n    scanf(\"%d\", &k);\n    printf(\"%d\\n\", k*2);\n    return 0;\n}\n",
+            "name": "sol-ok-c.c"
+        }],
+        "dependencies": [],
+        "language": "c"
+      },
+      "id": "tSolutionC",
+      "compilationExecution": {
+        "memoryLimitKb": 131072,
+        "stderrTruncateKb": -1,
+        "getFiles": [],
+        "useCache": true,
+        "timeLimitMs": 60000,
+        "stdoutTruncateKb": -1
+      }
+    }
+  ],
+  "executions": [
+    {
+      "idSolution": "tSolutionC",
+      "filterTests": ["*.in"],
+      "runExecution": {
+        "memoryLimitKb": 131072,
+        "stderrTruncateKb": -1,
+        "getFiles": [],
+        "useCache": true,
+        "timeLimitMs": 60000,
+        "stdoutTruncateKb": -1
+      },
+      "id": "tExecutionC"
+    }
+  ]
+}

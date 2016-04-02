@@ -8,10 +8,10 @@
 import os.path
 
 ### genJson.py configuration
-# Base directory for tasks files, should contain the _common folder
+# Base directory for tasks files, should contain all common task files
 # This directory will be used as rootPath
 # All paths generated will be relative to this rootPath
-CFG_ROOTDIR = 'CHANGE_ME/COMMON/TASK/FILES'
+CFG_ROOTDIR = '/'
 # Path to the taskgrader
 CFG_TASKGRADERDIR = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../'))
 CFG_TASKGRADER = os.path.join(CFG_TASKGRADERDIR, 'taskgrader.py')

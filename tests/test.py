@@ -71,10 +71,10 @@ class FullTestBase(unittest.TestCase):
         bad = len(checkList) - good
 
         if bad > 0:
-            self.details['msg'] = 'Test failed, %d checks good, %d checks bad.' % (good, bad)
+            self.details['msg'] = 'Test %s failed, %d checks good, %d checks bad.' % (self.__class__, good, bad)
             return False
         else:
-            self.details['msg'] = 'Test passed, %d checks good.' % good
+            self.details['msg'] = 'Test %s passed, %d checks good.' % (self.__class__, good)
             return True
 
     def runTest(self):
@@ -84,7 +84,7 @@ class FullTestBase(unittest.TestCase):
         self.details = {}
 
         self.inputJson = self.makeInputJson()
-        self.proc = subprocess.Popen(['/usr/bin/python2', CFG_TASKGRADER], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.proc = subprocess.Popen([CFG_TASKGRADER], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (self.procOut, self.procErr) = communicateWithTimeout(self.proc, 15, input=json.dumps(self.inputJson))
         self.details = {'stdout': self.procOut,
                 'stderr': self.procErr,
@@ -97,7 +97,7 @@ class FullTestBase(unittest.TestCase):
         except:
             self.details['validjson'] = False
         self.result = self.isCorrect()
-        self.assertTrue(self.result, msg="Test %s failed, details: %s" % (self.__class__, self.details))
+        self.assertTrue(self.result, msg="%s Details: %s" % (self.details['msg'], self.details))
 
 
 class SanitizerCheckerTest(FullTestBase):
@@ -228,12 +228,17 @@ class SolutionSimpleBase(FullTestBase):
     """This test tries a simple solution execution, with one test file, and
     checks the checker output."""
 
+    _dependencies = []
     _solution = None
     _execution = None
 
     def makeInputJson(self):
-        if not (self._solution and self._execution):
+        if not (self._dependencies and self._solution and self._execution):
             self.skipTest("No solution defined.")
+
+        for d in self._dependencies:
+            self.assertTrue(os.path.isfile(d), msg="Dependency `%s` missing." % d)
+
         return {
             'rootPath': os.path.dirname(os.path.abspath(__file__)),
             'taskPath': '$ROOT_PATH',
@@ -253,39 +258,48 @@ class SolutionSimpleBase(FullTestBase):
             ]
 
 class SolutionSimpleC(SolutionSimpleBase):
+    _dependencies = ['/usr/bin/gcc']
     _solution = '@testSolutionC'
     _execution = '@testExecutionC'
 
 class SolutionSimpleCpp(SolutionSimpleBase):
+    _dependencies = ['/usr/bin/g++']
     _solution = '@testSolutionCpp'
     _execution = '@testExecutionCpp'
 
 class SolutionSimpleJava(SolutionSimpleBase):
+    _dependencies = ['/usr/bin/gcj']
     _solution = '@testSolutionJava'
     _execution = '@testExecutionJava'
 
 @unittest.skip('test not working') # TODO :: fix
 class SolutionSimpleJavascool(SolutionSimpleBase):
+    _dependencies = ['/usr/bin/gcj']
     _solution = '@testSolutionJavascool'
     _execution = '@testExecutionJavascool'
 
 class SolutionSimpleJs(SolutionSimpleBase):
+    _dependencies = ['/usr/bin/nodejs']
     _solution = '@testSolutionJs'
     _execution = '@testExecutionJs'
 
 class SolutionSimpleOcaml(SolutionSimpleBase):
+    _dependencies = ['/usr/bin/ocamlopt']
     _solution = '@testSolutionOcaml'
     _execution = '@testExecutionOcaml'
 
 class SolutionSimplePascal(SolutionSimpleBase):
+    _dependencies = ['/usr/bin/fpc']
     _solution = '@testSolutionPascal'
     _execution = '@testExecutionPascal'
 
 class SolutionSimplePhp(SolutionSimpleBase):
+    _dependencies = ['/usr/bin/fpc']
     _solution = '@testSolutionPhp'
     _execution = '@testExecutionPhp'
 
 class SolutionSimplePython(SolutionSimpleBase):
+    _dependencies = ['/usr/bin/python3']
     _solution = '@testSolutionPython'
     _execution = '@testExecutionPython'
 

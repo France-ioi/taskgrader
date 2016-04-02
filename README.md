@@ -33,6 +33,8 @@ If needed, edit `config.py` to suit your needs; however default values will work
 
 After configuration, you can test that the taskgrader is configured properly and is behaving as expected by running `tests/test.py`. By default, it will run all tests and give you a summary. Full usage instructions are given by `test.py -h`.
 
+If you didn't install dependencies for all languages, some tests will fail.
+
 ## Executing
 
 The taskgrader itself can be executed with
@@ -42,6 +44,21 @@ The taskgrader itself can be executed with
 It will wait for an input JSON on its standard input, then proceed to evaluation and then output the result JSON on standard output. Read `schema_input.json` and `schema_output.json` for a description of the expected formats. Various tools described later can help you write this input JSON.
 
 Verbosity options are available, use `taskgrader.py -h` for more help.
+
+## Example usage
+
+Some commands you can try:
+
+    ./taskgrader.py < examples/testinput.json
+    ./taskgrader.py < examples/testinput.json | tools/stdGrade/summarizeResults.py
+    tools/taskstarter/taskstarter.py init mynewtask
+    cd examples/task3 ; ../../tools/taskstarter/taskstarter.py test
+
+First command will execute the taskgrader on an example evaluation described by `examples/testinput.json`; it will output the result JSON, which isn't very human-readable. The second command will pass that output JSON to `summarizeResults.py`, a simple tool to show the results in a more human-readable way.
+
+The third command starts a new task in the folder `mynewtask`; use it if you want to write a task. Once written, a task may be tested as shown with the fourth command, which will test one of the example tasks.
+
+More details on usage can be found through this documentation.
 
 ## Getting started on writing a task
 
@@ -55,7 +72,7 @@ A "task" is a set of programs and files representing the problem the solutions w
 
 The script `tools/taskstarter/taskstarter.py` can assist with writing a task.
 
-Here are some examples based around a simple problem: the program is given a number as input, and must output the double of the number. These examples can be found in the `examples` folder.
+Here are some examples based around a simple problem: the program is given a number as input, and must output the double of the number. These example tasks can be found in the `examples` folder.
 
 ### Example 1: only test cases
 
@@ -73,7 +90,7 @@ We can add our solution to the "correct solutions" with `taskstarter.py addsol -
 
 We can finally test the task with `taskstarter.py test`.
 
-*This example can be found in the `examples/example1` folder.*
+*This example can be found in the `examples/task1` folder.*
 
 ### Example 2: adding a sanitizer and a checker
 
@@ -89,7 +106,7 @@ We add a sanitizer and a checker to our test like this:
 
 The sanitizer and the checker can be written in any language supported by the taskgrader.
 
-*This example can be found in the `examples/example2` folder.*
+*This example can be found in the `examples/task2` folder.*
 
 ### Example 3: adding a generator
 
@@ -104,7 +121,7 @@ We add a generator like this:
 
 The generator is handy when a large number of test cases must be generated, and also for complex tasks where the expected output can take a long time to be computed, and thus needs to be precomputed.
 
-*This example can be found in the `examples/example3` folder.*
+*This example can be found in the `examples/task3` folder.*
 
 ### Testing tasks
 
