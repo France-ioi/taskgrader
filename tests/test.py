@@ -294,7 +294,7 @@ class SolutionSimplePascal(SolutionSimpleBase):
     _execution = '@testExecutionPascal'
 
 class SolutionSimplePhp(SolutionSimpleBase):
-    _dependencies = ['/usr/bin/fpc']
+    _dependencies = ['/usr/bin/php5']
     _solution = '@testSolutionPhp'
     _execution = '@testExecutionPhp'
 

@@ -25,7 +25,7 @@ Additionally, in a contest environment, you may want control groups enabled in y
 
 ### Installation
 
-Execute `install.sh` in the taskgrader directory to install. It will help you install everything.
+Execute `install.sh` in the taskgrader directory to install, as the user who will be running the taskgrader. It will help you install everything.
 
 If needed, edit `config.py` to suit your needs; however default values will work for simple tests.
 

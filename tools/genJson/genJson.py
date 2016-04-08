@@ -93,7 +93,7 @@ def genDefaultParams(taskPath, taskSettings):
         # Auto-detect generator dependencies
         (genDir, genFilename) = os.path.split(taskSettings['generator'])
 
-        genDependencies = taskSettings.get('generatorDeps', [])[:]
+        genDependencies = []
         genDepPaths = {}
 
         # Make a list of basename of all files in the generator folder
@@ -134,6 +134,9 @@ def genDefaultParams(taskPath, taskSettings):
                                'path': os.path.join('$TASK_PATH', genDir, p)},
                     genDepPaths[possdep]))
 
+        # Add dependencies given in taskSettings
+        genDependencies.extend(taskSettings.get('generatorDeps', []))
+
         # Extra dependencies to check for and add
         extraGenDeps = globOfGlobs(taskPath, CFG_GEN_EXTRADEPS)
         for f in extraGenDeps:
@@ -146,27 +149,29 @@ def genDefaultParams(taskPath, taskSettings):
                     'idGenerator': 'defaultGenerator',
                     'genExecution': '@defaultToolExecParams'}
 
-        # We execute the generator to know which files it generates # TODO
+        # We execute the generator to know which files it generates # TODO :: check for regressions
         tmpDir = tempfile.mkdtemp()
-        os.mkdir(tmpDir + '/gen')
-        for f in [CFG_ROOTDIR + '/_common/generators/generators.py', CFG_ROOTDIR + '/_common/generators/libRobot.py']: # TODO
-            shutil.copy(f, tmpDir + '/gen/')
-        for f in globOfGlobs(taskPath + 'tests/gen/', ['gen*', 'Makefile']):
-            shutil.copy(f, tmpDir + '/gen/')
-        proc = subprocess.Popen(['/bin/sh', tmpDir + '/gen/gen.sh'], cwd=tmpDir + '/gen/', stdout=devnull, stderr=devnull)
+        os.mkdir(os.path.join(tmpDir, 'gen'))
+        for dep in genDependencies:
+            path = dep['path'].replace('$TASK_PATH', taskPath).replace('$ROOT_PATH', CFG_ROOTDIR)
+            shutil.copy(path, os.path.join(tmpDir, 'gen', dep['name']))
+        proc = subprocess.Popen(['/bin/sh', os.path.join(tmpDir, 'gen', genFilename)], cwd=tmpDir + '/gen/', stdout=devnull, stderr=devnull)
         for i in range(CFG_EXEC_TIMEOUT): # Timeout after 60 seconds
             if not (proc.poll() is None):
                 break
             time.sleep(1)
         if not (proc.poll() is None):
             # The generator terminated
-            if os.path.isdir(tmpDir + '/files/all/') and os.path.isdir(tmpDir + '/files/python/'): # TODO
+            if proc.poll() > 0:
+                print 'Warning: generator exited with non-zero exit code %d' % proc.poll()
+
+            if os.path.isdir(tmpDir + '/files/all/') and os.path.isdir(tmpDir + '/files/python/'):
                 # We have specific tests for Python
                 defFilterTests = ['all-*.in']
                 defFilterTestsPy = ['py-*.in']
 
             # Auto-detect generated dependencies
-            for f in glob.glob(tmpDir + '/files/lib/*/*'): # TODO
+            for f in glob.glob(tmpDir + '/files/lib/*/*'):
                 lang = f.split('/')[-2]
                 defDependencies[lang].append({'name': os.path.basename(f)})
             for f in glob.glob(tmpDir + '/files/run/*'):
@@ -176,7 +181,7 @@ def genDefaultParams(taskPath, taskSettings):
         else:
             # We got a timeout while executing the generator
             proc.kill()
-            raise Exception("Generator didn't end in %d seconds.\n(change CFG_EXEC_TIMEOUT if required)" % CFG_EXEC_TIMEOUT)
+            raise Exception("Generator didn't end in %d seconds (change CFG_EXEC_TIMEOUT if required).\nGeneration was taking place in `%s`." % (CFG_EXEC_TIMEOUT, tmpDir))
 
     else:
         # No generator detected, the files are (normally) provided directly
@@ -188,9 +193,9 @@ def genDefaultParams(taskPath, taskSettings):
     # Detect files given directly without generator
     if taskSettings.has_key('extraDir') and os.path.isdir(os.path.join(taskPath, taskSettings['extraDir'])):
         print 'Extra files detected'
+        extraDir = taskSettings['extraDir']
         # Extra tests
-        extraDir = os.path.join(taskPath, taskSettings['extraDir']) + '/'
-        if os.path.isdir(extraDir + 'all/') and os.path.isdir(extraDir + 'python/'):
+        if os.path.isdir(os.path.join(extraDir, 'all/')) and os.path.isdir(os.path.join(extraDir, 'python/')):
             # We have specific tests for python
             for f in globOfGlobs(extraDir, ['all/*.in', 'all/*.out']):
                 defExtraTests.append({'name': 'all-' + os.path.basename(f),
@@ -206,10 +211,10 @@ def genDefaultParams(taskPath, taskSettings):
                 defExtraTests.append(getTaskFile(os.path.relpath(f, taskPath)))
 
         # Auto-detected dependencies
-        for f in glob.glob(extraDir + 'lib/*/*'):
+        for f in glob.glob(os.path.join(extraDir, 'lib/*/*')):
             lang = CFG_LANGUAGES_OLD_NEW[f.split('/')[-2]]
             defDependencies[lang].append(getTaskFile(os.path.relpath(f, taskPath)))
-        for f in glob.glob(extraDir + 'run/*'):
+        for f in glob.glob(os.path.join(extraDir, 'run/*')):
             defDependencies['python'].append(getTaskFile(os.path.relpath(f, taskPath)))
 
     # Update default params
@@ -245,34 +250,35 @@ def genDefaultParams(taskPath, taskSettings):
         else:
             raise Exception("Couldn't auto-detect language for `%s`.\nAdd language to taskSettings, key 'sanitizerLang', to specify language." % taskSettings['sanitizer'])
 
-#       TODO
-#        # We test whether the sanitizer is C++11 or C++
-#        tmpDir = tempfile.mkdtemp()
-#        for f in [taskPath + 'tests/gen/sanitizer.cpp', # TODO
-#                  CFG_ROOTDIR + '/_common/sanitizer/sanitizer.h',
-#                  CFG_ROOTDIR + '/_common/sanitizer/BuffChecker.h',
-#                  CFG_ROOTDIR + '/_common/sanitizer/SaniDate.h',
-#                  taskPath + 'tests/gen/constants.h']:
-#            try:
-#                shutil.copy(f, tmpDir)
-#            except:
-#                pass
-#        proc = subprocess.Popen(['/usr/bin/g++', '-std=gnu++11', tmpDir + '/sanitizer.cpp'], # TODO
-#                cwd=tmpDir, stdout=devnull, stderr=devnull)
-#        for i in range(60): # Timeout after 60 seconds
-#            if not (proc.poll() is None):
-#                break
-#            time.sleep(1)
-#        if proc.poll() == 0:
-#            lang = 'cpp11'
-#        else:
-#            # We default to C++ (non-11)
-#            lang = 'cpp'
-#            try:
-#                proc.kill()
-#            except:
-#                pass
-#        shutil.rmtree(tmpDir)
+        if sLang == 'cpp':
+            # We test whether the sanitizer is C++11 or C++
+            tmpDir = tempfile.mkdtemp()
+            sanFilename = os.path.basename(taskSettings['sanitizer'])
+            shutil.copy(os.path.join(taskPath, taskSettings['sanitizer']), os.path.join(tmpDir, sanFilename))
+            for dep in taskSettings.get('sanitizerDeps', []):
+                path = dep['path'].replace('$TASK_PATH', taskPath).replace('$ROOT_PATH', CFG_ROOTDIR)
+                shutil.copy(path, os.path.join(tmpDir, dep['name']))
+                try:
+                    shutil.copy(f, tmpDir)
+                except:
+                    pass
+            proc = subprocess.Popen(['/usr/bin/g++', '-std=gnu++11', os.path.join(tmpDir, sanFilename)],
+                    cwd=tmpDir, stdout=devnull, stderr=devnull)
+            for i in range(60): # Timeout after 60 seconds
+                if not (proc.poll() is None):
+                    break
+                time.sleep(1)
+            if proc.poll() == 0:
+                print 'C++11 sanitizer detected'
+                sLang = 'cpp11'
+            else:
+                # We default to C++ (non-11)
+                sLang = 'cpp'
+                try:
+                    proc.kill()
+                except:
+                    pass
+            shutil.rmtree(tmpDir)
 
         defSanitizer = {
                 'compilationDescr': {'language': sLang,
