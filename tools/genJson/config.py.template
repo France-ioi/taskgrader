@@ -71,7 +71,7 @@ CFG_TESTSOLPARAMS = {
 CFG_DEF_TASKSETTINGS = {
     'generator': 'tests/gen/gen.sh',
     'generatorDeps': [],
-    'extraDir': 'files/',
+    'extraDir': 'tests/files/',
     'sanitizer': 'tests/gen/sanitizer.cpp',
     'sanitizerDeps': [],
     'checker': 'tests/gen/check.cpp',

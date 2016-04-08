@@ -6,36 +6,36 @@
 ### Check for dependencies
 ERROR=0
 echo "*** Checking for required binaries..."
-for BINARY in gcc gcj git python sudo
+for BINARY in gcc gcj git python python2 python3 shar sudo
 do
     if which $BINARY > /dev/null
     then
         echo "$BINARY detected."
     else
-        echo "/!\ $BINARY missing, please install it before continuing."
+        echo "[ERROR] $BINARY missing, please install it before continuing."
         ERROR=1
     fi
 done
 if [ $ERROR -eq 1 ]
 then
-    echo "/!\ Some binaries are missing. Please install them before continuing."
+    echo "[ERROR] Some binaries are missing. Please install them before continuing."
     exit 1
 fi
 
 echo "*** Checking for optional binaries..."
-for BINARY in fpc g++ python2 python3 shar
+for BINARY in fpc g++ nodejs ocamlopt php5
 do
     if which $BINARY > /dev/null
     then
         echo "$BINARY detected."
     else
-        echo "/!\ $BINARY missing, some languages won't compile properly."
-        ERROR=1
+        echo "[Warning] $BINARY missing, some languages won't compile properly."
+        ERROR=2
     fi
 done
-if [ $ERROR -eq 1 ]
+if [ $ERROR -eq 2 ]
 then
-    echo "/!\ Some optional binaries missing, some languages won't compile properly."
+    echo "[Warning] Some optional binaries missing, some languages won't compile properly."
 fi
 
 ### Fetch jsonschema and moe
@@ -55,13 +55,13 @@ mv isolate/isolate isolate-bin
 echo "*** Setting isolate-bin rights..."
 if ! sudo chown root:root isolate-bin
 then
-    echo "/!\ Failed to \`chown root:root isolate-bin\`. Please run the command as root."
+    echo "[ERROR] Failed to \`chown root:root isolate-bin\`. Please run the command as root."
     ERROR=1
 fi
 
 if ! sudo chmod 4755 isolate-bin
 then
-    echo "/!\ Failed to \`chmod 4755 isolate-bin\`. Please run the command as root."
+    echo "[ERROR] Failed to \`chmod 4755 isolate-bin\`. Please run the command as root."
     ERROR=1
 fi
 echo "*** Compiling box-rights..."
@@ -70,12 +70,12 @@ then
     echo "Box-rights successfully compiled."
     if ! sudo chown root:root box-rights
     then
-        echo "/!\ Failed to \`chown root:root box-rights\`. Please run the command as root."
+        echo "[ERROR] Failed to \`chown root:root box-rights\`. Please run the command as root."
         ERROR=1
     fi
     if ! sudo chmod 4755 box-rights
     then
-        echo "/!\ Failed to \`chmod 4755 box-rights\`. Please run the command as root."
+        echo "[ERROR] Failed to \`chmod 4755 box-rights\`. Please run the command as root."
         ERROR=1
     fi
 else
@@ -88,8 +88,8 @@ echo "*** Initializing (or resetting) data directories..."
 if [ -d files ]
 then
   # We reset the data folder, but do not delete it as a safety measure
-  OLDFILES="files.`date+%F_%H-%M-%S`"
-  echo "/!\ Data folder 'files' already exists, moving it to 'oldfiles/$OLDFILES'."
+  OLDFILES="files.`date +%F_%H-%M-%S`"
+  echo "Data folder 'files' already exists, moving it to 'oldfiles/$OLDFILES'."
   echo "If you don't need anything from this folder, you can delete it safely."
   mkdir -p oldfiles
   mv files "oldfiles/$OLDFILES"
@@ -109,7 +109,7 @@ then
   sed -i "s|^CFG_BASEDIR.*$|CFG_BASEDIR=\"`pwd`/files/\"|" config.py
   sed -i "s|^CFG_BINDIR.*$|CFG_BINDIR=\"`pwd`/\"|" config.py
 else
-  echo "/!\ config.py detected, no new config.py file written."
+  echo "[Warning] config.py detected, no new config.py file written."
 fi
 
 ### Initialize genJson config.py
@@ -117,7 +117,7 @@ if ! [ -f tools/genJson/config.py ]
 then
   cp -p tools/genJson/config.py.template tools/genJson/config.py
 else
-  echo "/!\ genJson config.py detected, no new config.py file written."
+  echo "[Warning] genJson config.py detected, no new config.py file written."
 fi
 
 ### Initialize stdGrade config.py
@@ -125,15 +125,25 @@ if ! [ -f tools/stdGrade/config.py ]
 then
   cp -p tools/stdGrade/config.py.template tools/stdGrade/config.py
 else
-  echo "/!\ stdGrade config.py detected, no new config.py file written."
+  echo "[Warning] stdGrade config.py detected, no new config.py file written."
 fi
 
+echo
+echo "****************************************"
+echo
 
 if [ $ERROR -eq 1 ]
 then
-    echo "*** Installation errors occured, please check them before continuing."
-    exit 1
+  echo "/!\ Installation errors occured, the taskgrader will not work properly."
+  exit 1
+elif [ $ERROR -eq 2 ]
+then
+  echo "Installation complete."
+  echo "Some warnings occured, please check them before continuing."
+  echo "The taskgrader will still work but some features might not behave properly."
+  exit 0
+else
+  echo "Installation complete."
+  exit 0
 fi
 
-echo "*** Install completed successfully!"
-exit 0
