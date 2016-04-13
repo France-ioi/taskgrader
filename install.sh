@@ -6,7 +6,7 @@
 ### Check for dependencies
 ERROR=0
 echo "*** Checking for required binaries..."
-for BINARY in gcc python python2 shar
+for BINARY in gcc python python2
 do
     if which $BINARY > /dev/null
     then

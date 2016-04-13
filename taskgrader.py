@@ -606,34 +606,23 @@ class LanguageScript(Language):
         return map(lambda x: "/bin/sh %s $@\n" % x, sourceFiles)
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
-        # Scripts are not "compiled", we make an archive out of the source files
-        # shar makes a self-extracting "shell archive"
-        sharFile = open(os.path.join(ownDir, name + '.exe'), 'w+')
-        sharProc = subprocess.Popen(['shar', '--quiet-unshar', '--quiet'] + sourceFiles + depFiles, stdout=sharFile, cwd=ownDir)
-        waitWithTimeout(sharProc, 30)
-        # We remove the last line of the archive (normally an 'exit 0')
-        sharFile.seek(-5, os.SEEK_END)
-        pos = sharFile.tell()
-        while pos > 0 and sharFile.read(1) != "\n":
-            pos -=1
-            sharFile.seek(pos, os.SEEK_SET)
-        if pos > 0:
-            sharFile.truncate(pos + 1)
-        # We set the archive to execute the script(s) after self-extracting
+        # TODO :: no shar if only one file?
+        sharPath = os.path.join(ownDir, name + '.exe')
+        sharFile = open(sharPath, 'w')
+        # We write a shell archive which extracts all source files
+        # and dependencies, then executes the scripts
+        sharFile.write("#!/bin/sh\n")
+        for f in (sourceFiles + depFiles):
+            # Encode each file in base64, use openssl to extract them
+            sharFile.write("/usr/bin/openssl base64 -d -out \"%s\" 2> /dev/null <<EOF\n" % f)
+            sharFile.write(open(os.path.join(ownDir, f), 'r').read().encode("base64"))
+            sharFile.write("EOF\n")
+        # Execute the script(s) after self-extracting
         sharFile.writelines(self._scriptLines(sourceFiles, depFiles))
-        # On some versions, shar ignores the --quiet-unshar option and talks too much
-        # We replace echo= statements with echo=true as a dirty fix
-        sharFile.seek(0)
-        sharLines = []
-        for l in sharFile:
-            sharLines.append(l.replace('echo=echo', 'echo=true').replace('echo="$gettext_dir/gettext -s"', 'echo=true'))
-        sharFile.seek(0)
-        sharFile.truncate(0)
-        sharFile.writelines(sharLines)
-        sharFile.close()
         # We set the archive executable bits
-        os.chmod(os.path.join(ownDir, name + '.exe'), 493) # chmod 755
-        # We build a dummy report
+        os.chmod(sharPath, 493) # chmod 755
+
+        # We build a dummy report for this "compilation"
         report = {'timeLimitMs': compilationParams['timeLimitMs'],
                 'memoryLimitKb': compilationParams['memoryLimitKb'],
                 'commandLine': '[shell script built]',
