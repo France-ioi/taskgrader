@@ -13,15 +13,27 @@ You first need to install a few dependencies; on Debian/stable, the required dep
 
 Some additional dependencies are required to support all languages:
 
-    apt-get install fp-compiler gcj-4.9 nodejs php5-cli
+    apt-get install fp-compiler gcj-4.9 nodejs php5-cli python3
 
-and you need to have a binary called `gcj` (not provided by Debian/stable):
+Some systems don't provide the `gcj` shortcut, in that case make a symlink to your version of `gcj`, such as:
 
     ln -s /usr/bin/gcj-4.9 /usr/bin/gcj
 
-Additionally, in a contest environment, you may want control groups enabled in your kernel:
+#### Control groups (for contest environments)
+
+In a contest environment, you may want control groups enabled in your kernel:
 
     apt-get install cgroup-tools
+
+On some kernels, you might need to (re)activate the memory subsystem of control groups (on Debian, you can check whether the folder `/sys/fs/cgroup/memory` is present).
+
+You can do this by using the `cgroup_enable=memory` kernel option. On many systems, you can do that by editing `/etc/default/grub` to add:
+
+    GRUB_CMDLINE_LINUX="cgroup_enable=memory"
+
+and then executing `update-grub` as root. Once enabled, set `CFG_CONTROLGROUPS` to `True` in `config.py` (after installation) to enable their usage within the taskgrader.
+
+Some more information can be found in the [isolate man page](http://www.ucw.cz/moe/isolate.1.html).
 
 ### Installation
 
@@ -51,12 +63,16 @@ Some commands you can try:
 
     ./taskgrader.py < examples/testinput.json
     ./taskgrader.py < examples/testinput.json | tools/stdGrade/summarizeResults.py
-    tools/taskstarter/taskstarter.py init mynewtask
-    cd examples/task3 ; ../../tools/taskstarter/taskstarter.py test
 
 First command will execute the taskgrader on an example evaluation described by `examples/testinput.json`; it will output the result JSON, which isn't very human-readable. The second command will pass that output JSON to `summarizeResults.py`, a simple tool to show the results in a more human-readable way.
 
-The third command starts a new task in the folder `mynewtask`; use it if you want to write a task. Once written, a task may be tested as shown with the fourth command, which will test one of the example tasks.
+    tools/taskstarter/taskstarter.py init mynewtask
+
+This command will start a new task in the folder `mynewtask`; use it if you want to write a task. In this new task folder, you'll find a few files to guide you on the usual components of a task. The next section describes that in more detail.
+
+    cd examples/task3 ; ../../tools/taskstarter/taskstarter.py test
+
+A task may be tested as shown with this command. Here it will test the example `task3`.
 
 More details on usage can be found through this documentation.
 
@@ -128,7 +144,7 @@ The generator is handy when a large number of test cases must be generated, and 
 Tasks can be tested with:
 
 * `taskstarter.py test`, which will use the tool `genJson` to prepare the task for usage (read about `defaultParams.json` file below for more information) and test it for valid compilation, and test that the "correct solutions" get the expected grades.
-* `taskstarter.py testsol`, which if the test above passes, will test another solution against the task, for quick solution testing (it uses the `stdGrade` tool).
+* `taskstarter.py testsol [SOLUTION.c]`, which if the task is valid, will test `SOLUTION.c` against the task. It is meant for quick solution testing; it uses the `stdGrade` tool.
 
 ### Using tasks
 
