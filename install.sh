@@ -6,7 +6,7 @@
 ### Check for dependencies
 ERROR=0
 echo "*** Checking for required binaries..."
-for BINARY in gcc gcj git python python2 python3 shar sudo
+for BINARY in gcc git python python2 shar
 do
     if which $BINARY > /dev/null
     then
@@ -23,19 +23,19 @@ then
 fi
 
 echo "*** Checking for optional binaries..."
-for BINARY in fpc g++ nodejs ocamlopt php5
+for BINARY in fpc g++ gcj nodejs ocamlopt php5 python3 sudo
 do
     if which $BINARY > /dev/null
     then
         echo "$BINARY detected."
     else
-        echo "[Warning] $BINARY missing, some languages won't compile properly."
+        echo "[Warning] $BINARY missing, some features won't work properly."
         ERROR=2
     fi
 done
 if [ $ERROR -eq 2 ]
 then
-    echo "[Warning] Some optional binaries missing, some languages won't compile properly."
+    echo "[Warning] Some optional binaries missing, some features won't work properly."
 fi
 
 ### Fetch jsonschema and moe
@@ -43,8 +43,15 @@ echo "*** Fetching dependencies..."
 git submodule update --init Jvs2Java jsonschema isolate
 
 ### Compile Jvs2Java
-echo "*** Compiling Jvs2Java..."
-gcj --encoding=utf8 --main=Jvs2Java -o jvs2java Jvs2Java/Jvs2Java.java
+if which gcj > /dev/null
+then
+    echo "*** Compiling Jvs2Java..."
+    gcj --encoding=utf8 --main=Jvs2Java -o jvs2java Jvs2Java/Jvs2Java.java
+else
+    echo "[Warning] gcj missing, cannot compile Jvs2Java."
+    echo "          Languages 'java' and 'javascool' will not be available."
+    ERROR=2
+fi
 
 ### Compile isolate
 echo "*** Compiling isolate..."

@@ -5,7 +5,7 @@
 #
 # http://opensource.org/licenses/MIT
 
-import os, sqlite3
+import os
 
 ##### START OF CONFIGURATION #####
 

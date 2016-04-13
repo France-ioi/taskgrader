@@ -366,6 +366,14 @@ class IsolatedExecution(Execution):
     """Represents an execution encapsulated in isolate."""
 
     def _doExecute(self, workingDir, args=None):
+        # Check isolate is present
+        if not os.path.isfile(CFG_ISOLATEBIN) or (os.stat(CFG_ISOLATEBIN).st_mode & stat.S_ISUID) == 0:
+            logging.warning("Isolate is not properly configured, falling back to normal execution. Check documentation for more information.")
+            return Execution._doExecute(self, workingDir, args=args)
+        if not os.path.isfile(CFG_RIGHTSBIN) or (os.stat(CFG_RIGHTSBIN).st_mode & stat.S_ISUID) == 0:
+            logging.warning("Box-rights for isolate is not properly configured, falling back to normal execution. Check documentation for more information.")
+            return Execution._doExecute(self, workingDir, args=args)
+
         cmdLine = self.cmd + ((' ' + args) if args else '')
         report = {}
         report.update(self.baseReport)
@@ -835,7 +843,7 @@ class Program():
                 raise Exception("Program failed compilation, execution impossible.")
             else:
                 raise Exception("Program has not yet been compiled, execution impossible.")
-        self.execution = IsolatedExecution(self.executablePath, executionParams, os.path.basename(self.executablePath), language=self.compilationDescr['language'])
+        self.execution = IsolatedExecution(self.executablePath, executionParams, './%s' % os.path.basename(self.executablePath), language=self.compilationDescr['language'])
         self.executionParams = executionParams
 
     def execute(self, workingDir, args=None, stdinFile=None, stdoutFile=None, otherInputs=[], outputFiles=[]):
