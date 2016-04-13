@@ -6,7 +6,7 @@
 ### Check for dependencies
 ERROR=0
 echo "*** Checking for required binaries..."
-for BINARY in gcc git python python2 shar
+for BINARY in gcc python python2 shar
 do
     if which $BINARY > /dev/null
     then
@@ -23,7 +23,7 @@ then
 fi
 
 echo "*** Checking for optional binaries..."
-for BINARY in fpc g++ gcj nodejs ocamlopt php5 python3 sudo
+for BINARY in fpc g++ gcj git nodejs ocamlopt php5 python3 sudo
 do
     if which $BINARY > /dev/null
     then
@@ -39,55 +39,61 @@ then
 fi
 
 ### Fetch jsonschema and moe
-echo "*** Fetching dependencies..."
-git submodule update --init Jvs2Java jsonschema isolate
-
-### Compile Jvs2Java
-if which gcj > /dev/null
+if which git > /dev/null
 then
-    echo "*** Compiling Jvs2Java..."
-    gcj --encoding=utf8 --main=Jvs2Java -o jvs2java Jvs2Java/Jvs2Java.java
-else
-    echo "[Warning] gcj missing, cannot compile Jvs2Java."
-    echo "          Languages 'java' and 'javascool' will not be available."
-    ERROR=2
-fi
+    echo "*** Fetching dependencies..."
+    git submodule update --init Jvs2Java jsonschema isolate
 
-### Compile isolate
-echo "*** Compiling isolate..."
-make -C isolate isolate
-mv isolate/isolate isolate-bin
-
-### Compile C programs
-echo "*** Setting isolate-bin rights..."
-if ! sudo chown root:root isolate-bin
-then
-    echo "[ERROR] Failed to \`chown root:root isolate-bin\`. Please run the command as root."
-    ERROR=1
-fi
-
-if ! sudo chmod 4755 isolate-bin
-then
-    echo "[ERROR] Failed to \`chmod 4755 isolate-bin\`. Please run the command as root."
-    ERROR=1
-fi
-echo "*** Compiling box-rights..."
-if gcc -O3 -o box-rights box-rights.c
-then
-    echo "Box-rights successfully compiled."
-    if ! sudo chown root:root box-rights
+    ### Compile Jvs2Java
+    if which gcj > /dev/null
     then
-        echo "[ERROR] Failed to \`chown root:root box-rights\`. Please run the command as root."
+        echo "*** Compiling Jvs2Java..."
+        gcj --encoding=utf8 --main=Jvs2Java -o jvs2java Jvs2Java/Jvs2Java.java
+    else
+        echo "[Warning] gcj missing, cannot compile Jvs2Java."
+        echo "          Languages 'java' and 'javascool' will not be available."
+        ERROR=2
+    fi
+
+    ### Compile isolate
+    echo "*** Compiling isolate..."
+    make -C isolate isolate
+    mv isolate/isolate isolate-bin
+
+    ### Compile C programs
+    echo "*** Setting isolate-bin rights..."
+    if ! sudo chown root:root isolate-bin
+    then
+        echo "[ERROR] Failed to \`chown root:root isolate-bin\`. Please run the command as root."
         ERROR=1
     fi
-    if ! sudo chmod 4755 box-rights
+
+    if ! sudo chmod 4755 isolate-bin
     then
-        echo "[ERROR] Failed to \`chmod 4755 box-rights\`. Please run the command as root."
+        echo "[ERROR] Failed to \`chmod 4755 isolate-bin\`. Please run the command as root."
+        ERROR=1
+    fi
+    echo "*** Compiling box-rights..."
+    if gcc -O3 -o box-rights box-rights.c
+    then
+        echo "Box-rights successfully compiled."
+        if ! sudo chown root:root box-rights
+        then
+            echo "[ERROR] Failed to \`chown root:root box-rights\`. Please run the command as root."
+            ERROR=1
+        fi
+        if ! sudo chmod 4755 box-rights
+        then
+            echo "[ERROR] Failed to \`chmod 4755 box-rights\`. Please run the command as root."
+            ERROR=1
+        fi
+    else
+        echo "/!\ Error while compiling box-rights."
         ERROR=1
     fi
 else
-    echo "/!\ Error while compiling box-rights."
-    ERROR=1
+    echo "[Warning] git not present, cannot fetch and compile dependencies"
+    echo "          isolate, jsonschema, Jvs2Java. Some features will be unavailable."
 fi
 
 ### Initialize data directories
@@ -96,8 +102,9 @@ if [ -d files ]
 then
   # We reset the data folder, but do not delete it as a safety measure
   OLDFILES="files.`date +%F_%H-%M-%S`"
-  echo "Data folder 'files' already exists, moving it to 'oldfiles/$OLDFILES'."
-  echo "If you don't need anything from this folder, you can delete it safely."
+  echo "[Notice] Data folder 'files' already exists, moving it to"
+  echo "         'oldfiles/$OLDFILES'."
+  echo "         If you don't need anything from this folder, you can delete it safely."
   mkdir -p oldfiles
   mv files "oldfiles/$OLDFILES"
 fi
@@ -116,7 +123,7 @@ then
   sed -i "s|^CFG_BASEDIR.*$|CFG_BASEDIR=\"`pwd`/files/\"|" config.py
   sed -i "s|^CFG_BINDIR.*$|CFG_BINDIR=\"`pwd`/\"|" config.py
 else
-  echo "[Warning] config.py detected, no new config.py file written."
+  echo "[Notice] config.py detected, no new config.py file written."
 fi
 
 ### Initialize genJson config.py
@@ -124,7 +131,7 @@ if ! [ -f tools/genJson/config.py ]
 then
   cp -p tools/genJson/config.py.template tools/genJson/config.py
 else
-  echo "[Warning] genJson config.py detected, no new config.py file written."
+  echo "[Notice] genJson config.py detected, no new config.py file written."
 fi
 
 ### Initialize stdGrade config.py
@@ -132,7 +139,7 @@ if ! [ -f tools/stdGrade/config.py ]
 then
   cp -p tools/stdGrade/config.py.template tools/stdGrade/config.py
 else
-  echo "[Warning] stdGrade config.py detected, no new config.py file written."
+  echo "[Notice] stdGrade config.py detected, no new config.py file written."
 fi
 
 echo

@@ -16,7 +16,10 @@ import traceback
 from config import *
 
 sys.path.append(CFG_JSONSCHEMA)
-from jsonschema import validate
+try:
+    from jsonschema import validate
+except:
+    validate = None
 
 
 class TemporaryException(Exception):
@@ -1104,10 +1107,14 @@ def evaluation(evaluationParams):
         restrictToPaths.append(baseWorkingDir)
 
     # We validate the input JSON format
-    try:
-        validate(evaluationParams, json.load(open(CFG_INPUTSCHEMA, 'r')))
-    except Exception as err:
-        raise Exception("Validation failed for input JSON, error message: %s" % str(err))
+    if validate is not None:
+        try:
+            validate(evaluationParams, json.load(open(CFG_INPUTSCHEMA, 'r')))
+        except Exception as err:
+            raise Exception("Validation failed for input JSON, error message: %s" % str(err))
+    else:
+        logging.warning("Unable to import jsonschema library, continuing without input/output JSON validation.")
+
 
     cache = CacheDatabase()
 
@@ -1304,10 +1311,13 @@ def evaluation(evaluationParams):
         report['executions'].append(mainTestReport)
 
     # We validate the output JSON format
-    try:
-        validate(report, json.load(open(CFG_OUTPUTSCHEMA, 'r')))
-    except Exception as err:
-        raise Exception("Validation failed for output JSON, error message: %s" % str(err))
+    if validate is not None:
+        try:
+            validate(report, json.load(open(CFG_OUTPUTSCHEMA, 'r')))
+        except Exception as err:
+            raise Exception("Validation failed for output JSON, error message: %s" % str(err))
+    else:
+        logging.info("Unable to import jsonschema library, output JSON was not validated.")
 
     return report
 
