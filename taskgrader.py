@@ -34,6 +34,18 @@ class TemporaryException(Exception):
         return repr(self.msg)
 
 
+class UnsupportedLanguage(Exception):
+    """UnsupportedLanguage is a special exception for when the evaluation needs
+    a language which is not supported by the taskgrader (either because the
+    taskgrader doesn't know the language or lacks a dependency)."""
+
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return repr(self.msg)
+
+
 class CacheFolder(object):
     """CacheFolder represents a folder of the cache, caching a specific
     execution. The class gives functions for reading from and writing to this
@@ -514,6 +526,13 @@ class Language():
     language."""
 
     lang = 'default'
+    dependencies = []
+
+    def __init__(self):
+        """Class initialization: check the required dependencies are present."""
+        for f in self.dependencies:
+            if not os.path.isfile(f):
+                raise UnsupportedLanguage("Cannot use language '%s', dependency `%s` missing." % (self.lang, f))
 
     def _getPossiblePaths(self, baseDir, filename):
         """Returns the possible paths for a dependency filename, for a build
@@ -540,6 +559,7 @@ class Language():
 
 class LanguageC(Language):
     lang = 'c'
+    dependencies = ["/usr/bin/gcc"]
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
         cmdLine = "/usr/bin/gcc -static -std=gnu99 -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
@@ -547,6 +567,7 @@ class LanguageC(Language):
 
 class LanguageCpp(Language):
     lang = 'cpp'
+    dependencies = ["/usr/bin/g++"]
 
     def _getPossiblePaths(self, baseDir, filename):
         return [
@@ -563,6 +584,7 @@ class LanguageCpp(Language):
 
 class LanguageCpp11(LanguageCpp):
     lang = 'cpp11'
+    dependencies = ["/usr/bin/g++"]
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
         cmdLine = "/usr/bin/g++ -std=gnu++11 -static -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
@@ -570,6 +592,7 @@ class LanguageCpp11(LanguageCpp):
 
 class LanguageOcaml(Language):
     lang = 'ocaml'
+    dependencies = ["/usr/bin/ocamlopt"]
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
         cmdLine = "/usr/bin/ocamlopt -ccopt -static -o %s.exe %s" % (name, ' '.join(sourceFiles))
@@ -577,6 +600,7 @@ class LanguageOcaml(Language):
 
 class LanguagePascal(Language):
     lang = 'pascal'
+    dependencies = ["/usr/bin/fpc"]
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
         cmdLine = "/usr/bin/fpc -o%s.exe %s" % (name, ' '.join(sourceFiles))
@@ -584,6 +608,7 @@ class LanguagePascal(Language):
 
 class LanguageJava(Language):
     lang = 'java'
+    dependencies = ["/usr/bin/gcj"]
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
         cmdLine = "/usr/bin/gcj --encoding=utf8 --main=Main -o %s.exe %s" % (name, ' '.join(sourceFiles))
@@ -591,6 +616,7 @@ class LanguageJava(Language):
 
 class LanguageJavascool(LanguageJava):
     lang = 'javascool'
+    dependencies = ["/usr/bin/gcj", CFG_JAVASCOOLBIN]
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
         # Javascool needs to be transformed before being executed
@@ -601,6 +627,7 @@ class LanguageJavascool(LanguageJava):
 
 class LanguageScript(Language):
     lang = 'default-script'
+    dependencies = ["/usr/bin/openssl"]
 
     def _scriptLines(self, sourceFiles, depFiles):
         """Returns the commands to execute the program when there are multiple
@@ -657,6 +684,7 @@ class LanguageScript(Language):
 
 class LanguageShell(LanguageScript):
     lang = 'sh'
+    dependencies = ["/usr/bin/openssl"]
 
     def _scriptLines(self, sourceFiles, depFiles):
         lines = ["export TASKGRADER_DEPFILES=\"%s\"\n" % ' '.join(depFiles)]
@@ -668,6 +696,7 @@ class LanguageShell(LanguageScript):
 
 class LanguageNodejs(LanguageScript):
     lang = 'js'
+    dependencies = ["/usr/bin/openssl", "/usr/bin/nodejs"]
 
     def _scriptLines(self, sourceFiles, depFiles):
         # TODO :: try to configure nodejs to use less memory
@@ -678,6 +707,7 @@ class LanguageNodejs(LanguageScript):
 
 class LanguagePhp(LanguageScript):
     lang = 'php'
+    dependencies = ["/usr/bin/openssl", "/usr/bin/php5"]
 
     def _scriptLines(self, sourceFiles, depFiles):
         return map(lambda x: "/usr/bin/php5 --file %s $@\n" % x, sourceFiles)
@@ -687,6 +717,7 @@ class LanguagePhp(LanguageScript):
 
 class LanguagePython2(LanguageScript):
     lang = 'py2'
+    dependencies = ["/usr/bin/openssl", "/usr/bin/python2"]
 
     def _getPossiblePaths(self, baseDir, filename):
         return [
@@ -705,6 +736,7 @@ class LanguagePython2(LanguageScript):
 
 class LanguagePython3(LanguageScript):
     lang = 'py3'
+    dependencies = ["/usr/bin/openssl", "/usr/bin/python3"]
 
     def _getPossiblePaths(self, baseDir, filename):
         return [
@@ -764,10 +796,10 @@ class Program():
             'python2': LanguagePython2,
             'python3': LanguagePython3}
 
-        try:
+        if CFG_LANGUAGES.has_key(compilationDescr['language']):
             self.language = CFG_LANGUAGES[compilationDescr['language']]()
-        except:
-            raise Exception("Taskgrader not configured to use language '%s'." % compilationDescr['language'])
+        else:
+            raise UnsupportedLanguage("Taskgrader not configured to use language '%s'." % compilationDescr['language'])
 
 
     def _getFile(self, fileDescr):
@@ -1390,11 +1422,16 @@ if __name__ == '__main__':
     try:
         json.dump(evaluation(inJson), sys.stdout)
     except TemporaryException as err:
-        # We use a different return code for TemporaryException
+        # We use a different exit codes depending on the exception
         logging.critical("TemporaryException raised")
         logging.critical(traceback.format_exc())
         traceback.print_exc()
         sys.exit(2)
+    except UnsupportedLanguage as err:
+        logging.critical("UnsupportedLanguage raised: %s" % err.msg)
+        logging.critical(traceback.format_exc())
+        traceback.print_exc()
+        sys.exit(3)
     except:
         logging.critical("Exception raised")
         logging.critical(traceback.format_exc())

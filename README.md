@@ -250,6 +250,15 @@ The `defaultParams.json` is a task file giving some information about the task, 
 
 Basic usage: `stdGrade.sh [SOLUTION]...` from a task folder.
 
+## Exit codes
+
+The taskgrader will return the following exit codes:
+
+* `0` if the evaluation took place without error
+* `1` if an error with the evaluation happened, usually because of the evaluation parameters themselves
+* `2` if there was a temporary error, meaning the same evaluation should be tried again at a later time
+* `3` if the evaluation needed a language which is not supported, or which lacks a dependency to compile
+
 ## Error messages
 
 ### Isolate is not properly installed
