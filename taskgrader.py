@@ -603,24 +603,45 @@ class LanguageScript(Language):
     lang = 'default-script'
 
     def _scriptLines(self, sourceFiles, depFiles):
+        """Returns the commands to execute the program when there are multiple
+        sourceFiles and depFiles. Added at the end of the self-extracting
+        archive (for language classes derived from LanguageScript)."""
         return map(lambda x: "/bin/sh %s $@\n" % x, sourceFiles)
 
+    def _singleScriptShebang(self):
+        """Return the shebang to add to the start of the script; used when
+        there is only one sourceFile and no depFile."""
+        return "#!/bin/sh"
+
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
-        # TODO :: no shar if only one file?
-        sharPath = os.path.join(ownDir, name + '.exe')
-        sharFile = open(sharPath, 'w')
-        # We write a shell archive which extracts all source files
-        # and dependencies, then executes the scripts
-        sharFile.write("#!/bin/sh\n")
-        for f in (sourceFiles + depFiles):
-            # Encode each file in base64, use openssl to extract them
-            sharFile.write("/usr/bin/openssl base64 -d -out \"%s\" 2> /dev/null <<EOF\n" % f)
-            sharFile.write(open(os.path.join(ownDir, f), 'r').read().encode("base64"))
-            sharFile.write("EOF\n")
-        # Execute the script(s) after self-extracting
-        sharFile.writelines(self._scriptLines(sourceFiles, depFiles))
-        # We set the archive executable bits
-        os.chmod(sharPath, 493) # chmod 755
+        if len(sourceFiles) == 1 and len(depFiles) == 0:
+            # Only one file, the executable is the script itself
+            execPath = os.path.join(ownDir, name + '.exe')
+            execFile = open(execPath, 'w')
+            # We add a shebang (even if the script already has one)
+            execFile.write(self._singleScriptShebang())
+            execFile.write("\n")
+            # Copy the script
+            execFile.write(open(os.path.join(ownDir, sourceFiles[0]), 'r').read())
+            execFile.close()
+            # We set the executable bits
+            os.chmod(execPath, 493) # chmod 755
+        else:
+            # Multiple files, we write a shell archive which extracts all
+            # source files and dependencies, then executes the scripts
+            sharPath = os.path.join(ownDir, name + '.exe')
+            sharFile = open(sharPath, 'w')
+            sharFile.write("#!/bin/sh\n")
+            for f in (sourceFiles + depFiles):
+                # Encode each file in base64, use openssl to extract them
+                sharFile.write("/usr/bin/openssl base64 -d -out \"%s\" 2> /dev/null <<EOF\n" % f)
+                sharFile.write(open(os.path.join(ownDir, f), 'r').read().encode("base64"))
+                sharFile.write("EOF\n")
+            # Execute the script(s) after self-extracting
+            sharFile.writelines(self._scriptLines(sourceFiles, depFiles))
+            sharFile.close()
+            # We set the archive executable bits
+            os.chmod(sharPath, 493) # chmod 755
 
         # We build a dummy report for this "compilation"
         report = {'timeLimitMs': compilationParams['timeLimitMs'],
@@ -642,6 +663,9 @@ class LanguageShell(LanguageScript):
         lines.extend(map(lambda x: "/bin/sh %s $@\n" % x, sourceFiles))
         return lines
 
+    def _singleScriptShebang(self):
+        return "#!/bin/sh"
+
 class LanguageNodejs(LanguageScript):
     lang = 'js'
 
@@ -649,11 +673,17 @@ class LanguageNodejs(LanguageScript):
         # TODO :: try to configure nodejs to use less memory
         return map(lambda x: "/usr/bin/nodejs %s $@\n" % x, sourceFiles)
 
+    def _singleScriptShebang(self):
+        return "#!/usr/bin/nodejs"
+
 class LanguagePhp(LanguageScript):
     lang = 'php'
 
     def _scriptLines(self, sourceFiles, depFiles):
         return map(lambda x: "/usr/bin/php5 --file %s $@\n" % x, sourceFiles)
+
+    def _singleScriptShebang(self):
+        return "#!/usr/bin/php5"
 
 class LanguagePython2(LanguageScript):
     lang = 'py2'
@@ -670,6 +700,9 @@ class LanguagePython2(LanguageScript):
     def _scriptLines(self, sourceFiles, depFiles):
         return ["/usr/bin/python2 %s $@\n" % ' '.join(sourceFiles)]
 
+    def _singleScriptShebang(self):
+        return "#!/usr/bin/python2"
+
 class LanguagePython3(LanguageScript):
     lang = 'py3'
 
@@ -684,6 +717,9 @@ class LanguagePython3(LanguageScript):
 
     def _scriptLines(self, sourceFiles, depFiles):
         return ["/usr/bin/python3 %s $@\n" % ' '.join(sourceFiles)]
+
+    def _singleScriptShebang(self):
+        return "#!/usr/bin/python3"
 
 
 class Program():
