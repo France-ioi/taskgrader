@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python2.7
 
 # This program tests the wall time limit, waiting for 6 seconds before finishing.
 

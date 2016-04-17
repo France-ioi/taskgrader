@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2015 France-IOI, MIT license
@@ -717,7 +717,7 @@ class LanguagePhp(LanguageScript):
 
 class LanguagePython2(LanguageScript):
     lang = 'py2'
-    dependencies = ["/usr/bin/openssl", "/usr/bin/python2"]
+    dependencies = ["/usr/bin/openssl", "/usr/bin/python2.7"]
 
     def _getPossiblePaths(self, baseDir, filename):
         return [
@@ -729,10 +729,10 @@ class LanguagePython2(LanguageScript):
             os.path.join(baseDir, 'libs', filename)]
 
     def _scriptLines(self, sourceFiles, depFiles):
-        return ["/usr/bin/python2 %s $@\n" % ' '.join(sourceFiles)]
+        return ["/usr/bin/python2.7 %s $@\n" % ' '.join(sourceFiles)]
 
     def _singleScriptShebang(self):
-        return "#!/usr/bin/python2"
+        return "#!/usr/bin/python2.7"
 
 class LanguagePython3(LanguageScript):
     lang = 'py3'

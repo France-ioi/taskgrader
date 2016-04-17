@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python2.7
 
 # This solution tries to use a lot of memory to test the memory limits.
 

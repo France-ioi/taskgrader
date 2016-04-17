@@ -6,7 +6,7 @@
 ### Check for dependencies
 ERROR=0
 echo "*** Checking for required binaries..."
-for BINARY in gcc python python2
+for BINARY in python python2.7
 do
     if which $BINARY > /dev/null
     then
@@ -23,7 +23,7 @@ then
 fi
 
 echo "*** Checking for optional binaries..."
-for BINARY in fpc g++ gcj git nodejs ocamlopt php5 python3 sudo
+for BINARY in fpc g++ gcc gcj git nodejs ocamlopt php5 python3 sudo
 do
     if which $BINARY > /dev/null
     then

@@ -7,13 +7,15 @@ It is meant to be used both locally for tests and in contest evaluation settings
 
 ### Dependencies
 
-You first need to install a few dependencies; on Debian/stable, the required dependencies are:
+On many distributions, the required dependencies are already installed.
 
-    apt-get install build-essential python2.7
+On Debian or Ubuntu, the recommended dependencies are:
 
-Some additional dependencies are required to support all languages:
+    apt-get install build-essential git python3 sudo
 
-    apt-get install fp-compiler gcj-4.9 git nodejs php5-cli python3
+Some additional dependencies are required to support all features and languages:
+
+    apt-get install fp-compiler gcj-4.9 nodejs php5-cli
 
 Some systems don't provide the `gcj` shortcut, in that case make a symlink to your version of `gcj`, such as:
 

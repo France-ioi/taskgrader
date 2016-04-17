@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python2.7
 
 # This program tests CPU time limit, computing random stuff for 5 seconds.
 
