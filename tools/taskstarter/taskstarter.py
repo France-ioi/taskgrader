@@ -23,9 +23,14 @@ DEVNULL = open(os.devnull, 'w')
 def getTaskSettings(path):
     """Get taskSettings from task path 'path', raise an error if there is no
     taskSettings.json in 'path'."""
-    try:
-        taskSettings = json.load(open(os.path.join(path, 'taskSettings.json'), 'r'))
-    except:
+    tspath = os.path.join(path, 'taskSettings.json')
+    if os.path.isfile(tspath):
+        try:
+            taskSettings = json.load(open(tspath, 'r'))
+        except:
+            print("/!\ taskSettings.json does not contain valid JSON data.")
+            sys.exit(1)
+    else:
         print("/!\ No taskSettings.json file detected, are you in the right folder?")
         sys.exit(1)
 

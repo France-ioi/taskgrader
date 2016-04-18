@@ -286,7 +286,7 @@ def genDefaultParams(taskPath, taskSettings):
                     'dependencies': taskSettings.get('sanitizerDeps', [])},
                 'compilationExecution': '@defaultToolCompParams',
                 'runExecution': '@defaultToolExecParams'}
-        if os.path.isfile(taskPath + 'gen/constants.h'): # TODO
+        if os.path.isfile(os.path.join(taskPath, 'gen/constants.h')): # TODO
             defSanitizer['compilationDescr']['dependencies'].append({
                     'name': 'constants.h',
                     'path': '$TASK_PATH/tests/gen/constants.h'})
@@ -436,19 +436,17 @@ if __name__ == '__main__':
     tasksWithErrors = []
 
     for path in paths:
-        if path[-1] != '/':
-            path += '/'
         print '* Generating defaultParams for ' + path
         # Settings for the task
         taskSettings = {}
         taskSettings.update(CFG_DEF_TASKSETTINGS)
         try:
-            taskSettings.update(json.load(open(path + 'taskSettings.json', 'r')))
+            taskSettings.update(json.load(open(os.path.join(path, 'taskSettings.json'), 'r')))
         except:
             pass
 
         defaultParams = genDefaultParams(path, taskSettings)
-        json.dump(defaultParams, open(path + 'defaultParams.json', 'w'))
+        json.dump(defaultParams, open(os.path.join(path, 'defaultParams.json'), 'w'))
         print ''
         if args.verbose:
             print '* Generated defaultParams'
@@ -479,7 +477,7 @@ if __name__ == '__main__':
             tasksWithErrors.append(path)
             continue
 
-        if taskSettings.has_key('correctSolutions'):
+        if len(taskSettings.get('taskSettings', [])) > 0:
             # Check execution of the "correct solutions"
             # Their test was integrated in the test evaluation
             cError = False

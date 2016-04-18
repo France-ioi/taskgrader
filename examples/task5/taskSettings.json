@@ -1,0 +1,10 @@
+{"sanitizer": "tests/gen/sanitizer.py",
+"checker": "tests/gen/checker.py",
+"overrideParams": {
+    "defaultSkeleton": {
+        "language": "py",
+        "files": [{"name": "runner.py",
+                   "path": "$TASK_PATH/tests/gen/runner.py"}],
+        "dependencies": [{"name": "solution.py",
+                          "path": "%solpath"}]
+}}}

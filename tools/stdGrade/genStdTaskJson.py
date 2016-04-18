@@ -12,9 +12,48 @@
 import argparse, json, os, sys
 from config import CFG_EXECPARAMS, CFG_LANGEXTS
 
+# XXX TODO :: this is a duplicate from taskgrader.py's preprocessJson. Remove
+# duplicate after reorganizing code.
+def preprocessJson(json, varData):
+    """Preprocess some JSON data, replacing variables with their values.
+    There's no checking of the type of values in the variables; the resulting
+    JSON is supposed to be checked against a JSON schema.
+    varData represents the variable data; all values written as '@varname' in
+    the JSON will be replaced by varData['varname']."""
+    if (type(json) is str or type(json) is unicode) and len(json) > 0:
+        if json[0] == '%':
+            # It's a variable, we replace it with the JSON data
+            # It will return an error if the variable doesn't exist, it's intended
+            varName = json[1:]
+            if varData.has_key(varName):
+                return preprocessJson(varData[varName], varData)
+            else:
+                # XXX this is changed from taskgrader.py's preprocessJson
+                print json
+                return json
+        else:
+            return json
+    elif type(json) is dict:
+        # It's a dict, we process the values in it
+        newjson = {}
+        for k in json.keys():
+            newjson[k] = preprocessJson(json[k], varData)
+        return newjson
+    elif type(json) is list:
+        # It's a list, we filter the values in it
+        newjson = map(lambda x: preprocessJson(x, varData), json)
+        # We remove None values, which are probably undefined variables
+        while None in newjson:
+            newjson.remove(None)
+        return newjson
+    else:
+        return json
+
+
+
 def getDefault(defaultParams, field, lang, default):
-    """Checks defaultParams for a language-specific field, defaults to default
-    if it's not available."""
+    """Checks defaultParams for a language-specific field, defaults to the
+    non-language-specific field if it's not available."""
     
     if defaultParams.has_key('%s-%s' % (field, lang)):
         return '@%s-%s' % (field, lang)
@@ -38,20 +77,33 @@ def genOneSol(filePath, defaultParams, execParams, solId, lang=None):
     else:
         raise Exception("Couldn't auto-detect language for `%s`.\nUse '-l' option to specify language." % filePath)
 
+    # Do we have a skeleton for the solution ?
+    skeleton = defaultParams.get('defaultSkeleton', {
+        'language': '%sollang',
+        'files': [{'name': '%solfilename',
+                   'path': '%solpath'}],
+        'dependencies': '%soldeps'
+        })
+
     # Do we have the defaultDependencies in the defaultParams?
     dep = getDefault(defaultParams, 'defaultDependencies', solLang, [])
     # Do we have the defaultFilterTests in the defaultParams?
     ftests = getDefault(defaultParams, 'defaultFilterTests', solLang, ['*.in'])
-   
+
+    # Fill in the skeleton
+    descr = preprocessJson(skeleton, {
+        'sollang': solLang,
+        'solfilename': os.path.basename(filePath),
+        'solpath': filePath,
+        'soldeps': dep})
+
+    # Solution compilation
     jsonSolution = {
         'id': 'sol%d-%s' % (solId, solName),
-        'compilationDescr': {
-            'language': solLang,
-            'files': [{'name': os.path.basename(filePath),
-                       'path': filePath}],
-            'dependencies': dep},
+        'compilationDescr': descr,
         'compilationExecution': execParams}
 
+    # Solution execution
     jsonExecution = {
         'id': 'exec%d-%s' % (solId, solName),
         'idSolution': 'sol%d-%s' % (solId, solName),

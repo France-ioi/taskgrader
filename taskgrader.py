@@ -789,10 +789,10 @@ class Program():
             'shell': LanguageShell,
             'pascal': LanguagePascal,
             'php': LanguagePhp,
-            'py': LanguagePython3,
+            'py': LanguagePython2,
             'py2': LanguagePython2,
             'py3': LanguagePython3,
-            'python': LanguagePython3,
+            'python': LanguagePython2,
             'python2': LanguagePython2,
             'python3': LanguagePython3}
 
