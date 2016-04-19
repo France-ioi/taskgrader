@@ -4,6 +4,7 @@ mkdir wrapgen
 mv generators.py libRobot.py Makefile $TASKGRADER_DEPFILES wrapgen/ 2> /dev/null
 cd wrapgen/
 sh gen.sh
+mv * ..
 if cd ../files/
 then for FILE in `find -type f`
   do

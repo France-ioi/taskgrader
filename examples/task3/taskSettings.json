@@ -1,1 +1,1 @@
-{"checker": "tests/gen/checker.sh", "sanitizer": "tests/gen/sanitizer.sh", "correctSolutions": [{"grade": 100, "path": "$TASK_PATH/tests/gen/sol-ok-c.c", "language": "c"}], "generator": "tests/gen/gen.sh"}
+{"correctSolutions": [{"grade": 100, "path": "$TASK_PATH/tests/gen/sol-ok-c.c", "language": "c"}]}

@@ -126,7 +126,19 @@ The sanitizer and the checker can be written in any language supported by the ta
 
 *This example can be found in the `examples/task2` folder.*
 
-### Example 3: adding a generator
+### Example 3: adding libraries
+
+This example is a task with libraries intended for usage by solutions. It's pretty simple to add libraries:
+
+* We write a library `lib.h` intended for usage with solution in the C language
+* We put it in `tests/files/lib/c/lib.h`
+* Finally, we test the task with `taskstarter.py test`.
+
+As long as the libraries are in the right folder (by default, `tests/files/lib/[language]/[library.ext]`), they will be automatically detected by `genJson` and added to the default dependencies for that language. All solutions of that language will have the library available for importation without any configuration necessry.
+
+*This example can be found in the `examples/task3` folder.*
+
+### Example 4: adding a generator
 
 It can be handy to use a generator to generate the test cases and/or libraries for the task, instead of writing them all by hand.
 
@@ -139,7 +151,7 @@ We add a generator like this:
 
 The generator is handy when a large number of test cases must be generated, and also for complex tasks where the expected output can take a long time to be computed, and thus needs to be precomputed.
 
-*This example can be found in the `examples/task3` folder.*
+*This example can be found in the `examples/task4` folder.*
 
 ### Testing tasks
 
@@ -152,13 +164,32 @@ Tasks can be tested with:
 
 The tool `genJson`, automatically called when using `taskstarter.py test`, prepares the task by writing its parameters into a `defaultParams.json` file. It contains all the required information to evaluate solutions against the task, and can be used by evaluation platforms directly to reference the task. The tool `stdGrade` will use this file to quickly evaluate solutions.
 
-### Complex task writing
+## More complex task writing
 
-More complex tasks can be written for usage with the taskgrader, but this section and the `taskstarter` tool are meant for simple tasks. More complex options are available in the taskgrader, read the rest of this documentation for more information.
+More complex tasks can be written for usage with the taskgrader. The `taskstarter` tool is meant for simple tasks, you need to edit files manually for these examples. Here is an example, but read the rest of this documentation for more information.
+
+### Example 5: solution skeleton
+
+Sometimes, the "solution" to be evaluated is not the file to be executed, but a library or a test file.
+
+In this example, we have `runner.py` calling the function `min3nombres` from the user-sent python file. The "solution" is hence a library, and the actual script executed is `runner.py` using this library.
+
+In order to be able to evaluation solutions against this task, we add, in `taskSettings.json`, the key `overrideParams/defaultSkeleton`. This key will get copied directly to `defaultParams.json`, where it will indicate the skeleton of what needs to be executed by the taskgrader.
+
+In this key, we indicate what needs to be executed, and the values `'%solname', '%solpath', '%sollang', '%soldeps'` will be replaced with the solution's name, path, language and dependencies. In this example task, `runner.py` is defined as the main program to execute, and our solution is passed as dependency of this program, and automatically named `solution.py` to be then imported by `runner.py`.
+
+You can test the task by running, from the task folder:
+
+* `taskstarter.py testsol tests/gen/sol-ok-py.py` for a good solution
+* `taskstarter.py testsol tests/gen/sol-bad-py.py` for a bad solution
+
+The testing tool `stdGrade` will automatically understand how to evaluate these solutions.
+
+*This example can be found in the `examples/task5` folder.*
 
 ## How does it work?
 
-Here's a description of the evaluation process, managed by the function `evaluation(evaluationParams)`.
+Here's a description of the evaluation process that taskgrader does, managed by the function `evaluation(evaluationParams)`.
 
 * `evaluationParams` is the input JSON
 * A build folder is created for the evaluation
