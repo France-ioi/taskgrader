@@ -1159,9 +1159,12 @@ def evaluation(evaluationParams):
             raise Exception("Output path `%s` invalid." % evaluationParams['outputPath'])
         baseWorkingDir = os.path.join(CFG_BUILDSDIR, evaluationParams['outputPath'])
     else:
-        baseWorkingDir = os.path.join(CFG_BUILDSDIR, '_build' + str(random.randint(0, 10000)) + '/')
+        # Make a new build folder in the build pool
+        buildPoolTries = 0
+        baseWorkingDir = '/'
         while os.path.isdir(baseWorkingDir):
-            baseWorkingDir = os.path.join(CFG_BUILDSDIR, '_build' + str(random.randint(0, 10000)) + '/')
+            baseWorkingDir = os.path.join(CFG_BUILDSDIR, '_build%d/' % random.randint(0+10000*buildPoolTries, 10000*buildPoolTries))
+            buildPoolTries += 1
     os.mkdir(baseWorkingDir)
 
     report = {}

@@ -39,7 +39,7 @@
 
         "filename": {"type": "string",
             "description": "A valid file name.",
-            "pattern": "^\\w[\\w.-]+$"}},
+            "pattern": "^\\w[\\w.~/-]+$"}},
 
 
     "properties": {
