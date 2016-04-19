@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # This script is an example checker.
-# It will be called by taskgrader in the following manner:
+# It will be called by taskgrader in the following manner:
 # checker.sh test.in test.solout test.out
 # Thus $1 will contain the input number, $2 the output of the solution.
 # The checker will give a grade of 100 if we got the expected result,

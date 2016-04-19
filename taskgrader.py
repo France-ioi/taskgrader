@@ -648,8 +648,16 @@ class LanguageScript(Language):
             # We add a shebang (even if the script already has one)
             execFile.write(self._singleScriptShebang())
             execFile.write("\n")
-            # Copy the script
-            execFile.write(open(os.path.join(ownDir, sourceFiles[0]), 'r').read())
+
+            # Read the source script
+            source = open(os.path.join(ownDir, sourceFiles[0]), 'r')
+            sourceFirstLine = source.readline()
+            # Check whether first line of the script is a shebang; in that case, remove it
+            if sourceFirstLine[:2] != '#!':
+                execFile.write(sourceFirstLine)
+            # Copy the rest of the script
+            execFile.write(source.read())
+
             execFile.close()
             # We set the executable bits
             os.chmod(execPath, 493) # chmod 755

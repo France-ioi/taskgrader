@@ -19,7 +19,7 @@ if __name__ == '__main__':
             except:
                 print "Test case invalid: element #%d, `%s`, is not a number." % (i, s)
                 sys.exit(1)
-        # Tests passed
+        # Tests passed
         sys.exit(0)
     else:
         # Length invalid
