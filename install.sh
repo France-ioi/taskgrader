@@ -3,6 +3,8 @@
 ### Install script for the taskgrader
 # Checks for program dependencies and compiles required programs
 
+# TODO :: rework this script
+
 ### Check for dependencies
 ERROR=0
 echo "*** Checking for required binaries..."
@@ -22,8 +24,9 @@ then
     exit 1
 fi
 
+echo
 echo "*** Checking for optional binaries..."
-for BINARY in fpc g++ gcc gcj git nodejs ocamlopt php5 python3 sudo
+for BINARY in fpc g++ gcc gcj git nodejs ocamlopt php5 python3
 do
     if which $BINARY > /dev/null
     then
@@ -39,14 +42,16 @@ then
 fi
 
 ### Fetch jsonschema and moe
+echo
+echo "*** Fetching dependencies..."
 if which git > /dev/null
 then
-    echo "*** Fetching dependencies..."
     git submodule update --init Jvs2Java jsonschema isolate
 
     ### Compile Jvs2Java
     if which gcj > /dev/null
     then
+        echo
         echo "*** Compiling Jvs2Java..."
         gcj --encoding=utf8 --main=Jvs2Java -o jvs2java Jvs2Java/Jvs2Java.java
     else
@@ -54,14 +59,27 @@ then
         echo "          Languages 'java' and 'javascool' will not be available."
         ERROR=2
     fi
+else
+    echo "[Warning] git not present, cannot fetch and compile dependencies"
+    echo "          isolate, jsonschema, Jvs2Java. Some features will be unavailable."
+    ERROR=2
+fi
 
+if which git > /dev/null && which sudo > /dev/null
+then
+  echo
+  echo "*** Installing isolate"
+  read -p "[?] Install isolate (needs root privileges)? [y/n]" -n 1 -r
+  echo
+  if [[ $REPLY =~ ^[Yy]$ ]]
+  then
     ### Compile isolate
-    echo "*** Compiling isolate..."
+    echo "* Compiling isolate..."
     make -C isolate isolate
     mv isolate/isolate isolate-bin
 
     ### Compile C programs
-    echo "*** Setting isolate-bin rights..."
+    echo "* Setting isolate-bin rights..."
     if ! sudo chown root:root isolate-bin
     then
         echo "[ERROR] Failed to \`chown root:root isolate-bin\`. Please run the command as root."
@@ -73,7 +91,7 @@ then
         echo "[ERROR] Failed to \`chmod 4755 isolate-bin\`. Please run the command as root."
         ERROR=1
     fi
-    echo "*** Compiling box-rights..."
+    echo "* Compiling box-rights..."
     if gcc -O3 -o box-rights box-rights.c
     then
         echo "Box-rights successfully compiled."
@@ -91,12 +109,17 @@ then
         echo "/!\ Error while compiling box-rights."
         ERROR=1
     fi
+  else
+    echo "Not installing isolate. Isolated execution will not be used."
+  fi
 else
-    echo "[Warning] git not present, cannot fetch and compile dependencies"
-    echo "          isolate, jsonschema, Jvs2Java. Some features will be unavailable."
+    echo "[Warning] sudo not present, cannot fetch and compile isolate."
+    echo "          Isolated execution will not be used."
+    ERROR=2
 fi
 
 ### Initialize data directories
+echo
 echo "*** Initializing (or resetting) data directories..."
 if [ -d files ]
 then
