@@ -1163,7 +1163,7 @@ def evaluation(evaluationParams):
         buildPoolTries = 0
         baseWorkingDir = '/'
         while os.path.isdir(baseWorkingDir):
-            baseWorkingDir = os.path.join(CFG_BUILDSDIR, '_build%d/' % random.randint(0+10000*buildPoolTries, 10000*buildPoolTries))
+            baseWorkingDir = os.path.join(CFG_BUILDSDIR, '_build%d/' % random.randint(10000*(buildPoolTries-1), 10000*buildPoolTries))
             buildPoolTries += 1
     os.mkdir(baseWorkingDir)
 
