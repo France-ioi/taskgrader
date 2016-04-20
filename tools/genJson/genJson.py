@@ -6,13 +6,14 @@
 # http://opensource.org/licenses/MIT
 
 
-import argparse, glob, json, os, re, shutil, sys, subprocess, tempfile, time
+import argparse, fnmatch, glob, json, os, re, shutil, sys, subprocess, tempfile, time
 from config import *
 
 CFG_SELFDIR = os.path.normpath(os.path.dirname(os.path.abspath(__file__)))
 
 
 # TODO :: change all print statements
+# TODO :: documentation taskSettings (ignoreTests)
 
 def getFileList(path):
     """Makes a list of sub-paths of files found in path."""
@@ -25,6 +26,14 @@ def getFileList(path):
         elif os.path.isdir(os.path.join(path, x)):
             l.extend(map(lambda a: os.path.join(x, a), getFileList(os.path.join(path, x))))
     return l
+
+
+def isIgnored(path, ignoreList):
+    """Checks a filename against a list of ignored patterns."""
+    for pattern in ignoreList:
+        if fnmatch.fnmatch(path, pattern):
+            return True
+    return False
 
 
 def globOfGlobs(folder, globlist):
@@ -198,17 +207,20 @@ def genDefaultParams(taskPath, taskSettings):
         if os.path.isdir(os.path.join(extraDir, 'all/')) and os.path.isdir(os.path.join(extraDir, 'python/')):
             # We have specific tests for python
             for f in globOfGlobs(extraDir, ['all/*.in', 'all/*.out']):
-                defExtraTests.append({'name': 'all-' + os.path.basename(f),
-                                      'path': os.path.join('$TASK_PATH', os.path.relpath(f, taskPath))})
+                if not isIgnored(os.path.basename(f), taskSettings.get('ignoreTests', [])):
+                    defExtraTests.append({'name': 'all-' + os.path.basename(f),
+                                          'path': os.path.join('$TASK_PATH', os.path.relpath(f, taskPath))})
             for f in globOfGlobs(taskPath, ['files/*.in', 'files/*.out']):
-                defExtraTests.append({'name': 'py-' + os.path.basename(f),
-                                      'path': '$TASK_PATH/' + os.path.relpath(f, taskPath)})
+                if not isIgnored(os.path.basename(f), taskSettings.get('ignoreTests', [])):
+                    defExtraTests.append({'name': 'py-' + os.path.basename(f),
+                                          'path': '$TASK_PATH/' + os.path.relpath(f, taskPath)})
             defFilterTests = ['all-*.in']
             defFilterTestsPy = ['py-*.in']
         else:
             # Tests are the same for all languages
             for f in globOfGlobs(extraDir, ['*.in', '*.out']):
-                defExtraTests.append(getTaskFile(os.path.relpath(f, taskPath)))
+                if not isIgnored(os.path.basename(f), taskSettings.get('ignoreTests', [])):
+                    defExtraTests.append(getTaskFile(os.path.relpath(f, taskPath)))
 
         # Auto-detected dependencies
         for f in glob.glob(os.path.join(extraDir, 'lib/*/*')):
