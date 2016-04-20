@@ -78,7 +78,8 @@
             "description": "List of reports of solution tests.",
             "items": {"type": "object",
                 "properties": {
-                    "name": {"type": "string"},
+                    "id": {"type": "string", "description": "Name of the execution"},
+                    "name": {"type": "string", "description": "Name of the solution graded."},
                     "testsReports": {"type": "array",
                         "description": "Reports of individual tests.",
                         "items": {"$ref": "#/definitions/testReport"}}},

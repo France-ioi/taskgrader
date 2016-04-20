@@ -1331,7 +1331,10 @@ def evaluation(evaluationParams):
             continue
         solution = solutions[test['idSolution']]
 
-        mainTestReport = {'name': test['idSolution'], 'testsReports': []}
+        mainTestReport = {
+            'id': test['id'],
+            'name': test['idSolution'],
+            'testsReports': []}
         testDir = "%sexecutions/%s.%s/" % (baseWorkingDir, test['idSolution'], test['id'])
         os.mkdir(testDir)
 

@@ -117,8 +117,12 @@ tested. We will only test whether the task compiles.\n""")
     # Call genJson, it will take care of checking everything while generating
     # TODO :: better genJson interaction
     print("Calling genJson...")
-    proc = subprocess.Popen([CFG_GENJSON, args.taskpath])
+    if args.verbose:
+        proc = subprocess.Popen([CFG_GENJSON, '-v', args.taskpath])
+    else:
+        proc = subprocess.Popen([CFG_GENJSON, args.taskpath])
     proc.wait()
+    print("")
     if proc.returncode > 0:
         print("genJson exited with return code %d, read output to check for errors." % proc.returncode)
     else:
@@ -157,9 +161,6 @@ def remotetest(args):
 if __name__ == '__main__':
     # Parse command-line arguments
     argParser = argparse.ArgumentParser(description="This tool helps task writers create and test their tasks.")
-
-    argParser.add_argument('-d', '--debug', help='Show debug information (implies -v)', action='store_true')
-    argParser.add_argument('-v', '--verbose', help='Be more verbose', action='store_true')
 
     # Parsers for each sub-command
     subparsers = argParser.add_subparsers(help='Action', dest='action')
@@ -202,6 +203,7 @@ if __name__ == '__main__':
         the taskgrader, ensuring that all correct solutions get their expected
         grades.""")
     testParser.add_argument('taskpath', help='Task folder', nargs='?', default='.')
+    testParser.add_argument('-v', '--verbose', help='Be more verbose', action='store_true')
 
     testsolParser = subparsers.add_parser('testsol', help='Test a solution with the task', description="""
         The 'testsol' action allows to test a solution with the task. It will
@@ -215,8 +217,6 @@ if __name__ == '__main__':
     remotetestParser.add_argument('taskpath', help='Task folder', nargs='?', default='.')
 
     args = argParser.parse_args()
-
-    args.verbose = args.verbose or args.debug
 
     # List of parsers and functions handling each action
     ACTIONS = {
