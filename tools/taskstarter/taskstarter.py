@@ -102,7 +102,76 @@ def addsol(args):
 
     return 0
 
-    # TODO :: removesol?
+def removesol(args):
+    """Remove a correctSolution."""
+    taskSettings = getTaskSettings(args.taskpath)
+
+    if 'correctSolutions' not in taskSettings or len(taskSettings['correctSolutions']) == 0:
+        print("No correctSolution defined.")
+        return 1
+
+    if args.removeall:
+        print("Removing all solutions...")
+        taskSettings['correctSolutions'] = []
+    elif args.path:
+        solpath = '$TASK_PATH/%s' % os.path.relpath(args.path, args.taskpath)
+        newcs = []
+        removed = False
+        for cs in taskSettings['correctSolutions']:
+            if cs['path'] == solpath:
+                removed = True
+            else:
+                newcs.append(cs)
+        if not removed:
+            print("Solution not found in correctSolutions.")
+            return 1
+        taskSettings['correctSolutions'] = newcs
+    else:
+        print("No solution to remove given.")
+        return 1
+
+    # Save new taskSettings
+    json.dump(taskSettings, open(os.path.join(args.taskpath, 'taskSettings.json'), 'w'))
+    print("Solution(s) removed successfully!")
+
+    return 0
+
+
+def show(args):
+    """Show settings of a task."""
+    taskSettings = getTaskSettings(args.taskpath)
+    print("Task in folder `%s`:" % args.taskpath)
+
+    if 'correctSolutions' in taskSettings:
+        if len(taskSettings['correctSolutions']) > 0:
+            print("%d correctSolutions defined:" % len(taskSettings['correctSolutions']))
+            for cs in taskSettings['correctSolutions']:
+                print("  `%s`, language '%s'" % (cs['path'], cs['language']), end="")
+                if 'grade' in cs:
+                    print(", expected grade %d" % cs['grade'])
+                else:
+                    print("")
+        else:
+            print("No correctSolutions defined.")
+        taskSettings.pop('correctSolutions')
+
+    for comp in ['generator', 'sanitizer', 'checker']:
+        if comp in taskSettings:
+            print("%s: `%s`" % (comp, taskSettings[comp]), end="")
+            if "%sDeps" % comp in taskSettings:
+                print("with dependencies:")
+                for dep in taskSettings["%sDeps" % comp]:
+                    print("  %s" % dep)
+                taskSettings.pop("%sDeps" % comp)
+            else:
+                print()
+            taskSettings.pop(comp)
+
+    if len(taskSettings.keys()) > 0:
+        for k in taskSettings.keys():
+            print("%s: %s" % (k, taskSettings[k]))
+
+    return 0
 
 
 def test(args):
@@ -195,6 +264,17 @@ if __name__ == '__main__':
     addsolParser.add_argument('-l', '--lang', help='Language of the solution', required=True, action='store')
     addsolParser.add_argument('path', help='Path to the solution')
 
+    removesolParser = subparsers.add_parser('removesol', help='Remove a correct solution from the task', description="""
+        The 'removesol' action allows to remove a "correct solution" which was
+        added with 'addsol' from the task.""")
+    removesolParser.add_argument('-a', '--all', help='Remove all correct solutions', dest='removeall', action='store_true')
+    removesolParser.add_argument('-t', '--taskpath', help='Task path', default='.')
+    removesolParser.add_argument('path', help='Path to the solution', nargs='?', default='')
+
+    showParser = subparsers.add_parser('show', help='Show task settings', description="""
+        The 'show' action lists the settings of the task.""")
+    showParser.add_argument('taskpath', help='Task folder', nargs='?', default='.')
+
     testParser = subparsers.add_parser('test', help='Test a task with the local taskgrader', description="""
         The 'test' action will test the task with the local taskgrader. It will
         call genJson to generate the `defaultParameters.json` file, which
@@ -223,6 +303,8 @@ if __name__ == '__main__':
         'init': {'p': initParser, 'f': init},
         'add': {'p': addParser, 'f': add},
         'addsol': {'p': addsolParser, 'f': addsol},
+        'removesol': {'p': removesolParser, 'f': removesol},
+        'show': {'p': showParser, 'f': show},
         'test': {'p': testParser, 'f': test},
         'testsol': {'p': testsolParser, 'f': testsol},
         'remotetest': {'p': remotetestParser, 'f': remotetest}
