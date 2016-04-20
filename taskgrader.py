@@ -10,8 +10,8 @@
 # See README.md for more information.
 
 
-import argparse, cPickle, fcntl, glob, hashlib, json, logging, os, random
-import shlex, shutil, sqlite3, stat, sys, subprocess, threading, time
+import argparse, cPickle, fcntl, glob, hashlib, json, logging, os, platform,
+import random, shlex, shutil, sqlite3, stat, sys, subprocess, threading, time
 import traceback
 from config import *
 
@@ -21,8 +21,10 @@ try:
 except:
     validate = None
 
-### XXX :: temporary for smooth transition
-if 'CFG_STATIC' not in globals():
+# Cannot compile as static on Mac OS X
+if platform.system() == 'Darwin':
+    CFG_STATIC = False
+else:
     CFG_STATIC = True
 
 
