@@ -248,6 +248,12 @@ def genDefaultParams(taskPath, taskSettings):
     for lang in CFG_LANGUAGES:
         defaultParams['defaultDependencies-' + lang] = defDependencies[lang]
 
+    # Add dependencies and filterTest aliases for old languages
+    for lang in CFG_LANGUAGES_OLD_NEW.keys():
+        newlang = CFG_LANGUAGES_OLD_NEW[lang]
+        if newlang != lang and lang not in CFG_LANGUAGES:
+            defaultParams['defaultDependencies-' + lang] = '@defaultDependencies-' + newlang
+            defaultParams['defaultFilterTests-' + lang] = '@defaultFilterTests-' + newlang
 
     ### Sanitizer
     if taskSettings.has_key('sanitizer') and os.path.isfile(os.path.join(taskPath, taskSettings['sanitizer'])):
