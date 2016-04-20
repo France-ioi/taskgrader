@@ -525,18 +525,43 @@ class IsolatedExecution(Execution):
         return report
 
 
+def which(name):
+    """Searches for a program in PATH."""
+    def is_exe(path):
+        return os.path.isfile(path) and os.access(path, os.X_OK)
+
+    fpath, basename = os.path.split(name)
+    if fpath and is_exe(name):
+        return name
+    else:
+        for spath in os.environ['PATH'].split(os.pathsep):
+            spath = spath.strip('"')
+            fullpath = os.path.join(spath, name)
+            if is_exe(os.path.join(spath, name)):
+                return fullpath
+    return False
+
+
 class Language():
     """Represents a language, gives functions for aspects specific to each
     language."""
 
     lang = 'default'
+    # The dependencies will be searched for, if one is not found, the Language
+    # will raise an exception in __init__.
+    # The full path of each dependency will be stored in self.deppaths; note
+    # that this full path is then used by code, so always add additional
+    # dependencies at the end of the list.
     dependencies = []
 
     def __init__(self):
         """Class initialization: check the required dependencies are present."""
+        self.deppaths = []
         for f in self.dependencies:
-            if not os.path.isfile(f):
+            deppath = which(f)
+            if not deppath:
                 raise UnsupportedLanguage("Cannot use language '%s', dependency `%s` missing." % (self.lang, f))
+            self.deppaths.append(deppath)
 
     def _getPossiblePaths(self, baseDir, filename):
         """Returns the possible paths for a dependency filename, for a build
@@ -563,18 +588,18 @@ class Language():
 
 class LanguageC(Language):
     lang = 'c'
-    dependencies = ["/usr/bin/gcc"]
+    dependencies = ["gcc"]
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
         if CFG_STATIC:
-            cmdLine = "/usr/bin/gcc -static -std=gnu99 -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
+            cmdLine = "%s -static -std=gnu99 -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(sourceFiles))
         else:
-            cmdLine = "/usr/bin/gcc -std=gnu99 -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
+            cmdLine = "%s -std=gnu99 -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(sourceFiles))
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
 class LanguageCpp(Language):
     lang = 'cpp'
-    dependencies = ["/usr/bin/g++"]
+    dependencies = ["g++"]
 
     def _getPossiblePaths(self, baseDir, filename):
         return [
@@ -587,63 +612,63 @@ class LanguageCpp(Language):
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
         if CFG_STATIC:
-            cmdLine = "/usr/bin/g++ -static -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
+            cmdLine = "%s -static -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(sourceFiles))
         else:
-            cmdLine = "/usr/bin/g++ -static -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
+            cmdLine = "%s -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(sourceFiles))
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
 class LanguageCpp11(LanguageCpp):
     lang = 'cpp11'
-    dependencies = ["/usr/bin/g++"]
+    dependencies = ["g++"]
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
         if CFG_STATIC:
-            cmdLine = "/usr/bin/g++ -std=gnu++11 -static -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
+            cmdLine = "%s -std=gnu++11 -static -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(sourceFiles))
         else:
-            cmdLine = "/usr/bin/g++ -std=gnu++11 -static -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
+            cmdLine = "%s -std=gnu++11 -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(sourceFiles))
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
 class LanguageOcaml(Language):
     lang = 'ocaml'
-    dependencies = ["/usr/bin/ocamlopt"]
+    dependencies = ["ocamlopt"]
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
         if CFG_STATIC:
-            cmdLine = "/usr/bin/ocamlopt -ccopt -static -o %s.exe %s" % (name, ' '.join(sourceFiles))
+            cmdLine = "%s -ccopt -static -o %s.exe %s" % (self.deppaths[0], name, ' '.join(sourceFiles))
         else:
-            cmdLine = "/usr/bin/ocamlopt -o %s.exe %s" % (name, ' '.join(sourceFiles))
+            cmdLine = "%s -o %s.exe %s" % (self.deppaths[0], name, ' '.join(sourceFiles))
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
 class LanguagePascal(Language):
     lang = 'pascal'
-    dependencies = ["/usr/bin/fpc"]
+    dependencies = ["fpc"]
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
-        cmdLine = "/usr/bin/fpc -o%s.exe %s" % (name, ' '.join(sourceFiles))
+        cmdLine = "%s -o%s.exe %s" % (self.deppaths[0], name, ' '.join(sourceFiles))
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
 class LanguageJava(Language):
     lang = 'java'
-    dependencies = ["/usr/bin/gcj"]
+    dependencies = ["gcj"]
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
-        cmdLine = "/usr/bin/gcj --encoding=utf8 --main=Main -o %s.exe %s" % (name, ' '.join(sourceFiles))
+        cmdLine = "%s --encoding=utf8 --main=Main -o %s.exe %s" % (self.deppaths[0], name, ' '.join(sourceFiles))
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
 class LanguageJavascool(LanguageJava):
     lang = 'javascool'
-    dependencies = ["/usr/bin/gcj", CFG_JAVASCOOLBIN]
+    dependencies = ["gcj", CFG_JAVASCOOLBIN]
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
         # Javascool needs to be transformed before being executed
         cmdLine = "%s %s source.java %s" % (CFG_JAVASCOOLBIN, sourceFiles[0], ' '.join(depFiles))
         Execution(None, compilationParams, cmdLine).execute(ownDir)
-        cmdLine = "/usr/bin/gcj --encoding=utf8 --main=Main -o %s.exe source.java" % name
+        cmdLine = "%s --encoding=utf8 --main=Main -o %s.exe source.java" % (self.deppaths[0], name)
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
 class LanguageScript(Language):
     lang = 'default-script'
-    dependencies = ["/usr/bin/openssl"]
+    dependencies = ["openssl"]
 
     def _scriptLines(self, sourceFiles, depFiles):
         """Returns the commands to execute the program when there are multiple
@@ -685,7 +710,7 @@ class LanguageScript(Language):
             sharFile.write("#!/bin/sh\n")
             for f in (sourceFiles + depFiles):
                 # Encode each file in base64, use openssl to extract them
-                sharFile.write("/usr/bin/openssl base64 -d -out \"%s\" 2> /dev/null <<EOF\n" % f)
+                sharFile.write("%s base64 -d -out \"%s\" 2> /dev/null <<EOF\n" % (self.deppaths[0], f))
                 sharFile.write(open(os.path.join(ownDir, f), 'r').read().encode("base64"))
                 sharFile.write("EOF\n")
             # Execute the script(s) after self-extracting
@@ -708,7 +733,7 @@ class LanguageScript(Language):
 
 class LanguageShell(LanguageScript):
     lang = 'sh'
-    dependencies = ["/usr/bin/openssl"]
+    dependencies = ["openssl"]
 
     def _scriptLines(self, sourceFiles, depFiles):
         lines = ["export TASKGRADER_DEPFILES=\"%s\"\n" % ' '.join(depFiles)]
@@ -720,28 +745,28 @@ class LanguageShell(LanguageScript):
 
 class LanguageNodejs(LanguageScript):
     lang = 'js'
-    dependencies = ["/usr/bin/openssl", "/usr/bin/nodejs"]
+    dependencies = ["openssl", "nodejs"]
 
     def _scriptLines(self, sourceFiles, depFiles):
         # TODO :: try to configure nodejs to use less memory
-        return map(lambda x: "/usr/bin/nodejs %s $@\n" % x, sourceFiles)
+        return map(lambda x: "%s %s $@\n" % (self.deppaths[1], x), sourceFiles)
 
     def _singleScriptShebang(self):
-        return "#!/usr/bin/nodejs"
+        return "#!%s" % self.deppaths[1]
 
 class LanguagePhp(LanguageScript):
     lang = 'php'
-    dependencies = ["/usr/bin/openssl", "/usr/bin/php5"]
+    dependencies = ["openssl", "php5"]
 
     def _scriptLines(self, sourceFiles, depFiles):
-        return map(lambda x: "/usr/bin/php5 --file %s $@\n" % x, sourceFiles)
+        return map(lambda x: "%s --file %s $@\n" % (self.deppaths[1], x), sourceFiles)
 
     def _singleScriptShebang(self):
-        return "#!/usr/bin/php5"
+        return "#!%s" % self.deppaths[1]
 
 class LanguagePython2(LanguageScript):
     lang = 'py2'
-    dependencies = ["/usr/bin/openssl", "/usr/bin/python2.7"]
+    dependencies = ["openssl", "python2.7"]
 
     def _getPossiblePaths(self, baseDir, filename):
         return [
@@ -753,14 +778,14 @@ class LanguagePython2(LanguageScript):
             os.path.join(baseDir, 'libs', filename)]
 
     def _scriptLines(self, sourceFiles, depFiles):
-        return ["/usr/bin/python2.7 %s $@\n" % ' '.join(sourceFiles)]
+        return ["%s %s $@\n" % (self.deppaths[1], ' '.join(sourceFiles))]
 
     def _singleScriptShebang(self):
-        return "#!/usr/bin/python2.7"
+        return "#!%s" % self.deppaths[1]
 
 class LanguagePython3(LanguageScript):
     lang = 'py3'
-    dependencies = ["/usr/bin/openssl", "/usr/bin/python3"]
+    dependencies = ["openssl", "python3"]
 
     def _getPossiblePaths(self, baseDir, filename):
         return [
@@ -772,10 +797,10 @@ class LanguagePython3(LanguageScript):
             os.path.join(baseDir, 'libs', filename)]
 
     def _scriptLines(self, sourceFiles, depFiles):
-        return ["/usr/bin/python3 %s $@\n" % ' '.join(sourceFiles)]
+        return ["%s %s $@\n" % (self.deppaths[1], ' '.join(sourceFiles))]
 
     def _singleScriptShebang(self):
-        return "#!/usr/bin/python3"
+        return "#!%s" % self.deppaths[1]
 
 
 class Program():

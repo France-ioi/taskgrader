@@ -15,6 +15,22 @@ import argparse, json, os, subprocess, sys, threading, tempfile, unittest
 CFG_TASKGRADER = os.path.normpath(os.path.dirname(os.path.abspath(__file__)) + '/../taskgrader.py')
 
 
+def programExists(name):
+    """Checks whether a program can be found in PATH."""
+    def is_exe(path):
+        return os.path.isfile(path) and os.access(path, os.X_OK)
+
+    fpath, basename = os.path.split(name)
+    if fpath and is_exe(name):
+        return True
+    else:
+        for spath in os.environ['PATH'].split(os.pathsep):
+            spath = spath.strip('"')
+            if is_exe(os.path.join(spath, name)):
+                return True
+    return False
+
+
 def communicateWithTimeout(subProc, timeout=0, input=None):
     """Communicates with subProc until its completion or timeout seconds,
     whichever comes first."""
@@ -237,7 +253,7 @@ class SolutionSimpleBase(FullTestBase):
             self.skipTest("No solution defined.")
 
         for d in self._dependencies:
-            self.assertTrue(os.path.isfile(d), msg="Dependency `%s` missing." % d)
+            self.assertTrue(programExists(d), msg="Dependency `%s` missing." % d)
 
         return {
             'rootPath': os.path.dirname(os.path.abspath(__file__)),
@@ -258,48 +274,48 @@ class SolutionSimpleBase(FullTestBase):
             ]
 
 class SolutionSimpleC(SolutionSimpleBase):
-    _dependencies = ['/usr/bin/gcc']
+    _dependencies = ['gcc']
     _solution = '@testSolutionC'
     _execution = '@testExecutionC'
 
 class SolutionSimpleCpp(SolutionSimpleBase):
-    _dependencies = ['/usr/bin/g++']
+    _dependencies = ['g++']
     _solution = '@testSolutionCpp'
     _execution = '@testExecutionCpp'
 
 class SolutionSimpleJava(SolutionSimpleBase):
-    _dependencies = ['/usr/bin/gcj']
+    _dependencies = ['gcj']
     _solution = '@testSolutionJava'
     _execution = '@testExecutionJava'
 
 @unittest.skip('test not working') # TODO :: fix
 class SolutionSimpleJavascool(SolutionSimpleBase):
-    _dependencies = ['/usr/bin/gcj']
+    _dependencies = ['gcj']
     _solution = '@testSolutionJavascool'
     _execution = '@testExecutionJavascool'
 
 class SolutionSimpleJs(SolutionSimpleBase):
-    _dependencies = ['/usr/bin/nodejs']
+    _dependencies = ['nodejs']
     _solution = '@testSolutionJs'
     _execution = '@testExecutionJs'
 
 class SolutionSimpleOcaml(SolutionSimpleBase):
-    _dependencies = ['/usr/bin/ocamlopt']
+    _dependencies = ['ocamlopt']
     _solution = '@testSolutionOcaml'
     _execution = '@testExecutionOcaml'
 
 class SolutionSimplePascal(SolutionSimpleBase):
-    _dependencies = ['/usr/bin/fpc']
+    _dependencies = ['fpc']
     _solution = '@testSolutionPascal'
     _execution = '@testExecutionPascal'
 
 class SolutionSimplePhp(SolutionSimpleBase):
-    _dependencies = ['/usr/bin/php5']
+    _dependencies = ['php5']
     _solution = '@testSolutionPhp'
     _execution = '@testExecutionPhp'
 
 class SolutionSimplePython(SolutionSimpleBase):
-    _dependencies = ['/usr/bin/python3']
+    _dependencies = ['python3']
     _solution = '@testSolutionPython'
     _execution = '@testExecutionPython'
 
