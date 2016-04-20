@@ -1,1 +1,13 @@
-{"correctSolutions": [{"language": "c", "path": "$TASK_PATH/tests/gen/sol-ok-c.c", "grade": 100}]}
+{
+"correctSolutions": [
+    {
+    "path": "$TASK_PATH/tests/gen/sol-ok-c.c",
+    "language": "c",
+    "grade": 100
+    },
+    {
+    "path": "$TASK_PATH/tests/gen/sol-bad-c.c",
+    "language": "c",
+    "grade": 0
+    }]
+}
