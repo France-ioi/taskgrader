@@ -15,6 +15,45 @@ CFG_SELFDIR = os.path.normpath(os.path.dirname(os.path.abspath(__file__)))
 # TODO :: change all print statements
 # TODO :: documentation taskSettings (ignoreTests)
 
+
+# XXX TODO :: duplicate code from genStdTaskJson
+# Remove duplicate after reorganizing code.
+def preprocessJson(json, varData):
+    """Preprocess some JSON data, replacing variables with their values.
+    There's no checking of the type of values in the variables; the resulting
+    JSON is supposed to be checked against a JSON schema.
+    varData represents the variable data; all values written as '@varname' in
+    the JSON will be replaced by varData['varname']."""
+    if (type(json) is str or type(json) is unicode) and len(json) > 0:
+        if json[0] == '%':
+            # It's a variable, we replace it with the JSON data
+            # It will return an error if the variable doesn't exist, it's intended
+            varName = json[1:]
+            if varData.has_key(varName):
+                return preprocessJson(varData[varName], varData)
+            else:
+                # XXX this is changed from taskgrader.py's preprocessJson
+                print json
+                return json
+        else:
+            return json
+    elif type(json) is dict:
+        # It's a dict, we process the values in it
+        newjson = {}
+        for k in json.keys():
+            newjson[k] = preprocessJson(json[k], varData)
+        return newjson
+    elif type(json) is list:
+        # It's a list, we filter the values in it
+        newjson = map(lambda x: preprocessJson(x, varData), json)
+        # We remove None values, which are probably undefined variables
+        while None in newjson:
+            newjson.remove(None)
+        return newjson
+    else:
+        return json
+
+
 def getFileList(path):
     """Makes a list of sub-paths of files found in path."""
     l = []
@@ -359,15 +398,25 @@ def genDefaultParams(taskPath, taskSettings):
     return defaultParams
 
 
-def genTestSolution(compParams, solId=1, solPath=None, solLang=None):
+def genTestSolution(compParams, solId=1, solPath=None, solLang=None, defaultParams={}):
     """Generate the JSON decribing a solution."""
     if solPath:
+        skeleton = defaultParams.get('defaultSkeleton', {
+            'language': '%sollang',
+            'files': [{'name': '%solfilename',
+                       'path': '%solpath'}],
+            'dependencies': '%soldeps'
+            })
+
+        # Fill in the skeleton
+        descr = preprocessJson(skeleton, {
+            'sollang': solLang,
+            'solfilename': os.path.basename(solPath),
+            'solpath': solPath,
+            'soldeps': '@defaultDependencies-%s' % solLang})
+
         return {'id': 'testSolution%d' % solId,
-                'compilationDescr': {
-                    'language': solLang,
-                    'files': [{'name': os.path.basename(solPath),
-                               'path': solPath}],
-                    'dependencies': '@defaultDependencies-%s' % solLang},
+                'compilationDescr': descr,
                 'compilationExecution': compParams}
     else:
         # If no solution is given, we use `true.sh` default script
@@ -379,7 +428,7 @@ def genTestSolution(compParams, solId=1, solPath=None, solLang=None):
                 'compilationExecution': compParams}
 
 
-def genTestEvaluation(relPath, correctSolutions=[]):
+def genTestEvaluation(relPath, correctSolutions=[], defaultParams={}):
     """Generate the JSON describing a test evaluation of a solution."""
 
     if len(correctSolutions) > 0:
@@ -387,7 +436,7 @@ def genTestEvaluation(relPath, correctSolutions=[]):
         testExecutions = []
         # There are specific solutions to test
         for (i, sol) in enumerate(correctSolutions):
-            testSolutions.append(genTestSolution(CFG_TESTSOLPARAMS, i, sol['path'], sol['language']))
+            testSolutions.append(genTestSolution(CFG_TESTSOLPARAMS, i, sol['path'], sol['language'], defaultParams))
             testExecutions.append({
                 'id': 'testExecution%d' % i,
                 'idSolution': 'testSolution%d' % i,
@@ -473,7 +522,7 @@ if __name__ == '__main__':
 
         # Make test evaluation
         taskPath = os.path.relpath(path, CFG_ROOTDIR)
-        testEvaluation = genTestEvaluation(taskPath, taskSettings.get('correctSolutions', []))
+        testEvaluation = genTestEvaluation(taskPath, taskSettings.get('correctSolutions', []), defaultParams)
         testEvaluation['extraParams'] = defaultParams # We input directly the default params
         if args.verbose:
             print '* Generated test evaluation'

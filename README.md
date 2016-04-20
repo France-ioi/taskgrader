@@ -180,6 +180,7 @@ In this key, we indicate what needs to be executed, and the values `'%solname', 
 
 You can test the task by running, from the task folder:
 
+* `taskstarter.py test` for the normal test
 * `taskstarter.py testsol tests/gen/sol-ok-py.py` for a good solution
 * `taskstarter.py testsol tests/gen/sol-bad-py.py` for a bad solution
 

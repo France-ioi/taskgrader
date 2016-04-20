@@ -1,5 +1,17 @@
-{"sanitizer": "tests/gen/sanitizer.py",
+{
+"sanitizer": "tests/gen/sanitizer.py",
 "checker": "tests/gen/checker.py",
+"correctSolutions": [
+    {
+    "path": "$TASK_PATH/tests/gen/sol-ok-py.py",
+    "language": "python2",
+    "grade": 100
+    },
+    {
+    "path": "$TASK_PATH/tests/gen/sol-bad-py.py",
+    "language": "python2",
+    "grade": 0
+    }],
 "overrideParams": {
     "defaultSkeleton": {
         "language": "py",
