@@ -21,6 +21,10 @@ try:
 except:
     validate = None
 
+### XXX :: temporary for smooth transition
+if 'CFG_STATIC' not in globals():
+    CFG_STATIC = True
+
 
 class TemporaryException(Exception):
     """TemporaryException is a special exception representing a temporary
@@ -562,7 +566,10 @@ class LanguageC(Language):
     dependencies = ["/usr/bin/gcc"]
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
-        cmdLine = "/usr/bin/gcc -static -std=gnu99 -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
+        if CFG_STATIC:
+            cmdLine = "/usr/bin/gcc -static -std=gnu99 -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
+        else:
+            cmdLine = "/usr/bin/gcc -std=gnu99 -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
 class LanguageCpp(Language):
@@ -579,7 +586,10 @@ class LanguageCpp(Language):
             os.path.join(baseDir, 'libs', filename)]
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
-        cmdLine = "/usr/bin/g++ -static -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
+        if CFG_STATIC:
+            cmdLine = "/usr/bin/g++ -static -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
+        else:
+            cmdLine = "/usr/bin/g++ -static -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
 class LanguageCpp11(LanguageCpp):
@@ -587,7 +597,10 @@ class LanguageCpp11(LanguageCpp):
     dependencies = ["/usr/bin/g++"]
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
-        cmdLine = "/usr/bin/g++ -std=gnu++11 -static -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
+        if CFG_STATIC:
+            cmdLine = "/usr/bin/g++ -std=gnu++11 -static -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
+        else:
+            cmdLine = "/usr/bin/g++ -std=gnu++11 -static -O2 -Wall -o %s.exe %s -lm" % (name, ' '.join(sourceFiles))
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
 class LanguageOcaml(Language):
@@ -595,7 +608,10 @@ class LanguageOcaml(Language):
     dependencies = ["/usr/bin/ocamlopt"]
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
-        cmdLine = "/usr/bin/ocamlopt -ccopt -static -o %s.exe %s" % (name, ' '.join(sourceFiles))
+        if CFG_STATIC:
+            cmdLine = "/usr/bin/ocamlopt -ccopt -static -o %s.exe %s" % (name, ' '.join(sourceFiles))
+        else:
+            cmdLine = "/usr/bin/ocamlopt -o %s.exe %s" % (name, ' '.join(sourceFiles))
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
 class LanguagePascal(Language):

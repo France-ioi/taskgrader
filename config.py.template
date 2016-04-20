@@ -30,6 +30,9 @@ CFG_LOGFILE = None
 # Log level, must be 'CRITICAL', 'ERROR', 'WARNING', 'INFO' or 'DEBUG'
 CFG_LOGLEVEL = "WARNING"
 
+# Compile as static executables where possible
+CFG_STATIC = True
+
 # Does the kernel support control groups?
 CFG_CONTROLGROUPS = False
 
