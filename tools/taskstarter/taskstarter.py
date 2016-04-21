@@ -212,9 +212,12 @@ def testsol(args):
     # If genJson failed, we cannot test
     if proc.returncode > 0:
         print("genJson exited with return code %d, use 'test' action to check the reason" % proc.returncode)
-        return proc.returncode
+        if proc.returncode == 2:
+            print("Non-fatal genJson error, testing the solution anyway.")
+        else:
+            return proc.returncode
 
-    print("Testing with stdGrade.sh...")
+    print("\nTesting with stdGrade.sh...")
     proc = subprocess.Popen([CFG_STDGRADE, args.path], cwd=args.taskpath)
     proc.wait()
     return proc.returncode

@@ -500,6 +500,7 @@ if __name__ == '__main__':
     else:
         paths = args.folder
 
+    fatalErrors = 0
     tasksWithErrors = []
 
     for path in paths:
@@ -544,6 +545,7 @@ if __name__ == '__main__':
             outJson = json.loads(procOut)
         except:
             print 'Received non-JSON data.'
+            fatalErrors += 1
             tasksWithErrors.append(path)
             continue
 
@@ -558,6 +560,7 @@ if __name__ == '__main__':
             # Some tasks have a different number of test cases for each
             # language, we just save the max number
             maxNbTotal = 0
+            nbTests, nbSan, nbCheck = 0, 0, 0
             for execution in outJson['executions']:
                 if execution['id'][:13] != "testExecution":
                     continue
@@ -567,6 +570,15 @@ if __name__ == '__main__':
                     solData = taskSettings['correctSolutions'][solId]
                 except:
                     continue
+
+                # Totals
+                nbTests += len(execution['testsReports'])
+                for report in execution['testsReports']:
+                    if report['sanitizer']['exitCode'] == 0:
+                        nbSan += 1
+                        if report.has_key('checker') and report['checker']['exitCode'] == 0:
+                            nbCheck += 1
+
                 nbOk = 0
                 nbTotal = len(execution['testsReports'])
                 maxNbTotal = max(maxNbTotal, nbTotal)
@@ -574,18 +586,39 @@ if __name__ == '__main__':
                 for test in execution['testsReports']:
                     try:
                         testGrade = int(test['checker']['stdout']['data'].split()[0])
-                        if testGrade == solData['grade']:
-                            nbOk += 1
-                        else:
-                            print "Got grade %d instead of %d" % (testGrade, solData['grade'])
                     except:
-                        print "Error reading test"
+                        if test.has_key('execution'):
+                            if test['execution']['exitCode'] == 0:
+                                print "Checker error, output:\n%s%s" % (test['checker']['stdout']['data'], test['checker']['stderr']['data'])
+                            else:
+                                print "Solution exited with non-zero exit code:\n%s%s" % (test['execution']['stdout']['data'], test['execution']['stderr']['data'])
+                        elif test['sanitizer']['exitCode'] > 0:
+                            print "Sanitizer didn't validate test case:\n%s%s" % (test['sanitizer']['stdout']['data'], test['sanitizer']['stderr']['data'])
+                        else:
+                            print "Error reading test data."
+                        cError = True
+                        continue
+                    if testGrade == solData['grade']:
+                        nbOk += 1
+                    else:
+                        print "Got grade %d instead of %d" % (testGrade, solData['grade'])
+                        cError = True
                 if nbOk != nbTotal:
                     print "/!\ Test failed on %s: %d/%d grades incorrect" % (solData['path'], nbTotal-nbOk, nbTotal)
                     cError = True
                 if nbTotal != solData.get('nbtests', nbTotal):
                     print "/!\ Test failed on %s: %d tests done / %d tests expected" % (solData['path'], nbTotal, solData['nbtests'])
                     cError = True
+
+            print "Totals: %d tests, %d test cases validated by sanitizer," % (nbTests, nbSan)
+            print "%d successful checker executions." % nbCheck
+            if nbSan < nbTests:
+                print '/!\ %d test cases not validated by sanitizer' % (nbTests - nbSan)
+                cError = True
+            if nbCheck < nbSan:
+                print '/!\ Checker failed on %d tests' % (nbSan - nbCheck)
+                cError = True
+
             if cError:
                 tasksWithErrors.append(path)
             else:
@@ -594,7 +627,6 @@ if __name__ == '__main__':
             # Just check the dummy solution executed successfully at least once
             try:
                 execution = outJson['executions'][0]
-                exitCode = outJson['executions'][0]['testsReports'][0]['execution']['exitCode']
             except:
                 tasksWithErrors.append(path)
                 print procOut
@@ -616,6 +648,7 @@ if __name__ == '__main__':
                 tasksWithErrors.append(path)
             else:
                 print "Test successful."
+
     if len(tasksWithErrors) > 0:
         print ''
         if len(tasksWithErrors) == 1:
@@ -628,7 +661,13 @@ if __name__ == '__main__':
             print ', '.join(tasksWithErrors)
         if not args.verbose:
             print "Use -v switch to have the full JSON data and check for errors."
-        sys.exit(1)
+        if len(tasksWithErrors) > fatalErrors:
+            # Not all task errors are fatal
+            sys.exit(2)
+        else:
+            # All task errors are fatal (taskgrader not executing the task at all)
+            sys.exit(1)
     else:
         print ''
         print "Completed without errors."
+        sys.exit(0)

@@ -12,7 +12,7 @@ SOLOUTDATA=`cat $1`
 if ! [ "$SOLOUTDATA" -eq "$RESULT" ] 2> /dev/null
 then
   echo "0"
-  exit 1
+  exit 0
 else
   echo "100"
   exit 0

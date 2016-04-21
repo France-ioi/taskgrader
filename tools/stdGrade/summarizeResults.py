@@ -36,13 +36,13 @@ if __name__ == '__main__':
         for report in execution['testsReports']:
             if 'checker' in report:
                 # Everything was executed
-                print('Solution executed successfully. Checker report:')
+                print('Solution `%s` executed successfully on test `%s`. Checker report:' % (execution['name'], report['name']))
                 print(report['checker']['stdout']['data'])
             elif 'execution' in report:
                 # Solution error
-                print('Solution returned an error. Solution report:')
+                print('Solution `%s` returned an error on test `%s`. Solution report:' % (execution['name'], report['name']))
                 print(json.dumps(report['execution']))
             else:
                 # Sanitizer error
-                print('Test rejected by sanitizer. Sanitizer report:')
+                print('Test `%s` rejected by sanitizer. Sanitizer report:' % report['name'])
                 print(json.dumps(report['sanitizer']))
