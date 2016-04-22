@@ -13,7 +13,11 @@ On Debian or Ubuntu, the recommended dependencies are:
 
     apt-get install build-essential git python3 sudo
 
-Some additional dependencies are required to support all features and languages:
+On Fedora, the recommended dependencies are:
+
+    dnf install @development-tools glibc-static libstdc++-static
+
+Some additional dependencies are required to support all features and languages, on Debian or Ubuntu:
 
     apt-get install fp-compiler gcj-4.9 nodejs php5-cli
 
@@ -40,6 +44,8 @@ Some more information can be found in the [isolate man page](http://www.ucw.cz/m
 ### Installation
 
 Execute `install.sh` in the taskgrader directory to install, as the user who will be running the taskgrader. It will help you install everything.
+
+The installation of 'isolate' needs root access, and ability to have files owned by root with setuid on the current directory (doesn't work with remote folders such as NFS). If you cannot, you won't be able to use 'isolate', but the taskgrader will still work.
 
 If needed, edit `config.py` to suit your needs; however default values will work for simple tests.
 
