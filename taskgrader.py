@@ -476,8 +476,11 @@ class IsolatedExecution(Execution):
             cleanProc = subprocess.Popen([CFG_ISOLATEBIN, '--cleanup', '--box-id=%d' % boxId], cwd=workingDir)
             waitWithTimeout(cleanProc, 10)
             raise Exception("""Internal isolate error, please check installation: #%d %s
-                    while trying to execute `%s` in folder `%s`""" % (proc.returncode,
-                    isolateMeta.get('status', ''), cmdLine, workingDir))
+                    while trying to execute `%s` in folder `%s`.
+                    stdout: %s
+                    stderr: %s""" % (proc.returncode, isolateMeta.get('status', ''),
+                                    cmdLine, workingDir,
+                                    procOut, procErr))
 
         # Set file rights so that we can access the files
         rightsProc = subprocess.Popen([CFG_RIGHTSBIN])
