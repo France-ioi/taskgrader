@@ -2,7 +2,10 @@ Output expected from the test #1
 This file is a hardcoded test for the solution, and corresponds to the expected
 output from the solution; the checker might or might not use this file to
 compare the output from the solution to this reference.
+(The default checker needs this file.)
 
 Each X.out file will be given to the checker when X.in is used as a test file.
 
 Put other .out files in this folder to get them automatically added.
+
+EDIT ME (remove this line and all lines above when writing your test case)
