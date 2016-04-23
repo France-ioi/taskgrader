@@ -9,17 +9,17 @@ It is meant to be used both locally for tests and in contest evaluation settings
 
 On many distributions, the required dependencies are already installed.
 
-On Debian or Ubuntu, the recommended dependencies are:
+On **Debian or Ubuntu**, the recommended dependencies are:
 
     apt-get install build-essential git python3 sudo
-
-On Fedora, the recommended dependencies are:
-
-    dnf install @development-tools glibc-static libstdc++-static
 
 Some additional dependencies are required to support all features and languages, on Debian or Ubuntu:
 
     apt-get install fp-compiler gcj-4.9 nodejs php5-cli
+
+On **Fedora**, the recommended dependencies are:
+
+    dnf install @development-tools glibc-static libstdc++-static
 
 Some systems don't provide the `gcj` shortcut, in that case make a symlink to your version of `gcj`, such as:
 
@@ -76,7 +76,7 @@ First command will execute the taskgrader on an example evaluation described by 
 
     tools/taskstarter/taskstarter.py init mynewtask
 
-This command will start a new task in the folder `mynewtask`; use it if you want to write a task. In this new task folder, you'll find a few files to guide you on the usual components of a task. The next section describes that in more detail.
+This command will start a new task in the folder `mynewtask`; use it if you want to write a task for use with the taskgrader. It will ask you a few questions to guide you through the various components of a task, and write a base task with some example files. The next section describes that in more detail.
 
     cd examples/task3 ; ../../tools/taskstarter/taskstarter.py test
 
@@ -86,6 +86,8 @@ More details on usage can be found through this documentation.
 
 ## Getting started on writing a task
 
+Use `taskstarter.py init [taskpath]` to interactively create a new task.
+
 A "task" is a set of programs and files representing the problem the solutions will be evaluated against:
 
 * the test cases (input files and the associated expected output),
@@ -94,7 +96,7 @@ A "task" is a set of programs and files representing the problem the solutions w
 * a sanitizer, checking the input files are in the required format
 * the checker, grading each solution's output
 
-The script `tools/taskstarter/taskstarter.py` can assist with writing a task.
+The script `tools/taskstarter/taskstarter.py` can assist with writing a task; use `taskstarter.py help` to see the available commands.
 
 Here are some examples based around a simple problem: the program is given a number as input, and must output the double of the number. These example tasks can be found in the `examples` folder.
 
@@ -102,7 +104,7 @@ Here are some examples based around a simple problem: the program is given a num
 
 A task can be just test cases. The task can be built and tested like this:
 
-* We start our task in a folder with `taskstarter.py init`; it will give us a base task structure we can use as reference
+* We start our task in a folder with `taskstarter.py init` (answering 'no' to all questions); it will give us a base task structure we can use as reference
 * We put the test cases input files `test1.in` and `test2.in` in the subfolder `tests/files/`
 * We put in the same subfolder `test1.out` and `test2.out`, the correct output of these test cases
 * We can write a valid solution, for instance `sol-ok-c.c` in this example

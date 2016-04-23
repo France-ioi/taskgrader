@@ -353,6 +353,7 @@ def test(args):
             print("Force option used, testing anyway...")
         else:
             print("Please edit these files or remove the EDIT ME marker before continuing.")
+            print("(You can force the test by using the -f switch.)"
             return 1
 
     if 'correctSolutions' not in taskSettings:
@@ -387,12 +388,13 @@ def testsol(args):
 
     # If genJson failed, we cannot test
     if proc.returncode > 0:
-        print("genJson exited with return code %d, use 'test' action to check the reason" % proc.returncode)
+        print("genJson exited with return code %d, use 'test' action to check the reason." % proc.returncode)
         if proc.returncode == 2:
             print("Non-fatal genJson error, testing the solution anyway.")
         elif args.force:
             print("-f option used, testing the solution anyway.")
         else:
+            print("Test cancelled because of genJson error.\nYou can force the test by using the -f switch.")
             return proc.returncode
 
     print("\nTesting with stdGrade.sh...")
