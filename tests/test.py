@@ -9,11 +9,11 @@
 # is as expected and the local configuration is good.
 
 
-import argparse, json, os, subprocess, sys, threading, tempfile, unittest
+import argparse, json, os, subprocess, sys, threading, tempfile, traceback
+import unittest
 
 # Path to the taskgrader executable
 CFG_TASKGRADER = os.path.normpath(os.path.dirname(os.path.abspath(__file__)) + '/../taskgrader.py')
-
 
 def programExists(name):
     """Checks whether a program can be found in PATH."""
@@ -87,13 +87,19 @@ class FullTestBase(unittest.TestCase):
         bad = len(checkList) - good
 
         if bad > 0:
-            self.details['msg'] = 'Test %s failed, %d checks good, %d checks bad.' % (self.__class__, good, bad)
+            self.details['msg'] = 'Test %s failed, %d checks good, %d checks bad.' % (self.__class__.__name__, good, bad)
             return False
         else:
-            self.details['msg'] = 'Test %s passed, %d checks good.' % (self.__class__, good)
+            self.details['msg'] = 'Test %s passed, %d checks good.' % (self.__class__.__name__, good)
             return True
 
+    def shortDescription(self):
+        """Return a short description of the test."""
+        # Overload to have a better control
+        return getattr(self, 'description', '')
+
     def runTest(self):
+        """Run the test."""
         if self.__class__ == FullTestBase:
             self.skipTest("Base class")
 
@@ -112,8 +118,12 @@ class FullTestBase(unittest.TestCase):
             self.details['validjson'] = True
         except:
             self.details['validjson'] = False
+            self.details['errorDetails'] = self.details['stderr']
         self.result = self.isCorrect()
-        self.assertTrue(self.result, msg="%s Details: %s" % (self.details['msg'], self.details))
+        if not self.result:
+            self.assertTrue(self.details['validjson'], msg="Exception occured in taskgrader")
+            self.details['errorDetails'] = str(self.details)
+            self.assertTrue(self.result, msg="%s" % self.details['msg'])
 
 
 class SanitizerCheckerTest(FullTestBase):
@@ -121,6 +131,7 @@ class SanitizerCheckerTest(FullTestBase):
     behavior is to have the taskgrader compile them and then exit successfully
     without evaluating any solution."""
 
+    description = "sanitizer & checker test"
 
     def makeInputJson(self):
         return {
@@ -147,6 +158,8 @@ class BadSanitizerTest(FullTestBase):
     expected to exit with an error after being unable to compile the
     sanitizer."""
 
+    description = "invalid sanitizer test"
+
     def makeInputJson(self):
         return {
             'rootPath': os.path.dirname(os.path.abspath(__file__)),
@@ -170,6 +183,8 @@ class BadCheckerTest(FullTestBase):
     expected to exit with an error after being unable to compile the
     checker."""
 
+    description = "invalid checker test"
+
     def makeInputJson(self):
         return {
             'rootPath': os.path.dirname(os.path.abspath(__file__)),
@@ -191,6 +206,8 @@ class BadCheckerTest(FullTestBase):
 class GenerationSingleTest(FullTestBase):
     """This test uses a simple generator, and checks whether it is executed
     successfully."""
+
+    description = "simple generator test"
 
     def makeInputJson(self):
         return {
@@ -215,6 +232,8 @@ class GenerationSingleTest(FullTestBase):
 class GenerationCasesTest(FullTestBase):
     """This test uses the "testCases" feature: it generates an input test file
     and the expected output with a couple generator + output generator."""
+
+    description = "generation per case test"
 
     def makeInputJson(self):
         return {
@@ -274,58 +293,70 @@ class SolutionSimpleBase(FullTestBase):
             ]
 
 class SolutionSimpleC(SolutionSimpleBase):
+    description = "C test"
     _dependencies = ['gcc']
     _solution = '@testSolutionC'
     _execution = '@testExecutionC'
 
 class SolutionSimpleCpp(SolutionSimpleBase):
+    description = "C++ test"
     _dependencies = ['g++']
     _solution = '@testSolutionCpp'
     _execution = '@testExecutionCpp'
 
 class SolutionSimpleJava(SolutionSimpleBase):
+    description = "Java test"
     _dependencies = ['gcj']
     _solution = '@testSolutionJava'
     _execution = '@testExecutionJava'
 
 @unittest.skip('test not working') # TODO :: fix
 class SolutionSimpleJavascool(SolutionSimpleBase):
+    description = "Javascool test"
     _dependencies = ['gcj']
     _solution = '@testSolutionJavascool'
     _execution = '@testExecutionJavascool'
 
 class SolutionSimpleJs(SolutionSimpleBase):
+    description = "Node.js test"
     _dependencies = ['nodejs']
     _solution = '@testSolutionJs'
     _execution = '@testExecutionJs'
 
 class SolutionSimpleOcaml(SolutionSimpleBase):
+    description = "OCaml test"
     _dependencies = ['ocamlopt']
     _solution = '@testSolutionOcaml'
     _execution = '@testExecutionOcaml'
 
 class SolutionSimplePascal(SolutionSimpleBase):
+    description = "Pascal test"
     _dependencies = ['fpc']
     _solution = '@testSolutionPascal'
     _execution = '@testExecutionPascal'
 
 class SolutionSimplePhp(SolutionSimpleBase):
+    description = "PHP test"
     _dependencies = ['php5']
     _solution = '@testSolutionPhp'
     _execution = '@testExecutionPhp'
 
 class SolutionSimplePython(SolutionSimpleBase):
-    _dependencies = ['python3']
+    description = "Python2.7 test"
+    _dependencies = ['python2.7']
     _solution = '@testSolutionPython'
     _execution = '@testExecutionPython'
 
 class SolutionSimpleShell(SolutionSimpleBase):
+    description = "shell script test"
     _solution = '@testSolutionShell'
     _execution = '@testExecutionShell'
 
 class SolutionInvalidTest(FullTestBase):
     """This test tries an invalid solution (giving a wrong result), with one
     test file, and checks the checker output."""
+
+    description = "wrong solution test"
 
     def makeInputJson(self):
         return {
@@ -348,6 +379,8 @@ class SolutionInvalidTest(FullTestBase):
 
 class SolutionUncompTest(FullTestBase):
     """This test tries a bad solution which cannot be compiled."""
+
+    description = "uncompilable test"
 
     def makeInputJson(self):
         return {
@@ -372,6 +405,8 @@ class SolutionUncompTest(FullTestBase):
 class SolutionMemoverflowTest(FullTestBase):
     """This test tries a solution using more memory than the allowed limit."""
 
+    description = "memory limit test"
+
     def makeInputJson(self):
         return {
             'rootPath': os.path.dirname(os.path.abspath(__file__)),
@@ -394,6 +429,8 @@ class SolutionMemoverflowTest(FullTestBase):
 
 class SolutionTimeoutTest(FullTestBase):
     """This test tries a solution using more time than the allowed limit."""
+
+    description = "wall time & cpu time limit test"
 
     def makeInputJson(self):
         return {
@@ -420,6 +457,8 @@ class SolutionTimeoutTest(FullTestBase):
 class SolutionChangingTest(FullTestBase):
     """This test tries executing a solution (whose output changes) twice and
     checks whether its result has correctly been cached."""
+
+    description = "cache test"
 
     def makeInputJson(self):
         return {
@@ -461,6 +500,8 @@ class TestMultipleTest(FullTestBase):
     """This test tries a simple solution with multiple test files, and checks
     the solution and the checker output."""
 
+    description = "multiple test cases & C solution test"
+
     def makeInputJson(self):
         return {
             'rootPath': os.path.dirname(os.path.abspath(__file__)),
@@ -488,6 +529,8 @@ class TestMultipleTest(FullTestBase):
 class TestRestrictPath(FullTestBase):
     """This test tries to load a file which is not in the paths allowed by
     restrictToPaths."""
+
+    description = "allowed paths restriction test"
 
     def setUp(self):
         """Create a temporary file that we'll use as the test file."""
@@ -518,7 +561,43 @@ class TestRestrictPath(FullTestBase):
             ]
 
 
+class TaskgraderTestResult(unittest.TextTestResult):
+    """A class to display results from the taskgrader test."""
+
+    def getDescription(self, test):
+        # Overload to show only the description
+        shortDescr = test.shortDescription()
+        if self.descriptions and shortDescr:
+            return shortDescr
+        else:
+            return str(test)
+
+    def printErrorList(self, flavour, errors):
+        # Overload for a more condensed view and to show errorDetails
+        for test, err in errors:
+            self.stream.writeln("%s on %s: %s" % (flavour, self.getDescription(test), err))
+            if self.showAll and test.details.get('errorDetails', None):
+                self.stream.writeln("Details: %s" % test.details['errorDetails'])
+
+    def _exc_info_to_string(self, err, test):
+        # Overload to remove the traceback if non-verbose
+        e, v, t = err
+        return ''.join(traceback.format_exception(e, v, None)).strip()
+
+
+class TaskgraderTestRunner(unittest.TextTestRunner):
+    """A class to run tests and display the results with
+    TaskgraderTestResult."""
+
+    # We make a class to use as argument to unittest.main
+    # Else we have to make an instance, and we'd lose the options that
+    # unittest.main would pass to the TestRunner
+
+    def __init__(self, **kwargs):
+        kwargs['resultclass'] = TaskgraderTestResult
+        unittest.TextTestRunner.__init__(self, **kwargs)
+
 
 if __name__ == '__main__':
     # Start all tests
-    unittest.main()
+    unittest.main(testRunner=TaskgraderTestRunner)
