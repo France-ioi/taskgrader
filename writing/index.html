@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <meta name="author" content="France-IOI">
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+
+	<title>Writing tasks - Taskgrader</title>
+
+        <link href="../css/bootstrap-custom.min.css" rel="stylesheet">
+        <link href="../css/font-awesome-4.5.0.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="../css/highlight.css">
+
+        <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+            <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+        <![endif]-->
+
+        
+    </head>
+
+    <body>
+
+        <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="container">
+
+        <!-- Collapsed navigation -->
+        <div class="navbar-header">
+            
+            <!-- Expander button -->
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            
+
+            <!-- Main title -->
+            <a class="navbar-brand" href="..">Taskgrader</a>
+        </div>
+
+        <!-- Expanded navigation -->
+        <div class="navbar-collapse collapse">
+            
+                <!-- Main navigation -->
+                <ul class="nav navbar-nav">
+                
+                
+                    <li >
+                        <a href="..">Home</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../install/">Installing</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../start/">Getting started</a>
+                    </li>
+                
+                
+                
+                    <li class="active">
+                        <a href="./">Writing tasks</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../errors/">Error messages</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../moreinfo/">Further information</a>
+                    </li>
+                
+                
+                </ul>
+            
+
+            <ul class="nav navbar-nav navbar-right">
+                <li>
+                    <a href="#" data-toggle="modal" data-target="#mkdocs_search_modal">
+                        <i class="fa fa-search"></i> Search
+                    </a>
+                </li>
+                
+                    <li >
+                        <a rel="next" href="../start/">
+                            <i class="fa fa-arrow-left"></i> Previous
+                        </a>
+                    </li>
+                    <li >
+                        <a rel="prev" href="../errors/">
+                            Next <i class="fa fa-arrow-right"></i>
+                        </a>
+                    </li>
+                
+                
+                    <li>
+                        <a href="https://github.com/France-ioi/taskgrader/">
+                            
+                                <i class="fa fa-github"></i>
+                            
+                            GitHub
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+</div>
+
+        <div class="container">
+            
+                <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
+    <ul class="nav bs-sidenav">
+    
+        <li class="main active"><a href="#getting-started-on-writing-a-task">Getting started on writing a task</a></li>
+        
+            <li><a href="#example-1-only-test-cases">Example 1: only test cases</a></li>
+        
+            <li><a href="#adding-correct-solutions-to-our-task">Adding correct solutions to our task</a></li>
+        
+            <li><a href="#example-2-adding-a-sanitizer-and-a-checker">Example 2: adding a sanitizer and a checker</a></li>
+        
+            <li><a href="#example-3-adding-libraries">Example 3: adding libraries</a></li>
+        
+            <li><a href="#example-4-adding-a-generator">Example 4: adding a generator</a></li>
+        
+            <li><a href="#testing-tasks">Testing tasks</a></li>
+        
+            <li><a href="#using-tasks">Using tasks</a></li>
+        
+    
+        <li class="main "><a href="#more-complex-task-writing">More complex task writing</a></li>
+        
+            <li><a href="#example-5-solution-skeleton">Example 5: solution skeleton</a></li>
+        
+    
+    </ul>
+</div></div>
+                <div class="col-md-9" role="main">
+
+<h2 id="getting-started-on-writing-a-task">Getting started on writing a task</h2>
+<p>Use <code>taskstarter.py init [taskpath]</code> to interactively create a new task.</p>
+<p>A "task" is a set of programs and files representing the problem the solutions will be evaluated against:</p>
+<ul>
+<li>the test cases (input files and the associated expected output),</li>
+<li>the libraries the solutions can use</li>
+<li>an optional generator which generates these two types of files</li>
+<li>a sanitizer, checking the input files are in the required format</li>
+<li>the checker, grading each solution's output</li>
+</ul>
+<p>The script <code>tools/taskstarter/taskstarter.py</code> can assist with writing a task; use <code>taskstarter.py help</code> to see the available commands.</p>
+<p>Here are some examples based around a simple problem: the program is given a number as input, and must output the double of the number. These example tasks can be found in the <code>examples</code> folder.</p>
+<h3 id="example-1-only-test-cases">Example 1: only test cases</h3>
+<p>A task can be just test cases. The task can be built and tested like this:</p>
+<ul>
+<li>We start our task in a folder with <code>taskstarter.py init</code> (answering 'no' to all questions); it will give us a base task structure we can use as reference</li>
+<li>We put the test cases input files <code>test1.in</code> and <code>test2.in</code> in the subfolder <code>tests/files/</code></li>
+<li>We put in the same subfolder <code>test1.out</code> and <code>test2.out</code>, the correct output of these test cases</li>
+<li>We can write a valid solution, for instance <code>sol-ok-c.c</code> in this example</li>
+<li>We can test this solution with <code>taskstarter.py testsol tests/gen/sol-ok-c.c</code>, it will say the solution got a grade of 100 for each test</li>
+</ul>
+<p>When the task is only test cases, the tools will use default programs as sanitizer and checker. The solution will get a perfect grade of 100 if its output is the expected output (<code>test1.out</code> for the test case <code>test1.in</code>, ...), or the minimum grade of 0 if its output is different.</p>
+<p><em>This example can be found in the <code>examples/task1</code> folder.</em></p>
+<h3 id="adding-correct-solutions-to-our-task">Adding correct solutions to our task</h3>
+<p>Once our task is almost ready, we can add "correct solutions": they are known solutions which have known results, such as always giving a good answer or always giving a bad answer.</p>
+<p>It allows to test against regressions, that is to say that after modifications, that the task still gives the right grade to our known solutions.</p>
+<p>Using again our example task 1, we can add correct solutions like this:</p>
+<pre><code>taskstarter.py addsol -g 100 -l c tests/gen/sol-ok-c.c
+</code></pre>
+<p>It means that each time we'll test the task, the solution <code>sol-ok-c.c</code> will be automatically evaluated against the task, and <code>-g 100</code> means we expect the solution to get a perfect grade of 100 each time.</p>
+<p>We can also add an invalid solution, that is to say, a solution who will get the minimum grade of 0 each time. In this example, we have such a solution, <code>sol-bad-c.c</code>. We add it as a "bad solution" like this:</p>
+<pre><code>taskstarter.py addsol -g 0 -l c tests/gen/sol-bad-c.c
+</code></pre>
+<p>which means that we expect it to get a grade of 0 on each test.</p>
+<p>We can finally test the task by executing, in the task folder,</p>
+<pre><code>taskstarter.py test
+</code></pre>
+<p>in the task folder. It will output:</p>
+<pre><code>Test successful on 2 correctSolutions with up to 2 test cases.
+</code></pre>
+<p>which means the task successfully compiled, that the evaluation of the good solution <code>sol-ok-c.c</code> got a perfect grade of 100 each time, and that the evaluation of the bad solution <code>sol-bad-c.c</code> got a bad grade of 0 each time.</p>
+<h3 id="example-2-adding-a-sanitizer-and-a-checker">Example 2: adding a sanitizer and a checker</h3>
+<p>It's generally recommended to use a sanitizer and a checker: the sanitizer will ensure only valid input test files are given to solutions, especially in cases where contestants are allowed to use their own test files as examples; the checker can give a more precise grade to solutions, and also handle cases where the solution output is not in the exact format expected.</p>
+<p>We add a sanitizer and a checker to our test like this:</p>
+<ul>
+<li>We use the task made in the last example</li>
+<li>We write a script <code>sanitizer.sh</code> which takes as input the test case, and sets its exit code to 0 if it's valid, 1 if it's not</li>
+<li>We write a script <code>checker.sh</code> which takes three arguments, <code>test.in</code> the test case input, <code>test.solout</code> the solution output, <code>test.out</code> the reference (expected) output; and gives a grade to the solution based on its output</li>
+<li>We add the sanitizer and the checker to the task with <code>taskstarter.py add checker tests/gen/checker.sh</code> and <code>taskstarter.py add sanitizer tests/gen/sanitizer.sh</code></li>
+<li>Finally, we test the task with <code>taskstarter.py test</code>. It will tell us whether our programs were detected, compiled and executed successfully, and whether the "correct solution" we defined passed the test and got the expected grade of 100.</li>
+</ul>
+<p>The sanitizer and the checker can be written in any language supported by the taskgrader.</p>
+<p><em>This example can be found in the <code>examples/task2</code> folder.</em></p>
+<h3 id="example-3-adding-libraries">Example 3: adding libraries</h3>
+<p>This example is a task with libraries intended for usage by solutions. It's pretty simple to add libraries:</p>
+<ul>
+<li>We write a library <code>lib.h</code> intended for usage with solution in the C language</li>
+<li>We put it in <code>tests/files/lib/c/lib.h</code></li>
+<li>Finally, we test the task with <code>taskstarter.py test</code>.</li>
+</ul>
+<p>As long as the libraries are in the right folder (by default, <code>tests/files/lib/[language]/[library.ext]</code>), they will be automatically detected by <code>genJson</code> and added to the default dependencies for that language. All solutions of that language will have the library available for importation without any configuration necessry.</p>
+<p><em>This example can be found in the <code>examples/task3</code> folder.</em></p>
+<h3 id="example-4-adding-a-generator">Example 4: adding a generator</h3>
+<p>It can be handy to use a generator to generate the test cases and/or libraries for the task, instead of writing them all by hand.</p>
+<p>We add a generator like this:</p>
+<ul>
+<li>We use the task made in the last example</li>
+<li>We write a script <code>gen.sh</code> which generates the files upon execution; it must be a shell script, and it must write the files following the same tree as the <code>files</code> folder</li>
+<li>We add the generator to the task with <code>taskstarter.py add generator tests/gen/gen.sh</code></li>
+<li>Finally, we test the task with <code>taskstarter.py test</code>.</li>
+</ul>
+<p>The generator is handy when a large number of test cases must be generated, and also for complex tasks where the expected output can take a long time to be computed, and thus needs to be precomputed.</p>
+<p>Note that the auto-test with <code>taskstarter.py test</code> will show:</p>
+<pre><code>Test successful on 2 correctSolutions with up to 4 test cases.
+</code></pre>
+<p>which means the taskgrader successfully found all 4 test cases, the 2 test cases given directly in the task folder, and the 2 test cases generated by our script <code>gen.sh</code>.</p>
+<p><em>This example can be found in the <code>examples/task4</code> folder.</em></p>
+<h3 id="testing-tasks">Testing tasks</h3>
+<p>Tasks can be tested with:</p>
+<ul>
+<li><code>taskstarter.py test</code>, which will use the tool <code>genJson</code> to prepare the task for usage (read about <code>defaultParams.json</code> file below for more information) and test it for valid compilation, and test that the "correct solutions" get the expected grades.</li>
+<li><code>taskstarter.py testsol [SOLUTION.c]</code>, which if the task is valid, will test <code>SOLUTION.c</code> against the task. It is meant for quick solution testing; it uses the <code>stdGrade</code> tool.</li>
+</ul>
+<h3 id="using-tasks">Using tasks</h3>
+<p>The tool <code>genJson</code>, automatically called when using <code>taskstarter.py test</code>, prepares the task by writing its parameters into a <code>defaultParams.json</code> file. It contains all the required information to evaluate solutions against the task, and can be used by evaluation platforms directly to reference the task. The tool <code>stdGrade</code> will use this file to quickly evaluate solutions.</p>
+<h2 id="more-complex-task-writing">More complex task writing</h2>
+<p>More complex tasks can be written for usage with the taskgrader. The <code>taskstarter</code> tool is meant for simple tasks, you need to edit files manually for these examples. Here is an example, but read the rest of this documentation for more information.</p>
+<h3 id="example-5-solution-skeleton">Example 5: solution skeleton</h3>
+<p>Sometimes, the "solution" to be evaluated is not the file to be executed, but a library or a test file.</p>
+<p>In this example, we have <code>runner.py</code> calling the function <code>min3nombres</code> from the user-sent python file. The "solution" is hence a library, and the actual script executed is <code>runner.py</code> using this library.</p>
+<p>In order to be able to evaluation solutions against this task, we add, in <code>taskSettings.json</code>, the key <code>overrideParams/defaultSkeleton</code>. This key will get copied directly to <code>defaultParams.json</code>, where it will indicate the skeleton of what needs to be executed by the taskgrader.</p>
+<p>In this key, we indicate what needs to be executed, and the values <code>'%solname', '%solpath', '%sollang', '%soldeps'</code> will be replaced with the solution's name, path, language and dependencies. In this example task, <code>runner.py</code> is defined as the main program to execute, and our solution is passed as dependency of this program, and automatically named <code>solution.py</code> to be then imported by <code>runner.py</code>.</p>
+<p>You can test the task by running, from the task folder:</p>
+<ul>
+<li><code>taskstarter.py test</code> for the normal test</li>
+<li><code>taskstarter.py testsol tests/gen/sol-ok-py.py</code> for a good solution</li>
+<li><code>taskstarter.py testsol tests/gen/sol-bad-py.py</code> for a bad solution</li>
+</ul>
+<p>The testing tool <code>stdGrade</code> will automatically understand how to evaluate these solutions.</p>
+<p><em>This example can be found in the <code>examples/task5</code> folder.</em></p></div>
+            
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            
+            <p>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+
+        <script src="../js/jquery-1.10.2.min.js"></script>
+        <script src="../js/bootstrap-3.0.3.min.js"></script>
+        <script src="../js/highlight.pack.js"></script>
+        <script>var base_url = '..';</script>
+        <script data-main="../mkdocs/js/search.js" src="../mkdocs/js/require.js"></script>
+        <script src="../js/base.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="Search Modal" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                        <h4 class="modal-title" id="exampleModalLabel">Search</h4>
+                    </div>
+                    <div class="modal-body">
+                        <p>
+                            From here you can search these documents. Enter
+                            your search terms below.
+                        </p>
+                        <form role="form">
+                            <div class="form-group">
+                                <input type="text" class="form-control" placeholder="Search..." id="mkdocs-search-query">
+                            </div>
+                        </form>
+                        <div id="mkdocs-search-results"></div>
+                    </div>
+                    <div class="modal-footer">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </body>
+</html>

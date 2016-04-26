@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <meta name="author" content="France-IOI">
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+
+	<title>Further information - Taskgrader</title>
+
+        <link href="../css/bootstrap-custom.min.css" rel="stylesheet">
+        <link href="../css/font-awesome-4.5.0.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="../css/highlight.css">
+
+        <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+            <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+        <![endif]-->
+
+        
+    </head>
+
+    <body>
+
+        <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="container">
+
+        <!-- Collapsed navigation -->
+        <div class="navbar-header">
+            
+            <!-- Expander button -->
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            
+
+            <!-- Main title -->
+            <a class="navbar-brand" href="..">Taskgrader</a>
+        </div>
+
+        <!-- Expanded navigation -->
+        <div class="navbar-collapse collapse">
+            
+                <!-- Main navigation -->
+                <ul class="nav navbar-nav">
+                
+                
+                    <li >
+                        <a href="..">Home</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../install/">Installing</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../start/">Getting started</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../writing/">Writing tasks</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../errors/">Error messages</a>
+                    </li>
+                
+                
+                
+                    <li class="active">
+                        <a href="./">Further information</a>
+                    </li>
+                
+                
+                </ul>
+            
+
+            <ul class="nav navbar-nav navbar-right">
+                <li>
+                    <a href="#" data-toggle="modal" data-target="#mkdocs_search_modal">
+                        <i class="fa fa-search"></i> Search
+                    </a>
+                </li>
+                
+                    <li >
+                        <a rel="next" href="../errors/">
+                            <i class="fa fa-arrow-left"></i> Previous
+                        </a>
+                    </li>
+                    <li class="disabled">
+                        <a rel="prev" >
+                            Next <i class="fa fa-arrow-right"></i>
+                        </a>
+                    </li>
+                
+                
+                    <li>
+                        <a href="https://github.com/France-ioi/taskgrader/">
+                            
+                                <i class="fa fa-github"></i>
+                            
+                            GitHub
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+</div>
+
+        <div class="container">
+            
+                <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
+    <ul class="nav bs-sidenav">
+    
+        <li class="main active"><a href="#how-does-it-work">How does it work?</a></li>
+        
+            <li><a href="#executions">Executions</a></li>
+        
+    
+        <li class="main "><a href="#evaluation-components">Evaluation components</a></li>
+        
+            <li><a href="#generators">Generators</a></li>
+        
+            <li><a href="#sanitizer">Sanitizer</a></li>
+        
+            <li><a href="#checker">Checker</a></li>
+        
+    
+        <li class="main "><a href="#tools">Tools</a></li>
+        
+            <li><a href="#creating-a-task">Creating a task</a></li>
+        
+            <li><a href="#preparing-a-task-for-grading">Preparing a task for grading</a></li>
+        
+            <li><a href="#grading-a-solution">Grading a solution</a></li>
+        
+    
+        <li class="main "><a href="#exit-codes">Exit codes</a></li>
+        
+    
+        <li class="main "><a href="#internals-for-developers">Internals (for developers)</a></li>
+        
+    
+    </ul>
+</div></div>
+                <div class="col-md-9" role="main">
+
+<h2 id="how-does-it-work">How does it work?</h2>
+<p>Here's a description of the evaluation process that taskgrader does, managed by the function <code>evaluation(evaluationParams)</code>.</p>
+<ul>
+<li><code>evaluationParams</code> is the input JSON</li>
+<li>A build folder is created for the evaluation</li>
+<li>The <code>defaultParams.json</code> file from the task is read and its variables added</li>
+<li>A <code>dictWithVars</code> is created to add the variables, and returns the JSON data as if variables were replaced by their values</li>
+<li><code>generators</code> are compiled</li>
+<li><code>generations</code> describe how <code>generators</code> are to be executed in order to generate all the test files and optional libraries</li>
+<li><code>extraTests</code> are added into the tests pool</li>
+<li>The <code>sanitizer</code> and the <code>checker</code> are compiled</li>
+<li>The <code>solutions</code> are compiled</li>
+<li>All <code>executions</code> are done for the solutions</li>
+<li>The full evaluation report is returned on standard output</li>
+</ul>
+<h3 id="executions">Executions</h3>
+<p>Each execution is the grading of one solution against multiple test files. For each <code>execution</code>:
+<em> Test files corresponding to <code>filterTests</code> are selected, then for each test file:
+</em> It passes first the <code>sanitizer</code> test
+<em> Then the solution is executed, with the test file as standard input and the output saved
+</em> Finally the <code>checker</code> grades the solution according to its output on that particular test file</p>
+<p><code>filterTests</code> is a list of globs (as <code>"test*.in"</code> or <code>"mytest.in"</code>) selecting test files to use among all the test files generated by the generators, and the <code>extraTests</code> given. One can specify directly test files into this array to use only specific ones.</p>
+<h2 id="evaluation-components">Evaluation components</h2>
+<p>The evaluation is made against a task which has multiple components.</p>
+<h3 id="generators">Generators</h3>
+<p>The <code>generators</code> are generating the testing environment. They are executed, optionally with various parameters, to generate files, which can be:</p>
+<ul>
+<li>test files: inputs for the solution, and if necessary, expected output results</li>
+<li>libraries, for the compilation and execution of solutions</li>
+</ul>
+<p>Some of these files can be passed directly in the evaluation JSON, without the need of a generator.</p>
+<h3 id="sanitizer">Sanitizer</h3>
+<p>The <code>sanitizer</code> checks whether a test input is valid. It expects the test input on its stdin, and its exit code indicates the validity of the data.</p>
+<h3 id="checker">Checker</h3>
+<p>The <code>checker</code> checks whether the output of a solution corresponds to the expected result. It expects three arguments on the command line:</p>
+<ul>
+<li><code>test.solout</code> the solution output</li>
+<li><code>test.in</code> the reference input</li>
+<li><code>test.out</code> the reference output</li>
+</ul>
+<p>All checkers are passed these three arguments, whether they use it or not. The checker outputs the grading of the solution; its exit code can indicate an error while checking (invalid arguments, missing files, ...).</p>
+<h2 id="tools">Tools</h2>
+<p>Various tools are available in the subfolder <code>tools</code>. They can be configured with their respective <code>config.py</code> files.</p>
+<h3 id="creating-a-task">Creating a task</h3>
+<p><code>taskstarter.py</code> helps task writers create and modify simple tasks. This simple tool is meant as a starting point for people not knowing how the taskgrader works but willing to write a task, and helps them through documented steps. It allows to do some operations in tasks folders, such as creating the base skeleton, giving some help on various components and testing the task. This tool creates a <code>taskSettings.json</code> in the task folder, that <code>genJson.py</code> can then use to create a <code>defaultParams.json</code> accordingly. Read the "Getting started on writing a task" section for more information.</p>
+<h3 id="preparing-a-task-for-grading">Preparing a task for grading</h3>
+<p><code>genJson.py</code> analyses tasks and creates the <code>defaultParams.json</code> file for them. It will read the <code>taskSettings.json</code> file in each task for some settings and try to automatically detect other settings.</p>
+<h4 id="tasksettingsjson">taskSettings.json</h4>
+<p>The <code>taskSettings.json</code> is JSON data giving some parameters about the task, for use by <code>genJson.py</code>. It has the following keys:</p>
+<ul>
+<li><code>generator</code>: path to the generator of the task</li>
+<li><code>generatorDeps</code>: dependencies for the generator (list of fileDescr, see the input JSON schema for more information)</li>
+<li><code>sanitizer</code>, <code>sanitizerDeps</code>, <code>sanitizerLang</code>: sanitizer of the task (path, dependencies, language; default is no dependencies and auto-detect language depending on extension)</li>
+<li><code>checker</code>, <code>checkerDeps</code>, <code>checkerLang</code>: checker of the task (path, dependencies, language; default is no dependencies and auto-detect language depending on extension)</li>
+<li><code>extraDir</code>: folder with extra files (input test files and/or libraries)</li>
+<li><code>overrideParams</code>: JSON data to be copied directly into <code>defaultParams.json</code>, will replace any key with the same name from <code>genJson.py</code> generated JSON data</li>
+<li><code>correctSolutions</code>: list of solutions known as working with the task, will be tested by <code>genJson.py</code> which will check whether they get the right results. Each solution must have the following keys: <code>path</code>, <code>lang</code> and <code>grade</code> (the numerical grade the solution is supposed to get).</li>
+</ul>
+<h4 id="defaultparamsjson">defaultParams.json</h4>
+<p>The <code>defaultParams.json</code> is a task file giving some information about the task, must be JSON data pairing the following keys with the right objects:</p>
+<ul>
+<li><code>rootPath</code>: the root path of the files</li>
+<li><code>defaultGenerator</code>: a default generator</li>
+<li><code>defaultGeneration</code>: the default generation for the default generator</li>
+<li><code>extraTests</code> (optional): some extra tests</li>
+<li><code>defaultSanitizer</code>: the default sanitizer</li>
+<li><code>defaultChecker</code>: the default checker</li>
+<li><code>defaultDependencies-[language]</code> (optional): default dependencies for that language; if not defined, it will fallback to <code>defaultDependencies</code> or to an empty list</li>
+<li><code>defaultFilterTests-[language]</code> (optional): default glob-style filters for the tests for that language; if not defined, it will fallback to <code>defaultFilterTests</code> or to an empty list</li>
+</ul>
+<h3 id="grading-a-solution">Grading a solution</h3>
+<p><code>stdGrade.sh</code> allows to easily grade a solution. The task path must be the current directory, or must be specified with <code>-p</code>. It will expect to have a <code>defaultParams.json</code> file in the task directory, describing the task with some variables. Note that it's meant for fast and simple grading of solutions, it doesn't give a full control over the evaluation process. <code>stdGrade.sh</code> is a shortcut to two utilities present in its folder, for more options, see <code>genStdTaskJson.py -h</code>.</p>
+<p>Basic usage: <code>stdGrade.sh [SOLUTION]...</code> from a task folder.</p>
+<h2 id="exit-codes">Exit codes</h2>
+<p>The taskgrader will return the following exit codes:</p>
+<ul>
+<li><code>0</code> if the evaluation took place without error</li>
+<li><code>1</code> if an error with the evaluation happened, usually because of the evaluation parameters themselves</li>
+<li><code>2</code> if there was a temporary error, meaning the same evaluation should be tried again at a later time</li>
+<li><code>3</code> if the evaluation needed a language which is not supported, or which lacks a dependency to compile</li>
+</ul>
+<h2 id="internals-for-developers">Internals (for developers)</h2>
+<p><code>evaluation</code> is the evaluation process. It reads an input JSON and preprocesses it to replace the variables.</p>
+<p>Each program is defined as an instance of the class Program, that we <code>compile</code>, then <code>prepareExecution</code> to set the execution parameters, then <code>execute</code> with the proper parameters.</p>
+<p>Languages are set as classes which define two functions: <code>getSource</code> which defines how to search for some dependencies for this language, and <code>compile</code> which is the compilation process.</p>
+<p>The cache is handled by various Cache classes, each storing the cache parameters for a specific program and giving access to the various cache folders corresponding to compilation or execution of said programs.</p></div>
+            
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            
+            <p>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+
+        <script src="../js/jquery-1.10.2.min.js"></script>
+        <script src="../js/bootstrap-3.0.3.min.js"></script>
+        <script src="../js/highlight.pack.js"></script>
+        <script>var base_url = '..';</script>
+        <script data-main="../mkdocs/js/search.js" src="../mkdocs/js/require.js"></script>
+        <script src="../js/base.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="Search Modal" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                        <h4 class="modal-title" id="exampleModalLabel">Search</h4>
+                    </div>
+                    <div class="modal-body">
+                        <p>
+                            From here you can search these documents. Enter
+                            your search terms below.
+                        </p>
+                        <form role="form">
+                            <div class="form-group">
+                                <input type="text" class="form-control" placeholder="Search..." id="mkdocs-search-query">
+                            </div>
+                        </form>
+                        <div id="mkdocs-search-results"></div>
+                    </div>
+                    <div class="modal-footer">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </body>
+</html>
