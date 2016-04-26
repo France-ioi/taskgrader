@@ -5,4 +5,10 @@ It allows for a wide variety of contest task types and languages to be evaluated
 
 It uses [isolate](https://github.com/ioi/isolate) as a sandbox to run solutions to limit execution time and memory, as well as their access to the environment.
 
-**The full documentation is avaliable on [GitHub pages](http://france-ioi.github.io/taskgrader/) or in the `docs/` folder.**
+**This documentation covers:**
+
+* [Installation](install.md)
+* [Getting started](start.md) and basic usage
+* [How to write tasks](write.md) for use with the taskgrader
+* [Some error messages](errors.md) and their meaning
+* [Further information](moreinfo.md) on the taskgrader internals

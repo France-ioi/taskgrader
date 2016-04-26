@@ -1,0 +1,11 @@
+site_name: Taskgrader
+pages:
+- Home: index.md
+- Installing: install.md
+- "Getting started": start.md
+- "Writing tasks": writing.md
+- "Error messages": errors.md
+- "Further information": moreinfo.md
+repo_url: https://github.com/France-ioi/taskgrader/
+site_description: Documentation for the taskgrader
+site_author: France-IOI
