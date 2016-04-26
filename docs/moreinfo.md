@@ -112,3 +112,12 @@ Each program is defined as an instance of the class Program, that we `compile`, 
 Languages are set as classes which define two functions: `getSource` which defines how to search for some dependencies for this language, and `compile` which is the compilation process.
 
 The cache is handled by various Cache classes, each storing the cache parameters for a specific program and giving access to the various cache folders corresponding to compilation or execution of said programs.
+
+## Update documentation
+
+The documentation is in the `docs/` folder. It is written in MarkDown, and formatted into HTML by [MkDocs](http://www.mkdocs.org). To update the documentation:
+
+* `pip install mkdocs` to install mkdocs locally with pip
+* `mkdocs serve` to preview (live) your changes
+* `mkdocs build` to build a local HTML version of the documentation
+* `mkdocs gh-deploy` to build the HTML version and upload it directly to the [taskgrader GitHub Pages](http://france-ioi.github.io/taskgrader/)

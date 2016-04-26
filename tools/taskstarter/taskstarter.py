@@ -217,9 +217,9 @@ Saving the task components...""")
 Started the task successfully.
 Edit the various files which were created, and then run
   taskstarter.py test
-to test the task. For more information, read the documentation in the file
-README.md at the root of the taskgrader repository, or at the address
-https://github.com/France-ioi/taskgrader .""")
+to test the task. For more information, read the documentation in the folder
+'docs' of the taskgrader repository, or online at the address
+http://france-ioi.github.io/taskgrader/ .""")
 
 
 def add(args):

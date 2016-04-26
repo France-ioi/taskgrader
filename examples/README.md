@@ -1,4 +1,4 @@
-These are examples for the taskgrader. The full documentation for these examples can be found in the main README.md for the repository, or at https://github.com/France-ioi/taskgrader .
+These are examples for the taskgrader. The full documentation for these examples can be found in the folder `docs` of the repository, or at https://france-ioi.github.io/taskgrader/ .
 
 The example `testinput.json` can be tested by inputting it to the taskgrader:
 
