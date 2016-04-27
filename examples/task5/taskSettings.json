@@ -4,19 +4,22 @@
 "correctSolutions": [
     {
     "path": "$TASK_PATH/tests/gen/sol-ok-py.py",
-    "language": "python2",
+    "language": "python",
     "grade": 100
     },
     {
     "path": "$TASK_PATH/tests/gen/sol-bad-py.py",
-    "language": "python2",
+    "language": "python",
     "grade": 0
     }],
-"overrideParams": {
-    "defaultSkeleton": {
-        "language": "py",
+"defaultEvaluationSolutions": [{
+    "id": "defSolution",
+    "compilationDescr": {
+        "language": "python",
         "files": [{"name": "runner.py",
                    "path": "$TASK_PATH/tests/gen/runner.py"}],
         "dependencies": [{"name": "solution.py",
-                          "path": "%solpath"}]
-}}}
+                          "path": "@solutionPath"}]
+        },
+    "compilationExecution": "@defaultSolutionCompParams"}]
+}

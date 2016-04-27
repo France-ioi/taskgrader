@@ -365,7 +365,6 @@ def test(args):
 tested. We will only test whether the task compiles.\n""")
 
     # Call genJson, it will take care of checking everything while generating
-    # TODO :: better genJson interaction
     print("Calling genJson...")
     if args.verbose:
         proc = subprocess.Popen([CFG_GENJSON, '-v', args.taskpath])

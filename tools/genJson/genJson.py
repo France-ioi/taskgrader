@@ -1,7 +1,7 @@
 #!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015 France-IOI, MIT license
+# Copyright (c) 2015-2016 France-IOI, MIT license
 #
 # http://opensource.org/licenses/MIT
 
@@ -13,45 +13,7 @@ CFG_SELFDIR = os.path.normpath(os.path.dirname(os.path.abspath(__file__)))
 
 
 # TODO :: change all print statements
-# TODO :: documentation taskSettings (ignoreTests)
-
-
-# XXX TODO :: duplicate code from genStdTaskJson
-# Remove duplicate after reorganizing code.
-def preprocessJson(json, varData):
-    """Preprocess some JSON data, replacing variables with their values.
-    There's no checking of the type of values in the variables; the resulting
-    JSON is supposed to be checked against a JSON schema.
-    varData represents the variable data; all values written as '@varname' in
-    the JSON will be replaced by varData['varname']."""
-    if (type(json) is str or type(json) is unicode) and len(json) > 0:
-        if json[0] == '%':
-            # It's a variable, we replace it with the JSON data
-            # It will return an error if the variable doesn't exist, it's intended
-            varName = json[1:]
-            if varData.has_key(varName):
-                return preprocessJson(varData[varName], varData)
-            else:
-                # XXX this is changed from taskgrader.py's preprocessJson
-                print json
-                return json
-        else:
-            return json
-    elif type(json) is dict:
-        # It's a dict, we process the values in it
-        newjson = {}
-        for k in json.keys():
-            newjson[k] = preprocessJson(json[k], varData)
-        return newjson
-    elif type(json) is list:
-        # It's a list, we filter the values in it
-        newjson = map(lambda x: preprocessJson(x, varData), json)
-        # We remove None values, which are probably undefined variables
-        while None in newjson:
-            newjson.remove(None)
-        return newjson
-    else:
-        return json
+# TODO :: documentation taskSettings (ignoreTests, default*)
 
 
 def getFileList(path):
@@ -392,77 +354,258 @@ def genDefaultParams(taskPath, taskSettings):
 
     defaultParams['defaultChecker'] = defChecker
 
-    # Handle overrideParams
+
+    ### Default evaluation keys
+    defaultParams.update({
+        'defaultEvaluationGenerators': ['@defaultGenerator'],
+        'defaultEvaluationGenerations': ['@defaultGeneration'],
+        'defaultEvaluationExtraTests': '@defaultExtraTests',
+        'defaultEvaluationSanitizer': '@defaultSanitizer',
+        'defaultEvaluationChecker': '@defaultChecker',
+        'defaultEvaluationSolutions': [{
+            'id': 'defSolution',
+            'compilationDescr': {
+                'language': '@solutionLanguage',
+                'files': [{'name': '@solutionFilename',
+                           'path': '@solutionPath',
+                           'content': '@solutionContent'}],
+                'dependencies': '@solutionDependencies'
+                },
+            'compilationExecution': '@defaultSolutionCompParams'
+            }],
+        'defaultEvaluationExecutions': [{
+            'id': 'defExecution',
+            'idSolution': 'defSolution',
+            'filterTests': '@defaultFilterTests',
+            'runExecution': '@defaultSolutionExecParams'
+            }],
+
+        # Add empty solutionPath and solutionContent. If a path is specified,
+        # it will be used; else if a content is specified, it's the one which
+        # will be used. These two keys just allow preprocessJson from
+        # taskgrader.py to work without raising an error.
+        'solutionPath': '',
+        'solutionContent': ''
+        })
+
+    # Default compilation and execution params
+    defaultParams['defaultSolutionCompParams'] = CFG_TESTSOLPARAMS
+    defaultParams['defaultSolutionExecParams'] = CFG_TESTSOLPARAMS
+
+
+    ### Handle defaults in the taskSettings and overrideParams
+    for k in taskSettings.keys():
+        if k[:7] == 'default':
+            # Copy all 'default' keys from taskSettings
+            defaultParams[k] = taskSettings[k]
     defaultParams.update(taskSettings.get('overrideParams', {}))
+
 
     return defaultParams
 
 
-def genTestSolution(compParams, solId=1, solPath=None, solLang=None, defaultParams={}):
-    """Generate the JSON decribing a solution."""
-    if solPath:
-        skeleton = defaultParams.get('defaultSkeleton', {
-            'language': '%sollang',
-            'files': [{'name': '%solfilename',
-                       'path': '%solpath'}],
-            'dependencies': '%soldeps'
-            })
+def processPath(path, args):
+    """Process a task path, generating defaultParams for it and performing an
+    auto-test with the taskgrader."""
 
-        # Fill in the skeleton
-        descr = preprocessJson(skeleton, {
-            'sollang': solLang,
-            'solfilename': os.path.basename(solPath),
-            'solpath': solPath,
-            'soldeps': '@defaultDependencies-%s' % solLang})
+    print '*** Generating defaultParams for ' + path
+    # Settings for the task
+    taskSettings = {}
+    taskSettings.update(CFG_DEF_TASKSETTINGS)
+    try:
+        taskSettings.update(json.load(open(os.path.join(path, 'taskSettings.json'), 'r')))
+    except:
+        pass
 
-        return {'id': 'testSolution%d' % solId,
-                'compilationDescr': descr,
-                'compilationExecution': compParams}
+    # Generate and save defaultParams
+    defaultParams = genDefaultParams(path, taskSettings)
+    json.dump(defaultParams, open(os.path.join(path, 'defaultParams.json'), 'w'))
+    print ''
+    if args.verbose:
+        print 'Generated defaultParams:'
+        print json.dumps(defaultParams)
+        print ''
+
+    taskPath = os.path.relpath(path, CFG_ROOTDIR)
+
+    # Make test evaluation
+    correctSolutions = taskSettings.get('correctSolutions', [])
+    if len(taskSettings.get('correctSolutions', [])) > 0:
+        print '* Auto-test with correctSolutions'
+
+        # Error on any correctSolution
+        cError = False
+        # max number of test cases tested for a single correctSolution
+        maxNbTotal = 0
+        # correctSolutions which compiled
+        nbCsOk = 0
+        # total number of test cases, sanitizer validated test cases, and
+        # checker executions
+        nbTests, nbSan, nbSol, nbCheck = 0, 0, 0, 0
+
+        # Do an evaluation for each correctSolution
+        for cs in correctSolutions:
+            curError = False
+            csPath = cs['path'].replace('$TASK_PATH', path)
+            genStd = subprocess.Popen([os.path.join(CFG_SELFDIR, '../stdGrade/genStdTaskJson.py'), '-l', cs['language'], csPath], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            (genStdOut, genStdErr) = genStd.communicate()
+
+            if args.verbose:
+                print ''
+                print 'Generated test evaluation for correctSolution %s:' % csPath
+                print genStdOut
+                print ''
+            try:
+                testEvaluation = json.loads(genStdOut)
+            except:
+                print "Error: couldn't generate test evaluation for correctSolution `%s`." % csPath
+
+            proc = subprocess.Popen([CFG_TASKGRADER], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            (procOut, procErr) = proc.communicate(json.dumps(testEvaluation))
+            if args.verbose:
+                print ''
+                print 'Test evaluation report:'
+                print procOut
+                print ''
+
+            # Read output JSON
+            try:
+                outJson = json.loads(procOut)
+            except:
+                print "/!\ Fatal error: received non-JSON data."
+                cError = True
+                continue
+
+            try:
+                execution = outJson['executions'][0]
+            except:
+                print "/!\ Compilation failed for correctSolution `%s`." % csPath
+                cError = True
+                continue
+
+            nbCsOk += 1
+
+            # Totals
+            nbTests += len(execution['testsReports'])
+            for report in execution['testsReports']:
+                if report['sanitizer']['exitCode'] == 0:
+                    nbSan += 1
+                    if report['execution']['exitCode'] == 0:
+                        nbSol += 1
+                        if report['checker']['exitCode'] == 0:
+                            nbCheck += 1
+
+            nbOk = 0
+            nbTotal = len(execution['testsReports'])
+            maxNbTotal = max(maxNbTotal, nbTotal)
+            # Check grade for each test
+            for test in execution['testsReports']:
+                testGrade = None
+                try:
+                    testGrade = int(test['checker']['stdout']['data'].split()[0])
+                except:
+                    if test.has_key('execution'):
+                        if test['execution']['exitCode'] == 0:
+                            print "Checker error, output:\n%s%s" % (test['checker']['stdout']['data'], test['checker']['stderr']['data'])
+                        else:
+                            print "Solution exited with non-zero exit code:\n%s%s" % (test['execution']['stdout']['data'], test['execution']['stderr']['data'])
+                    elif test['sanitizer']['exitCode'] > 0:
+                        print "Sanitizer didn't validate test case:\n%s%s" % (test['sanitizer']['stdout']['data'], test['sanitizer']['stderr']['data'])
+                    else:
+                        print "Error reading test data."
+                    curError = True
+                if testGrade == cs['grade']:
+                    nbOk += 1
+                elif testGrade is not None:
+                    print "Got grade %d instead of %d" % (testGrade, cs['grade'])
+                    curError = True
+            if nbOk != nbTotal:
+                print "/!\ Test failed on %s: %d/%d grades incorrect" % (cs['path'], nbTotal-nbOk, nbTotal)
+                curError = True
+            if nbTotal != cs.get('nbtests', nbTotal):
+                print "/!\ Test failed on %s: %d tests done / %d tests expected" % (cs['path'], nbTotal, cs['nbtests'])
+                curError = True
+
+            if curError:
+                cError = True
+            else:
+                print "Test successful on correctSolution `%s`." % cs['path']
+
+        print ""
+        print "Totals: %d tests, %d test cases validated by sanitizer," % (nbTests, nbSan)
+        print "%d successful solution executions, %d successful checker executions." % (nbSol, nbCheck)
+        if nbSan < nbTests:
+            print '/!\ %d test cases not validated by sanitizer' % (nbTests - nbSan)
+            cError = True
+        if nbCheck < nbSan:
+            print '/!\ Checker failed on %d tests' % (nbSan - nbCheck)
+            cError = True
+
+        if cError:
+            tasksWithErrors.append(path)
+        else:
+            print "Test successful on %d correctSolutions with up to %d test cases." % (len(taskSettings['correctSolutions']), maxNbTotal)
+
     else:
-        # If no solution is given, we use `true.sh` default script
-        return {'id': 'testSolution%d' % solId,
-                'compilationDescr': {
-                    'language': 'sh',
-                    'files': [getScript('true.sh')],
-                    'dependencies': []},
-                'compilationExecution': compParams}
-
-
-def genTestEvaluation(relPath, correctSolutions=[], defaultParams={}):
-    """Generate the JSON describing a test evaluation of a solution."""
-
-    if len(correctSolutions) > 0:
-        testSolutions = []
-        testExecutions = []
-        # There are specific solutions to test
-        for (i, sol) in enumerate(correctSolutions):
-            testSolutions.append(genTestSolution(CFG_TESTSOLPARAMS, i, sol['path'], sol['language'], defaultParams))
-            testExecutions.append({
-                'id': 'testExecution%d' % i,
-                'idSolution': 'testSolution%d' % i,
-                'filterTests': '@defaultFilterTests',
-                'runExecution': CFG_TESTSOLPARAMS})
-    else:
-        # There's no real solution to test, we just test a dummy one
-        testSolutions = [genTestSolution(CFG_TESTSOLPARAMS, 1)]
-
-        testExecutions = [{'id': 'testExecution1',
-            'idSolution': 'testSolution1',
-            'filterTests': '@defaultFilterTests',
-            'runExecution': CFG_TESTSOLPARAMS}]
-
-    testEvaluation = {
+        # No correctSolutions, we use a dummy solution (true.sh)
+        testEvaluation = {
             'rootPath': CFG_ROOTDIR,
-            'taskPath': '$ROOT_PATH/%s' % relPath,
-            'generators': ['@defaultGenerator'],
-            'generations': ['@defaultGeneration'],
-            'extraTests': '@defaultExtraTests',
-            'sanitizer': '@defaultSanitizer',
-            'checker': '@defaultChecker',
-            'solutions': testSolutions,
-            'executions': testExecutions}
+            'taskPath': '$ROOT_PATH/%s' % taskPath,
+            'extraParams': {
+                'solutionLanguage': 'shell',
+                'solutionFilename': 'true.sh',
+                'solutionPath': os.path.join(CFG_SELFDIR, 'scripts', 'true.sh'),
+                'solutionDependencies': []
+                }
+            }
 
-    return testEvaluation
+        if args.verbose:
+            print 'Generated test evaluation with a dummy solution:'
+            print json.dumps(testEvaluation)
+            print ''
+
+        print '* Auto-test with a dummy solution'
+        proc = subprocess.Popen([CFG_TASKGRADER], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        (procOut, procErr) = proc.communicate(json.dumps(testEvaluation))
+        if args.verbose:
+            print ''
+            print 'Test evaluation report:'
+            print procOut
+            print ''
+
+        # Read output JSON
+        try:
+            outJson = json.loads(procOut)
+        except:
+            print '/!\ Fatal error: received non-JSON data.'
+            return 1
+
+        print '* Results of the test with a dummy solution'
+        print ''
+        print "/!\ Please use a correctSolution for an actual test; these results aren't"
+        print "accurate and may not indicate any actual success or failure of the test."
+        print ''
+        try:
+            execution = outJson['executions'][0]
+        except:
+            return 2
+        nbTests = len(execution['testsReports'])
+        nbSan, nbSol, nbCheck = 0, 0, 0
+        for report in execution['testsReports']:
+            if report['sanitizer']['exitCode'] == 0:
+                nbSan += 1
+                if report['execution']['exitCode'] == 0:
+                    nbSol += 1
+                    if report['checker']['exitCode'] == 0:
+                        nbCheck += 1
+        print "Test with a dummy solution: %d test cases," % nbTests
+        print "%d cases validated by sanitizer, %d successful dummy solution executions," % (nbSan, nbSol)
+        print "%d successful checker executions." % nbCheck
+        if nbSan < nbTests:
+            print '%d test cases not validated by sanitizer' % (nbTests - nbSan)
+        if nbCheck < nbSol:
+            print 'Checker failed on %d tests' % (nbSan - nbCheck)
+
 
 if __name__ == '__main__':
     # Parse command-line arguments
@@ -496,7 +639,7 @@ if __name__ == '__main__':
             argParse.print_usage()
             sys.exit(1)
         else:
-            print '* Tasks found: ' + ', '.join(paths)
+            print '*** Tasks found: ' + ', '.join(paths)
     else:
         paths = args.folder
 
@@ -504,150 +647,11 @@ if __name__ == '__main__':
     tasksWithErrors = []
 
     for path in paths:
-        print '* Generating defaultParams for ' + path
-        # Settings for the task
-        taskSettings = {}
-        taskSettings.update(CFG_DEF_TASKSETTINGS)
-        try:
-            taskSettings.update(json.load(open(os.path.join(path, 'taskSettings.json'), 'r')))
-        except:
-            pass
-
-        defaultParams = genDefaultParams(path, taskSettings)
-        json.dump(defaultParams, open(os.path.join(path, 'defaultParams.json'), 'w'))
-        print ''
-        if args.verbose:
-            print '* Generated defaultParams'
-            print json.dumps(defaultParams)
-            print ''
-
-        # Make test evaluation
-        taskPath = os.path.relpath(path, CFG_ROOTDIR)
-        testEvaluation = genTestEvaluation(taskPath, taskSettings.get('correctSolutions', []), defaultParams)
-        testEvaluation['extraParams'] = defaultParams # We input directly the default params
-        if args.verbose:
-            print '* Generated test evaluation'
-            print json.dumps(testEvaluation)
-            print ''
-
-        # Execute test evaluation
-        print '* Auto-test with taskgrader'
-        proc = subprocess.Popen([CFG_TASKGRADER], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        (procOut, procErr) = proc.communicate(json.dumps(testEvaluation))
-        if args.verbose:
-            print ''
-            print '* Test evaluation report'
-            print procOut
-            print ''
-
-        # Read output JSON
-        try:
-            outJson = json.loads(procOut)
-        except:
-            print 'Received non-JSON data.'
-            fatalErrors += 1
+        retCode = processPath(path, args)
+        if retCode > 0:
             tasksWithErrors.append(path)
-            continue
-
-        if len(taskSettings.get('correctSolutions', [])) > 0:
-            # Check execution of the "correct solutions"
-            # Their test was integrated in the test evaluation
-            cError = False
-            if len(outJson['executions']) != len(taskSettings['correctSolutions']):
-                print "/!\ Test failed : %d correct solutions tested / %d total" % (len(outJson['executions']), len(taskSettings['correctSolutions']))
-                cError = True
-            # Maximum number of test cases
-            # Some tasks have a different number of test cases for each
-            # language, we just save the max number
-            maxNbTotal = 0
-            nbTests, nbSan, nbCheck = 0, 0, 0
-            for execution in outJson['executions']:
-                if execution['id'][:13] != "testExecution":
-                    continue
-                # Get corresponding solution
-                try:
-                    solId = int(execution['id'][13:])
-                    solData = taskSettings['correctSolutions'][solId]
-                except:
-                    continue
-
-                # Totals
-                nbTests += len(execution['testsReports'])
-                for report in execution['testsReports']:
-                    if report['sanitizer']['exitCode'] == 0:
-                        nbSan += 1
-                        if report.has_key('checker') and report['checker']['exitCode'] == 0:
-                            nbCheck += 1
-
-                nbOk = 0
-                nbTotal = len(execution['testsReports'])
-                maxNbTotal = max(maxNbTotal, nbTotal)
-                # Check grade for each test
-                for test in execution['testsReports']:
-                    try:
-                        testGrade = int(test['checker']['stdout']['data'].split()[0])
-                    except:
-                        if test.has_key('execution'):
-                            if test['execution']['exitCode'] == 0:
-                                print "Checker error, output:\n%s%s" % (test['checker']['stdout']['data'], test['checker']['stderr']['data'])
-                            else:
-                                print "Solution exited with non-zero exit code:\n%s%s" % (test['execution']['stdout']['data'], test['execution']['stderr']['data'])
-                        elif test['sanitizer']['exitCode'] > 0:
-                            print "Sanitizer didn't validate test case:\n%s%s" % (test['sanitizer']['stdout']['data'], test['sanitizer']['stderr']['data'])
-                        else:
-                            print "Error reading test data."
-                        cError = True
-                        continue
-                    if testGrade == solData['grade']:
-                        nbOk += 1
-                    else:
-                        print "Got grade %d instead of %d" % (testGrade, solData['grade'])
-                        cError = True
-                if nbOk != nbTotal:
-                    print "/!\ Test failed on %s: %d/%d grades incorrect" % (solData['path'], nbTotal-nbOk, nbTotal)
-                    cError = True
-                if nbTotal != solData.get('nbtests', nbTotal):
-                    print "/!\ Test failed on %s: %d tests done / %d tests expected" % (solData['path'], nbTotal, solData['nbtests'])
-                    cError = True
-
-            print "Totals: %d tests, %d test cases validated by sanitizer," % (nbTests, nbSan)
-            print "%d successful checker executions." % nbCheck
-            if nbSan < nbTests:
-                print '/!\ %d test cases not validated by sanitizer' % (nbTests - nbSan)
-                cError = True
-            if nbCheck < nbSan:
-                print '/!\ Checker failed on %d tests' % (nbSan - nbCheck)
-                cError = True
-
-            if cError:
-                tasksWithErrors.append(path)
-            else:
-                print "Test successful on %d correctSolutions with up to %d test cases." % (len(taskSettings['correctSolutions']), maxNbTotal)
-        else:
-            # Just check the dummy solution executed successfully at least once
-            try:
-                execution = outJson['executions'][0]
-            except:
-                tasksWithErrors.append(path)
-                print procOut
-                continue
-            nbTests = len(execution['testsReports'])
-            nbSan, nbCheck = 0, 0
-            for report in execution['testsReports']:
-                if report['sanitizer']['exitCode'] == 0:
-                    nbSan += 1
-                    if report.has_key('checker') and report['checker']['exitCode'] == 0:
-                        nbCheck += 1
-            print "Test with a dummy solution: %d test cases," % nbTests
-            print "%d cases validated by sanitizer, %d successful checker executions." % (nbSan, nbCheck)
-            if nbSan < nbTests:
-                print '/!\ %d test cases not validated by sanitizer' % (nbTests - nbSan)
-            if nbCheck < nbSan:
-                print '/!\ Checker failed on %d tests' % (nbSan - nbCheck)
-            if nbCheck < nbTests:
-                tasksWithErrors.append(path)
-            else:
-                print "Test successful."
+            if retCode == 1:
+                fatalErrors += 1
 
     if len(tasksWithErrors) > 0:
         print ''
@@ -660,7 +664,7 @@ if __name__ == '__main__':
             print "*** /!\ Some tasks returned errors:"
             print ', '.join(tasksWithErrors)
         if not args.verbose:
-            print "Use -v switch to have the full JSON data and check for errors."
+            print "Use -v switch to see the full JSON data and check for errors."
         if len(tasksWithErrors) > fatalErrors:
             # Not all task errors are fatal
             sys.exit(2)

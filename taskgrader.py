@@ -876,13 +876,13 @@ class Program():
             except:
                 pass
 
-        if fileDescr.has_key('content'): # Content given in descr
-            open(filepath, 'w').write(fileDescr['content'].encode('utf-8'))
-        elif fileDescr.has_key('path'): # Get file by path
+        if fileDescr.has_key('path') and fileDescr['path'] != '': # Get file by path
             if os.path.isfile(fileDescr['path']):
                 symlink(fileDescr['path'], filepath, fromlocal=True)
             else:
-                raise Exception("File not found: %s" % fileDescr['path'])
+                raise Exception("File not found: `%s`" % fileDescr['path'])
+        elif fileDescr.has_key('content'): # Content given in descr
+            open(filepath, 'w').write(fileDescr['content'].encode('utf-8'))
         else: # File is a built dependency
             sourcePath = self.language.getSource(self.baseDir, filename)
             symlink(sourcePath, filepath)
@@ -1027,7 +1027,7 @@ def preprocessJson(json, varData):
             if varData.has_key(varName):
                 return preprocessJson(varData[varName], varData)
             else:
-                raise Exception("varData doesn't have key `%s`, contents of varData:\n%s" % (varName, str(varData)))
+                raise Exception("varData doesn't have key `%s`, keys of varData:\n%s" % (varName, str(varData.keys())))
         elif '$' in json:
             if '$BUILD_PATH' in json:
                 return preprocessJson(json.replace('$BUILD_PATH', varData['BUILD_PATH']), varData)
@@ -1178,7 +1178,7 @@ def evaluation(evaluationParams):
     varData = {'ROOT_PATH': evaluationParams['rootPath'],
                'TASK_PATH': evaluationParams['taskPath']}
 
-    # Load path restriction is present
+    # Load path restriction if present
     if evaluationParams.has_key('restrictToPaths'):
         restrictToPaths = evaluationParams['restrictToPaths']
     else:
@@ -1197,7 +1197,23 @@ def evaluation(evaluationParams):
             varData.update(json.load(open(evaluationParams['extraParams'], 'r')))
         else:
             varData.update(evaluationParams['extraParams'])
+        # We don't want preprocessJson to process the extraParams if not needed
+        evaluationParams.pop('extraParams')
+
+
+    # Check for evaluation elements
+    for elem in ['generators', 'generations', 'extraTests', 'sanitizer',
+                 'checker', 'solutions', 'executions']:
+        if not evaluationParams.has_key(elem):
+            # Get the default one defined by the task
+            elemKey = 'defaultEvaluation%s%s' % (elem[0].upper(), elem[1:])
+            if varData.has_key(elemKey):
+                evaluationParams[elem] = '@%s' % elemKey
+            else:
+                raise Exception("Input JSON doesn't have key '%s', and no default for this key was defined by the task." % elem)
+
     evaluationParams = preprocessJson(evaluationParams, varData)
+
 
     # Path where the evaluation will take place
     if evaluationParams.has_key('outputPath'):
@@ -1209,7 +1225,7 @@ def evaluation(evaluationParams):
         buildPoolTries = 0
         baseWorkingDir = '/'
         while os.path.isdir(baseWorkingDir):
-            baseWorkingDir = os.path.join(CFG_BUILDSDIR, '_build%d/' % random.randint(10000*(buildPoolTries-1), 10000*buildPoolTries))
+            baseWorkingDir = os.path.join(CFG_BUILDSDIR, '_build%d/' % random.randint(10000*buildPoolTries, 10000*(buildPoolTries+1)))
             buildPoolTries += 1
     os.mkdir(baseWorkingDir)
 
