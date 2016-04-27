@@ -447,7 +447,11 @@ def processPath(path, args):
         for cs in correctSolutions:
             curError = False
             csPath = cs['path'].replace('$TASK_PATH', path)
-            genStd = subprocess.Popen([os.path.join(CFG_SELFDIR, '../stdGrade/genStdTaskJson.py'), '-l', cs['language'], csPath], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            cmd = [os.path.join(CFG_SELFDIR, '../stdGrade/genStdTaskJson.py')]
+            if cs.has_key('language'):
+                cmd.extend(['-l', cs['language']])
+            cmd.append(csPath)
+            genStd = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
             (genStdOut, genStdErr) = genStd.communicate()
 
             if args.verbose:
