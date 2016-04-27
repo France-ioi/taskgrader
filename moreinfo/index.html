@@ -59,20 +59,50 @@
                 
                 
                 
-                    <li >
-                        <a href="../install/">Installing</a>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Getting started <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                        
+                            
+<li >
+    <a href="../install/">Installing</a>
+</li>
+
+                        
+                            
+<li >
+    <a href="../basicusage/">Basic usage</a>
+</li>
+
+                        
+                            
+<li >
+    <a href="../writing/">Writing tasks</a>
+</li>
+
+                        
+                        </ul>
                     </li>
                 
                 
                 
-                    <li >
-                        <a href="../start/">Getting started</a>
-                    </li>
-                
-                
-                
-                    <li >
-                        <a href="../writing/">Writing tasks</a>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Reference <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                        
+                            
+<li >
+    <a href="../tasksettings/">taskSettings.json</a>
+</li>
+
+                        
+                            
+<li >
+    <a href="../defaultparams/">defaultParams.json</a>
+</li>
+
+                        
+                        </ul>
                     </li>
                 
                 
@@ -129,39 +159,26 @@
                 <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
     <ul class="nav bs-sidenav">
     
-        <li class="main active"><a href="#how-does-it-work">How does it work?</a></li>
+        <li class="main active"><a href="#further-information">Further information</a></li>
         
-            <li><a href="#executions">Executions</a></li>
+            <li><a href="#how-does-it-work">How does it work?</a></li>
         
-    
-        <li class="main "><a href="#evaluation-components">Evaluation components</a></li>
+            <li><a href="#evaluation-components">Evaluation components</a></li>
         
-            <li><a href="#generators">Generators</a></li>
+            <li><a href="#tools">Tools</a></li>
         
-            <li><a href="#sanitizer">Sanitizer</a></li>
+            <li><a href="#exit-codes">Exit codes</a></li>
         
-            <li><a href="#checker">Checker</a></li>
+            <li><a href="#internals-for-developers">Internals (for developers)</a></li>
         
-    
-        <li class="main "><a href="#tools">Tools</a></li>
-        
-            <li><a href="#creating-a-task">Creating a task</a></li>
-        
-            <li><a href="#preparing-a-task-for-grading">Preparing a task for grading</a></li>
-        
-            <li><a href="#grading-a-solution">Grading a solution</a></li>
-        
-    
-        <li class="main "><a href="#exit-codes">Exit codes</a></li>
-        
-    
-        <li class="main "><a href="#internals-for-developers">Internals (for developers)</a></li>
+            <li><a href="#update-documentation">Update documentation</a></li>
         
     
     </ul>
 </div></div>
                 <div class="col-md-9" role="main">
 
+<h1 id="further-information">Further information</h1>
 <h2 id="how-does-it-work">How does it work?</h2>
 <p>Here's a description of the evaluation process that taskgrader does, managed by the function <code>evaluation(evaluationParams)</code>.</p>
 <ul>
@@ -247,7 +264,15 @@
 <p><code>evaluation</code> is the evaluation process. It reads an input JSON and preprocesses it to replace the variables.</p>
 <p>Each program is defined as an instance of the class Program, that we <code>compile</code>, then <code>prepareExecution</code> to set the execution parameters, then <code>execute</code> with the proper parameters.</p>
 <p>Languages are set as classes which define two functions: <code>getSource</code> which defines how to search for some dependencies for this language, and <code>compile</code> which is the compilation process.</p>
-<p>The cache is handled by various Cache classes, each storing the cache parameters for a specific program and giving access to the various cache folders corresponding to compilation or execution of said programs.</p></div>
+<p>The cache is handled by various Cache classes, each storing the cache parameters for a specific program and giving access to the various cache folders corresponding to compilation or execution of said programs.</p>
+<h2 id="update-documentation">Update documentation</h2>
+<p>The documentation is in the <code>docs/</code> folder. It is written in MarkDown, and formatted into HTML by <a href="http://www.mkdocs.org">MkDocs</a>. To update the documentation:</p>
+<ul>
+<li><code>pip install mkdocs</code> to install mkdocs locally with pip</li>
+<li><code>mkdocs serve</code> to preview (live) your changes</li>
+<li><code>mkdocs build</code> to build a local HTML version of the documentation</li>
+<li><code>mkdocs gh-deploy</code> to build the HTML version and upload it directly to the <a href="http://france-ioi.github.io/taskgrader/">taskgrader GitHub Pages</a></li>
+</ul></div>
             
         </div>
 

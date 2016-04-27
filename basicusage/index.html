@@ -4,17 +4,17 @@
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta name="description" content="Documentation for the taskgrader">
+        
         <meta name="author" content="France-IOI">
         
-        <link rel="shortcut icon" href="./img/favicon.ico">
+        <link rel="shortcut icon" href="../img/favicon.ico">
 
-	<title>Taskgrader</title>
+	<title>Basic usage - Taskgrader</title>
 
-        <link href="./css/bootstrap-custom.min.css" rel="stylesheet">
-        <link href="./css/font-awesome-4.5.0.css" rel="stylesheet">
-        <link href="./css/base.css" rel="stylesheet">
-        <link rel="stylesheet" href="./css/highlight.css">
+        <link href="../css/bootstrap-custom.min.css" rel="stylesheet">
+        <link href="../css/font-awesome-4.5.0.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="../css/highlight.css">
 
         <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
         <!--[if lt IE 9]>
@@ -25,7 +25,7 @@
         
     </head>
 
-    <body class="homepage">
+    <body>
 
         <div class="navbar navbar-default navbar-fixed-top" role="navigation">
     <div class="container">
@@ -43,7 +43,7 @@
             
 
             <!-- Main title -->
-            <a class="navbar-brand" href=".">Taskgrader</a>
+            <a class="navbar-brand" href="..">Taskgrader</a>
         </div>
 
         <!-- Expanded navigation -->
@@ -53,31 +53,31 @@
                 <ul class="nav navbar-nav">
                 
                 
-                    <li class="active">
-                        <a href=".">Home</a>
+                    <li >
+                        <a href="..">Home</a>
                     </li>
                 
                 
                 
-                    <li class="dropdown">
+                    <li class="dropdown active">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">Getting started <b class="caret"></b></a>
                         <ul class="dropdown-menu">
                         
                             
 <li >
-    <a href="install/">Installing</a>
+    <a href="../install/">Installing</a>
+</li>
+
+                        
+                            
+<li class="active">
+    <a href="./">Basic usage</a>
 </li>
 
                         
                             
 <li >
-    <a href="basicusage/">Basic usage</a>
-</li>
-
-                        
-                            
-<li >
-    <a href="writing/">Writing tasks</a>
+    <a href="../writing/">Writing tasks</a>
 </li>
 
                         
@@ -92,13 +92,13 @@
                         
                             
 <li >
-    <a href="tasksettings/">taskSettings.json</a>
+    <a href="../tasksettings/">taskSettings.json</a>
 </li>
 
                         
                             
 <li >
-    <a href="defaultparams/">defaultParams.json</a>
+    <a href="../defaultparams/">defaultParams.json</a>
 </li>
 
                         
@@ -108,13 +108,13 @@
                 
                 
                     <li >
-                        <a href="errors/">Error messages</a>
+                        <a href="../errors/">Error messages</a>
                     </li>
                 
                 
                 
                     <li >
-                        <a href="moreinfo/">Further information</a>
+                        <a href="../moreinfo/">Further information</a>
                     </li>
                 
                 
@@ -128,13 +128,13 @@
                     </a>
                 </li>
                 
-                    <li class="disabled">
-                        <a rel="next" >
+                    <li >
+                        <a rel="next" href="../install/">
                             <i class="fa fa-arrow-left"></i> Previous
                         </a>
                     </li>
                     <li >
-                        <a rel="prev" href="install/">
+                        <a rel="prev" href="../writing/">
                             Next <i class="fa fa-arrow-right"></i>
                         </a>
                     </li>
@@ -159,33 +159,37 @@
                 <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
     <ul class="nav bs-sidenav">
     
-        <li class="main active"><a href="#taskgrader">Taskgrader</a></li>
+        <li class="main active"><a href="#basic-usage">Basic usage</a></li>
+        
+            <li><a href="#executing">Executing</a></li>
+        
+            <li><a href="#example-usage">Example usage</a></li>
         
     
     </ul>
 </div></div>
                 <div class="col-md-9" role="main">
 
-<h1 id="taskgrader">Taskgrader</h1>
-<p>The taskgrader tool manages every step of grading a contest task, from the generation of test data to the grading of a solution output.</p>
-<p>It allows for a wide variety of contest task types and languages to be evaluated, and is meant to be used both locally for tests and in contest evaluation settings.</p>
-<p>It uses <a href="https://github.com/ioi/isolate">isolate</a> as a sandbox to run solutions to limit execution time and memory, as well as their access to the environment.</p>
-<p><strong>This documentation covers:</strong></p>
-<ul>
-<li>Getting started:<ul>
-<li><a href="install/">Installation</a></li>
-<li><a href="basicusage/">Basic usage</a> and basic usage</li>
-<li><a href="writing/">How to write tasks</a> for use with the taskgrader</li>
-</ul>
-</li>
-<li>Reference:<ul>
-<li><a href="tasksettings/">taskSettings.json</a>, the settings for auto-detection of the task components and parameters</li>
-<li><a href="defaultparams/">defaultParams.json</a>, the full description of the task for direct use by evaluation processes</li>
-</ul>
-</li>
-<li><a href="errors/">Error messages</a> and their meaning</li>
-<li><a href="moreinfo/">Further information</a> on the taskgrader internals</li>
-</ul></div>
+<h1 id="basic-usage">Basic usage</h1>
+<h2 id="executing">Executing</h2>
+<p>The taskgrader itself can be executed with</p>
+<pre><code>python taskgrader.py
+</code></pre>
+<p>It will wait for an input JSON on its standard input, then proceed to evaluation and then output the result JSON on standard output. Read <code>schema_input.json</code> and <code>schema_output.json</code> for a description of the expected formats. Various tools described later can help you write this input JSON.</p>
+<p>Verbosity options are available, use <code>taskgrader.py -h</code> for more help.</p>
+<h2 id="example-usage">Example usage</h2>
+<p>Some commands you can try:</p>
+<pre><code>./taskgrader.py &lt; examples/testinput.json
+./taskgrader.py &lt; examples/testinput.json | tools/stdGrade/summarizeResults.py
+</code></pre>
+<p>First command will execute the taskgrader on an example evaluation described by <code>examples/testinput.json</code>; it will output the result JSON, which isn't very human-readable. The second command will pass that output JSON to <code>summarizeResults.py</code>, a simple tool to show the results in a more human-readable way.</p>
+<pre><code>tools/taskstarter/taskstarter.py init mynewtask
+</code></pre>
+<p>This command will start a new task in the folder <code>mynewtask</code>; use it if you want to write a task for use with the taskgrader. It will ask you a few questions to guide you through the various components of a task, and write a base task with some example files. The next section describes that in more detail.</p>
+<pre><code>cd examples/task3 ; ../../tools/taskstarter/taskstarter.py test
+</code></pre>
+<p>A task may be tested as shown with this command. Here it will test the example <code>task3</code>.</p>
+<p>More details on usage can be found through this documentation.</p></div>
             
         </div>
 
@@ -195,12 +199,12 @@
             <p>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a>.</p>
         </footer>
 
-        <script src="./js/jquery-1.10.2.min.js"></script>
-        <script src="./js/bootstrap-3.0.3.min.js"></script>
-        <script src="./js/highlight.pack.js"></script>
-        <script>var base_url = '.';</script>
-        <script data-main="./mkdocs/js/search.js" src="./mkdocs/js/require.js"></script>
-        <script src="./js/base.js"></script>
+        <script src="../js/jquery-1.10.2.min.js"></script>
+        <script src="../js/bootstrap-3.0.3.min.js"></script>
+        <script src="../js/highlight.pack.js"></script>
+        <script>var base_url = '..';</script>
+        <script data-main="../mkdocs/js/search.js" src="../mkdocs/js/require.js"></script>
+        <script src="../js/base.js"></script>
 
         <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="Search Modal" aria-hidden="true">
             <div class="modal-dialog">
@@ -229,8 +233,3 @@
 
     </body>
 </html>
-
-<!--
-MkDocs version : 0.15.3
-Build Date UTC : 2016-04-27 22:58:39.979788
--->

@@ -9,7 +9,7 @@
         
         <link rel="shortcut icon" href="../img/favicon.ico">
 
-	<title>Getting started - Taskgrader</title>
+	<title>defaultParams.json - Taskgrader</title>
 
         <link href="../css/bootstrap-custom.min.css" rel="stylesheet">
         <link href="../css/font-awesome-4.5.0.css" rel="stylesheet">
@@ -59,20 +59,50 @@
                 
                 
                 
-                    <li >
-                        <a href="../install/">Installing</a>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Getting started <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                        
+                            
+<li >
+    <a href="../install/">Installing</a>
+</li>
+
+                        
+                            
+<li >
+    <a href="../basicusage/">Basic usage</a>
+</li>
+
+                        
+                            
+<li >
+    <a href="../writing/">Writing tasks</a>
+</li>
+
+                        
+                        </ul>
                     </li>
                 
                 
                 
-                    <li class="active">
-                        <a href="./">Getting started</a>
-                    </li>
-                
-                
-                
-                    <li >
-                        <a href="../writing/">Writing tasks</a>
+                    <li class="dropdown active">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Reference <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                        
+                            
+<li >
+    <a href="../tasksettings/">taskSettings.json</a>
+</li>
+
+                        
+                            
+<li class="active">
+    <a href="./">defaultParams.json</a>
+</li>
+
+                        
+                        </ul>
                     </li>
                 
                 
@@ -99,12 +129,12 @@
                 </li>
                 
                     <li >
-                        <a rel="next" href="../install/">
+                        <a rel="next" href="../tasksettings/">
                             <i class="fa fa-arrow-left"></i> Previous
                         </a>
                     </li>
                     <li >
-                        <a rel="prev" href="../writing/">
+                        <a rel="prev" href="../errors/">
                             Next <i class="fa fa-arrow-right"></i>
                         </a>
                     </li>
@@ -129,35 +159,15 @@
                 <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
     <ul class="nav bs-sidenav">
     
-        <li class="main active"><a href="#executing">Executing</a></li>
-        
-    
-        <li class="main "><a href="#example-usage">Example usage</a></li>
+        <li class="main active"><a href="#defaultparamsjson">defaultParams.json</a></li>
         
     
     </ul>
 </div></div>
                 <div class="col-md-9" role="main">
 
-<h2 id="executing">Executing</h2>
-<p>The taskgrader itself can be executed with</p>
-<pre><code>python taskgrader.py
-</code></pre>
-<p>It will wait for an input JSON on its standard input, then proceed to evaluation and then output the result JSON on standard output. Read <code>schema_input.json</code> and <code>schema_output.json</code> for a description of the expected formats. Various tools described later can help you write this input JSON.</p>
-<p>Verbosity options are available, use <code>taskgrader.py -h</code> for more help.</p>
-<h2 id="example-usage">Example usage</h2>
-<p>Some commands you can try:</p>
-<pre><code>./taskgrader.py &lt; examples/testinput.json
-./taskgrader.py &lt; examples/testinput.json | tools/stdGrade/summarizeResults.py
-</code></pre>
-<p>First command will execute the taskgrader on an example evaluation described by <code>examples/testinput.json</code>; it will output the result JSON, which isn't very human-readable. The second command will pass that output JSON to <code>summarizeResults.py</code>, a simple tool to show the results in a more human-readable way.</p>
-<pre><code>tools/taskstarter/taskstarter.py init mynewtask
-</code></pre>
-<p>This command will start a new task in the folder <code>mynewtask</code>; use it if you want to write a task for use with the taskgrader. It will ask you a few questions to guide you through the various components of a task, and write a base task with some example files. The next section describes that in more detail.</p>
-<pre><code>cd examples/task3 ; ../../tools/taskstarter/taskstarter.py test
-</code></pre>
-<p>A task may be tested as shown with this command. Here it will test the example <code>task3</code>.</p>
-<p>More details on usage can be found through this documentation.</p></div>
+<h1 id="defaultparamsjson">defaultParams.json</h1>
+<p>Documentation being written. Why not check <a href="../tasksettings/">the reference for <code>taskSettings.json</code></a> in the meanwhile?</p></div>
             
         </div>
 
