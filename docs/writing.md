@@ -1,4 +1,4 @@
-## Getting started on writing a task
+# Getting started on writing a task
 
 Use `taskstarter.py init [taskpath]` to interactively create a new task.
 
@@ -14,7 +14,7 @@ The script `tools/taskstarter/taskstarter.py` can assist with writing a task; us
 
 Here are some examples based around a simple problem: the program is given a number as input, and must output the double of the number. These example tasks can be found in the `examples` folder.
 
-### Example 1: only test cases
+## Example 1: only test cases
 
 A task can be just test cases. The task can be built and tested like this:
 
@@ -28,7 +28,7 @@ When the task is only test cases, the tools will use default programs as sanitiz
 
 *This example can be found in the `examples/task1` folder.*
 
-### Adding correct solutions to our task
+## Adding correct solutions to our task
 
 Once our task is almost ready, we can add "correct solutions": they are known solutions which have known results, such as always giving a good answer or always giving a bad answer.
 
@@ -72,7 +72,7 @@ The sanitizer and the checker can be written in any language supported by the ta
 
 *This example can be found in the `examples/task2` folder.*
 
-### Example 3: adding libraries
+## Example 3: adding libraries
 
 This example is a task with libraries intended for usage by solutions. It's pretty simple to add libraries:
 
@@ -84,7 +84,7 @@ As long as the libraries are in the right folder (by default, `tests/files/lib/[
 
 *This example can be found in the `examples/task3` folder.*
 
-### Example 4: adding a generator
+## Example 4: adding a generator
 
 It can be handy to use a generator to generate the test cases and/or libraries for the task, instead of writing them all by hand.
 
@@ -105,22 +105,22 @@ which means the taskgrader successfully found all 4 test cases, the 2 test cases
 
 *This example can be found in the `examples/task4` folder.*
 
-### Testing tasks
+## Testing tasks
 
 Tasks can be tested with:
 
 * `taskstarter.py test`, which will use the tool `genJson` to prepare the task for usage (read about `defaultParams.json` file below for more information) and test it for valid compilation, and test that the "correct solutions" get the expected grades.
 * `taskstarter.py testsol [SOLUTION.c]`, which if the task is valid, will test `SOLUTION.c` against the task. It is meant for quick solution testing; it uses the `stdGrade` tool.
 
-### Using tasks
+## Using tasks
 
 The tool `genJson`, automatically called when using `taskstarter.py test`, prepares the task by writing its parameters into a `defaultParams.json` file. It contains all the required information to evaluate solutions against the task, and can be used by evaluation platforms directly to reference the task. The tool `stdGrade` will use this file to quickly evaluate solutions.
 
-## More complex task writing
+# More complex task writing
 
 More complex tasks can be written for usage with the taskgrader. The `taskstarter` tool is meant for simple tasks, you need to edit files manually for these examples. Here is an example, but read the rest of this documentation for more information.
 
-### Example 5: solution skeleton
+## Example 5: solution skeleton
 
 Sometimes, the "solution" to be evaluated is not the file to be executed, but a library or a test file.
 

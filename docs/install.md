@@ -1,3 +1,5 @@
+# Installing the taskgrader
+
 ## Dependencies
 
 On many distributions, the required dependencies are already installed.
@@ -47,3 +49,7 @@ If needed, edit `config.py` to suit your needs; however default values will work
 After configuration, you can test that the taskgrader is configured properly and is behaving as expected by running `tests/test.py`. By default, it will run all tests and give you a summary. Full usage instructions are given by `test.py -h`.
 
 If you didn't install dependencies for all languages, some tests will fail.
+
+## Usage
+
+Now that the taskgrader is installed, you can use it as described in the [Basic Usage](basicusage.md) section.

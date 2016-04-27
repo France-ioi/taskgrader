@@ -13,8 +13,6 @@ CFG_SELFDIR = os.path.normpath(os.path.dirname(os.path.abspath(__file__)))
 
 
 # TODO :: change all print statements
-# TODO :: documentation taskSettings (ignoreTests, default*)
-
 
 def getFileList(path):
     """Makes a list of sub-paths of files found in path."""

@@ -1,3 +1,5 @@
+# Further information
+
 ## How does it work?
 
 Here's a description of the evaluation process that taskgrader does, managed by the function `evaluation(evaluationParams)`.
