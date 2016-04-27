@@ -357,7 +357,7 @@ def test(args):
             print("Force option used, testing anyway...")
         else:
             print("Please edit these files or remove the EDIT ME marker before continuing.")
-            print("(You can force the test by using the -f switch.)"
+            print("(You can force the test by using the -f switch.)")
             return 1
 
     if 'correctSolutions' not in taskSettings:
