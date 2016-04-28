@@ -47,7 +47,7 @@ def genStdTaskJson(taskPath, execPath, execParams, lang=None):
 
     # Parameters of the solution
     extraParams = {
-        'solutionLanguage': lang,
+        'solutionLanguage': solLang,
         'solutionFilename': os.path.basename(execPath),
         'solutionPath': execPath,
         'solutionDependencies': dep,
