@@ -179,16 +179,16 @@ class CacheHandle():
         fileHashList = []
         # We build a list of identifiers for each source file and compute their md5
         for fileDescr in programFiles:
-            if fileDescr.has_key('content'):
-                # File content is given, we use the name given and the hash as reference
-                md5sum = hashlib.md5(fileDescr['content'].encode('utf-8', errors='ignore')).hexdigest()
-                fileIdList.append("file:%s:%s" % (fileDescr['name'], md5sum))
-            elif fileDescr.has_key('path'):
+            if fileDescr.has_key('path'):
                 # File path is given, we use the path as reference
                 filePath = os.path.abspath(os.path.realpath(fileDescr['path']))
                 md5sum = hashlib.md5(open(filePath, 'rb').read()).hexdigest()
                 fileIdList.append("path:%s" % filePath)
                 fileHashList.append(md5sum)
+            elif fileDescr.has_key('content'):
+                # File content is given, we use the name given and the hash as reference
+                md5sum = hashlib.md5(fileDescr['content'].encode('utf-8', errors='ignore')).hexdigest()
+                fileIdList.append("file:%s:%s" % (fileDescr['name'], md5sum))
             else:
                 # It's a local dependency
                 fileIdList.append("local:%s" % fileDescr['name'])
