@@ -179,7 +179,7 @@ class CacheHandle():
         fileHashList = []
         # We build a list of identifiers for each source file and compute their md5
         for fileDescr in programFiles:
-            if fileDescr.has_key('path'):
+            if fileDescr.has_key('path') and fileDescr['path'] != '':
                 # File path is given, we use the path as reference
                 filePath = os.path.abspath(os.path.realpath(fileDescr['path']))
                 md5sum = hashlib.md5(open(filePath, 'rb').read()).hexdigest()
@@ -1335,13 +1335,13 @@ def evaluation(evaluationParams):
         logging.info("Adding extraTests")
         for et in evaluationParams['extraTests']:
             filepath = os.path.join(baseWorkingDir, "tests", et['name'])
-            if et.has_key('content'): # Content given in descr
-                open(filepath, 'w').write(et['content'].encode('utf-8'))
-            elif et.has_key('path'): # Get file by path
+            if et.has_key('path') and et['path'] != '': # Get file by path
                 if os.path.isfile(et['path']):
                     symlink(et['path'], filepath, fromlocal=True)
                 else:
                     raise Exception("File not found: %s" % et['path'])
+            elif et.has_key('content'): # Content given in descr
+                open(filepath, 'w').write(et['content'].encode('utf-8'))
 
     logging.info("Preparing sanitizer and checker")
 
