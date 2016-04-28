@@ -13,7 +13,7 @@
     "grade": 0
     }],
 "defaultEvaluationSolutions": [{
-    "id": "defSolution",
+    "id": "@solutionId",
     "compilationDescr": {
         "language": "python",
         "files": [{"name": "runner.py",

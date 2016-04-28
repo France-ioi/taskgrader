@@ -361,7 +361,7 @@ def genDefaultParams(taskPath, taskSettings):
         'defaultEvaluationSanitizer': '@defaultSanitizer',
         'defaultEvaluationChecker': '@defaultChecker',
         'defaultEvaluationSolutions': [{
-            'id': 'defSolution',
+            'id': '@solutionId',
             'compilationDescr': {
                 'language': '@solutionLanguage',
                 'files': [{'name': '@solutionFilename',
@@ -372,12 +372,20 @@ def genDefaultParams(taskPath, taskSettings):
             'compilationExecution': '@defaultSolutionCompParams'
             }],
         'defaultEvaluationExecutions': [{
-            'id': 'defExecution',
-            'idSolution': 'defSolution',
-            'filterTests': '@defaultFilterTests',
+            'id': '@solutionExecId',
+            'idSolution': '@solutionId',
+            'filterTests': '@solutionFilterTests',
             'runExecution': '@defaultSolutionExecParams'
             }],
 
+        'defaultSolutionCompParams': CFG_TESTSOLPARAMS,
+        'defaultSolutionExecParams': CFG_TESTSOLPARAMS,
+
+        # Default values if not specified
+        'solutionDependencies': [],
+        'solutionFilterTests': '@defaultFilterTests',
+        'solutionId': 'solution',
+        'solutionExecId': 'execution',
         # Add empty solutionPath and solutionContent. If a path is specified,
         # it will be used; else if a content is specified, it's the one which
         # will be used. These two keys just allow preprocessJson from
@@ -386,16 +394,13 @@ def genDefaultParams(taskPath, taskSettings):
         'solutionContent': ''
         })
 
-    # Default compilation and execution params
-    defaultParams['defaultSolutionCompParams'] = CFG_TESTSOLPARAMS
-    defaultParams['defaultSolutionExecParams'] = CFG_TESTSOLPARAMS
-
 
     ### Handle defaults in the taskSettings and overrideParams
     for k in taskSettings.keys():
         if k[:7] == 'default':
             # Copy all 'default' keys from taskSettings
             defaultParams[k] = taskSettings[k]
+
     defaultParams.update(taskSettings.get('overrideParams', {}))
 
 
