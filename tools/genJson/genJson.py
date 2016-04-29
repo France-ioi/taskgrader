@@ -475,6 +475,7 @@ def processPath(path, args):
                 testEvaluation = json.loads(genStdOut)
             except:
                 print "Error: couldn't generate test evaluation for correctSolution `%s`." % csPath
+                continue
 
             proc = subprocess.Popen([CFG_TASKGRADER], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
             (procOut, procErr) = proc.communicate(json.dumps(testEvaluation))
