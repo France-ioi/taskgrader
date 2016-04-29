@@ -9,10 +9,10 @@
 import argparse, fnmatch, glob, json, os, re, shutil, sys, subprocess, tempfile, time
 from config import *
 
-CFG_SELFDIR = os.path.normpath(os.path.dirname(os.path.abspath(__file__)))
-
-
-# TODO :: change all print statements
+# genJson folder
+SELFDIR = os.path.normpath(os.path.dirname(os.path.abspath(__file__)))
+# genJson version (grabbed from git log)
+VERSION = ''
 
 def getFileList(path):
     """Makes a list of sub-paths of files found in path."""
@@ -55,7 +55,7 @@ def getScript(path):
     """Return the fileDescr of a default script packaged with genJson."""
     # Default scripts are in the `script` subfolder
     # We put the script's content directly into the JSON
-    f = open(os.path.join(CFG_SELFDIR, 'scripts', path), 'rb')
+    f = open(os.path.join(SELFDIR, 'scripts', path), 'rb')
     return {'name': os.path.basename(path),
             'content': f.read().decode('utf-8')}
 
@@ -71,9 +71,15 @@ def genDefaultParams(taskPath, taskSettings):
     """Generates the defaultParams.json for a path pointing to a task."""
 
     # defaultParams from config.py
-    defaultParams = {'rootPath': CFG_ROOTDIR,
-                    'defaultToolCompParams': CFG_DEF_TOOLCOMPPARAMS,
-                    'defaultToolExecParams': CFG_DEF_TOOLEXECPARAMS}
+    defaultParams = {
+        'rootPath': CFG_ROOTDIR,
+        'defaultToolCompParams': CFG_DEF_TOOLCOMPPARAMS,
+        'defaultToolExecParams': CFG_DEF_TOOLEXECPARAMS,
+        }
+
+    # Add genJson version (allows to check if it was generated with the latest
+    # version)
+    defaultParams['genJsonVersion'] = VERSION
 
     # Tests and libraries given as is
     defExtraTests = []
@@ -450,7 +456,7 @@ def processPath(path, args):
         for cs in correctSolutions:
             curError = False
             csPath = cs['path'].replace('$TASK_PATH', path)
-            cmd = [os.path.join(CFG_SELFDIR, '../stdGrade/genStdTaskJson.py')]
+            cmd = [os.path.join(SELFDIR, '../stdGrade/genStdTaskJson.py')]
             if cs.has_key('language'):
                 cmd.extend(['-l', cs['language']])
             cmd.append(csPath)
@@ -561,7 +567,7 @@ def processPath(path, args):
             'extraParams': {
                 'solutionLanguage': 'shell',
                 'solutionFilename': 'true.sh',
-                'solutionPath': os.path.join(CFG_SELFDIR, 'scripts', 'true.sh'),
+                'solutionPath': os.path.join(SELFDIR, 'scripts', 'true.sh'),
                 'solutionDependencies': []
                 }
             }
@@ -620,9 +626,28 @@ if __name__ == '__main__':
 
     argParser.add_argument('-r', '--recursive', help='Searches recursively for tasks in FOLDER(s)', action='store_true')
     argParser.add_argument('-v', '--verbose', help='Be more verbose', action='store_true')
-    argParser.add_argument('folder', help='Task to generate for', nargs='+')
+    argParser.add_argument('-V', '--version', help='Print current version and exit', action='store_true')
+    argParser.add_argument('folder', help='Task to generate for', nargs='*')
 
     args = argParser.parse_args()
+
+    # Get genJson version
+    try:
+        # The version is the last commit modifying genJson in git
+        VERSION = subprocess.check_output([
+            '/usr/bin/env', 'git', 'log', '-n', '1',
+            '--pretty=%H', '--', __file__],
+            stderr=subprocess.STDOUT, cwd=SELFDIR,
+            universal_newlines=True).strip()
+    except:
+        # Unable to get version from git, we just use a timestamp
+        VERSION = 'stamp-%d' % int(time.time())
+
+    if args.version:
+        print VERSION
+        sys.exit(0)
+    elif len(args.folder) == 0:
+        argParser.error("error: too few arguments")
 
     # If recursive, we recursively explore paths given for tasks
     if args.recursive:
