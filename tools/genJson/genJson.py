@@ -105,7 +105,7 @@ def genDefaultParams(taskPath, taskSettings):
             'compilationExecution': '@defaultToolCompParams'}
 
         # Auto-detect generator dependencies
-        (genDir, genFilename) = os.path.split(taskSettings['generator'])
+        (genDir, genFilename) = os.path.split(os.path.join(taskPath, taskSettings['generator']))
 
         genDependencies = []
         genDepPaths = {}
@@ -455,12 +455,15 @@ def processPath(path, args):
         # Do an evaluation for each correctSolution
         for cs in correctSolutions:
             curError = False
-            csPath = cs['path'].replace('$TASK_PATH', path)
-            cmd = [os.path.join(SELFDIR, '../stdGrade/genStdTaskJson.py')]
+
+            # Call stdGrade to generate the evaluation
+            csPath = os.path.join(cs['path'].replace('$TASK_PATH', path))
+            cmd = [os.path.join(SELFDIR, '../stdGrade/genStdTaskJson.py'),
+                '-p', path]
             if cs.has_key('language'):
                 cmd.extend(['-l', cs['language']])
             cmd.append(csPath)
-            genStd = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            genStd = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             (genStdOut, genStdErr) = genStd.communicate()
 
             if args.verbose:
