@@ -57,7 +57,7 @@ def genStdTaskJson(taskPath, execPath, execParams, lang=None):
     # Final evaluation JSON to be given to the taskgrader
     testEvaluation = {
         'rootPath': defaultParams['rootPath'],
-        'taskPath': taskPath,
+        'taskPath': os.path.realpath(taskPath),
         'extraParams': extraParams
         }
 
