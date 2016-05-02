@@ -163,7 +163,7 @@ def genDefaultParams(taskPath, taskSettings):
                     'idGenerator': 'defaultGenerator',
                     'genExecution': '@defaultToolExecParams'}
 
-        # We execute the generator to know which files it generates # TODO :: check for regressions
+        # We execute the generator to know which files it generates
         tmpDir = tempfile.mkdtemp()
         os.mkdir(os.path.join(tmpDir, 'gen'))
         for dep in genDependencies:
@@ -207,7 +207,7 @@ def genDefaultParams(taskPath, taskSettings):
     # Detect files given directly without generator
     if taskSettings.has_key('extraDir') and os.path.isdir(os.path.join(taskPath, taskSettings['extraDir'])):
         print 'Extra files detected'
-        extraDir = taskSettings['extraDir']
+        extraDir = os.path.join(taskPath, taskSettings['extraDir'])
         # Extra tests
         if os.path.isdir(os.path.join(extraDir, 'all/')) and os.path.isdir(os.path.join(extraDir, 'python/')):
             # We have specific tests for python
