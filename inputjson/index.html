@@ -9,7 +9,7 @@
         
         <link rel="shortcut icon" href="../img/favicon.ico">
 
-	<title>taskSettings.json - Taskgrader</title>
+	<title>Input JSON - Taskgrader</title>
 
         <link href="../css/bootstrap-custom.min.css" rel="stylesheet">
         <link href="../css/font-awesome-4.5.0.css" rel="stylesheet">
@@ -59,7 +59,7 @@
                 
                 
                 
-                    <li class="dropdown">
+                    <li class="dropdown active">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">Getting started <b class="caret"></b></a>
                         <ul class="dropdown-menu">
                         
@@ -82,8 +82,8 @@
 
                         
                             
-<li >
-    <a href="../inputjson/">Input JSON</a>
+<li class="active">
+    <a href="./">Input JSON</a>
 </li>
 
                         
@@ -92,13 +92,13 @@
                 
                 
                 
-                    <li class="dropdown active">
+                    <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">Reference <b class="caret"></b></a>
                         <ul class="dropdown-menu">
                         
                             
-<li class="active">
-    <a href="./">taskSettings.json</a>
+<li >
+    <a href="../tasksettings/">taskSettings.json</a>
 </li>
 
                         
@@ -135,12 +135,12 @@
                 </li>
                 
                     <li >
-                        <a rel="next" href="../inputjson/">
+                        <a rel="next" href="../writing/">
                             <i class="fa fa-arrow-left"></i> Previous
                         </a>
                     </li>
                     <li >
-                        <a rel="prev" href="../defaultparams/">
+                        <a rel="prev" href="../tasksettings/">
                             Next <i class="fa fa-arrow-right"></i>
                         </a>
                     </li>
@@ -165,122 +165,31 @@
                 <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
     <ul class="nav bs-sidenav">
     
-        <li class="main active"><a href="#tasksettingsjson">taskSettings.json</a></li>
+        <li class="main active"><a href="#input-json">Input JSON</a></li>
         
-            <li><a href="#generator-sanitizer-checker">generator, sanitizer, checker</a></li>
-        
-            <li><a href="#extradir">extraDir</a></li>
-        
-            <li><a href="#ignoretests">ignoreTests</a></li>
-        
-            <li><a href="#correctsolutions">correctSolutions</a></li>
-        
-            <li><a href="#default">default*</a></li>
-        
-            <li><a href="#overrideparams">overrideParams</a></li>
+            <li><a href="#simplified-version">Simplified version</a></li>
         
     
     </ul>
 </div></div>
                 <div class="col-md-9" role="main">
 
-<h1 id="tasksettingsjson">taskSettings.json</h1>
-<p>The file <code>taskSettings.json</code> contains information about the task it is present in, such as its components or its evaluation parameters.</p>
-<p>It is used mainly by the genJson tool to generate the <a href="../defaultparams/"><code>defaultParams.json</code> file</a>. It is a JSON object containing key-value pairs.</p>
-<p>Example <em>(other examples can be found in the <code>examples</code> folder)</em>:</p>
+<h1 id="input-json">Input JSON</h1>
+<p>This page describes the <em>input JSON</em>, which is the JSON data sent to the taskgrader (on its standard input) to specify the full evaluation process.</p>
+<p>This page is currently under writing, but you can check the input JSON format in the file <code>schema_input.json</code>.</p>
+<h2 id="simplified-version">Simplified version</h2>
+<p><em>Writing in progress</em></p>
+<p>With the genJson tool, you can generate for each task a <a href="../defaultparams/"><code>defaultParams.json</code> file</a> which will contain default values for evaluations against that task. Once a task has its defaultParams generated, you can evaluate a solution with a simple input JSON like this:</p>
 <pre><code>{
-"sanitizer": "tests/gen/sanitizer.sh",
-"correctSolutions": [{
-    "path": "$TASK_PATH/tests/gen/sol-ok-c.c",
-    "language": "c",
-    "grade": 100
-    }]
-}
-</code></pre>
-<p>The following list is the list of keys it accepts.</p>
-<h2 id="generator-sanitizer-checker">generator, sanitizer, checker</h2>
-<ul>
-<li>Name: <code>generator</code>, <code>sanitizer</code> or <code>checker</code></li>
-<li>Type: <code>string</code></li>
-<li>Example: <code>"tests/gen/sanitizer.py"</code></li>
-</ul>
-<p>The keys <code>generator</code>, <code>sanitizer</code>, <code>checker</code> specify the path to each of these three components of the task, relatively to the task path.</p>
-<h3 id="language">Language</h3>
-<ul>
-<li>Name: <code>sanitizerLang</code> or <code>checkerLang</code></li>
-<li>Type: <code>string</code></li>
-<li>Example: <code>"cpp"</code></li>
-</ul>
-<p>The language of the sanitizer and the checker is normally automatically detected from the file extension, but can be specified manually with these two keys.</p>
-<h3 id="dependencies">Dependencies</h3>
-<ul>
-<li>Name: <code>generatorDeps</code>, <code>sanitizerDeps</code> or <code>checkerDeps</code></li>
-<li>Type: <code>object</code></li>
-<li>Example: <code>{"name": "libcheck.py", "path": "$TASK_PATH/tests/gen/libcheck.py"}</code></li>
-</ul>
-<p>These keys specify the dependencies needed for each of these three components of the task. Each object is a <code>fileDescr</code> as defined in the taskgrader's <code>schema_input.json</code>.</p>
-<p>Note that the generator dependencies are normally automatically detected, if they are in the same folder.</p>
-<h2 id="extradir">extraDir</h2>
-<ul>
-<li>Name: <code>extraDir</code></li>
-<li>Type: <code>string</code></li>
-<li>Example: <code>"tests/files/"</code></li>
-</ul>
-<p>This key specify the folder, relative to the task, to scan for <code>extraFiles</code>, that is to say, test cases given as-is, without generator.</p>
-<h2 id="ignoretests">ignoreTests</h2>
-<ul>
-<li>Name: <code>ignoreTests</code></li>
-<li>Type: <code>list of strings</code></li>
-<li>Example: <code>["sample*"]</code></li>
-</ul>
-<p>This key is a list of glob-style filenames to ignore while scanning for test cases. These test cases will be ignored by genJson, and thus not be used for evaluation.</p>
-<h2 id="correctsolutions">correctSolutions</h2>
-<ul>
-<li>Name: <code>ignoreTests</code></li>
-<li>Type: <code>list of objects</code></li>
-<li>Example: <code>[{"path": "$TASK_PATH/tests/gen/sol-ok-c.c", "language": "c", "grade": 100}]</code></li>
-</ul>
-<p>This key defines the "correct solutions", which are solutions which will be automatically evaluated against the task by genJson, when generating the <code>defaultParams</code>. They allow to test the task is behaving properly. It is a list of objects, each having up to 4 keys:</p>
-<table>
-<thead>
-<tr>
-<th>Key name</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>path</code></td>
-<td>required <code>string</code></td>
-<td>Path to the solution</td>
-</tr>
-<tr>
-<td><code>language</code></td>
-<td>optional <code>string</code></td>
-<td>Language of the solution</td>
-</tr>
-<tr>
-<td><code>grade</code></td>
-<td>required <code>int</code></td>
-<td>Grade expected for this solution</td>
-</tr>
-<tr>
-<td><code>nbtests</code></td>
-<td>optional <code>int</code></td>
-<td>Number of test cases this solution is expected to be evaluated against</td>
-</tr>
-</tbody>
-</table>
-<h2 id="default">default*</h2>
-<p>Any key name starting with "default" will be copied as-is to the <code>defaultParams.json</code> file. Please check <a href="../defaultparams/">its documentation</a> for more information about these keys.</p>
-<h2 id="overrideparams">overrideParams</h2>
-<ul>
-<li>Name: <code>overrideParams</code></li>
-<li>Type: <code>object</code></li>
-<li>Example: <code>{"defaultFilterTests": [], "defaultDependencies-python2": "@defaultDependencies-python"}</code></li>
-</ul>
-<p>This key defines parameters to override in the generated <a href="../defaultparams/"><code>defaultParams.json</code> file</a>. The keys of this object will be copied as-is to the <code>defaultParams</code>, possibly overwriting automatically generated ones.</p></div>
+    "rootPath": "/some/path",
+    "taskPath": "/path/to/the/task",
+    "extraParams": {
+        "solutionFilename": "solution.c",
+        "solutionPath": "/home/user/solution.c",
+        "solutionLanguage": "c",
+        "solutionDependencies": "@defaultDependencies-c"
+}}
+</code></pre></div>
             
         </div>
 

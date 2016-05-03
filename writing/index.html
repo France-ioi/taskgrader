@@ -81,6 +81,12 @@
 </li>
 
                         
+                            
+<li >
+    <a href="../inputjson/">Input JSON</a>
+</li>
+
+                        
                         </ul>
                     </li>
                 
@@ -134,7 +140,7 @@
                         </a>
                     </li>
                     <li >
-                        <a rel="prev" href="../tasksettings/">
+                        <a rel="prev" href="../inputjson/">
                             Next <i class="fa fa-arrow-right"></i>
                         </a>
                     </li>
@@ -187,11 +193,11 @@
 <p>Use <code>taskstarter.py init [taskpath]</code> to interactively create a new task.</p>
 <p>A "task" is a set of programs and files representing the problem the solutions will be evaluated against:</p>
 <ul>
-<li>the test cases (input files and the associated expected output),</li>
-<li>the libraries the solutions can use</li>
-<li>an optional generator which generates these two types of files</li>
-<li>a sanitizer, checking the input files are in the required format</li>
-<li>the checker, grading each solution's output</li>
+<li>the <strong>test cases</strong> (input files and the associated expected output),</li>
+<li>the <strong>libraries</strong> the solutions can use</li>
+<li>an optional <strong>generator</strong> which generates these two types of files</li>
+<li>a <strong>sanitizer</strong>, validating the input files by checking they are in the required format</li>
+<li>the <strong>checker</strong>, grading each solution's output</li>
 </ul>
 <p>The script <code>tools/taskstarter/taskstarter.py</code> can assist with writing a task; use <code>taskstarter.py help</code> to see the available commands.</p>
 <p>Here are some examples based around a simple problem: the program is given a number as input, and must output the double of the number. These example tasks can be found in the <code>examples</code> folder.</p>
