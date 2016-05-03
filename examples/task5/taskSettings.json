@@ -19,7 +19,8 @@
         "files": [{"name": "runner.py",
                    "path": "$TASK_PATH/tests/gen/runner.py"}],
         "dependencies": [{"name": "solution.py",
-                          "path": "@solutionPath"}]
+                          "path": "@solutionPath",
+                          "content": "@solutionContent"}]
         },
     "compilationExecution": "@defaultSolutionCompParams"}]
 }
