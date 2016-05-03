@@ -279,8 +279,21 @@
 <h2 id="example-5-solution-skeleton">Example 5: solution skeleton</h2>
 <p>Sometimes, the "solution" to be evaluated is not the file to be executed, but a library or a test file.</p>
 <p>In this example, we have <code>runner.py</code> calling the function <code>min3nombres</code> from the user-sent python file. The "solution" is hence a library, and the actual script executed is <code>runner.py</code> using this library.</p>
-<p>In order to be able to evaluation solutions against this task, we add, in <code>taskSettings.json</code>, the key <code>overrideParams/defaultSkeleton</code>. This key will get copied directly to <code>defaultParams.json</code>, where it will indicate the skeleton of what needs to be executed by the taskgrader.</p>
-<p>In this key, we indicate what needs to be executed, and the values <code>'%solname', '%solpath', '%sollang', '%soldeps'</code> will be replaced with the solution's name, path, language and dependencies. In this example task, <code>runner.py</code> is defined as the main program to execute, and our solution is passed as dependency of this program, and automatically named <code>solution.py</code> to be then imported by <code>runner.py</code>.</p>
+<p>In order to be able to evaluate solutions against this task, we add, in <code>taskSettings.json</code>, the key <code>defaultEvaluationSolutions</code>. This key will get copied directly to <code>defaultParams.json</code>, where it will indicate the skeleton of what needs to be executed by the taskgrader. Some more information can be found in the <a href="../defaultparams/"><code>defaultParams.json</code> reference</a>. Here this key contains:</p>
+<pre><code>defaultEvaluationSolutions": [{
+    "id": "@solutionId",
+    "compilationDescr": {
+        "language": "python",
+        "files": [{"name": "runner.py",
+                   "path": "$TASK_PATH/tests/gen/runner.py"}],
+        "dependencies": [{"name": "solution.py",
+                          "path": "@solutionPath",
+                          "content": "@solutionContent"}]
+        },
+    "compilationExecution": "@defaultSolutionCompParams"}]
+</code></pre>
+<p>This example means to use <code>runner.py</code> as script to execute (hence in "files"), and to give the solution as dependency, stored in <code>solution.py</code> (whichever the original solution filename is, it will be renamed to <code>solution.py</code>).</p>
+<p>In this key, we indicate what needs to be executed, and the values <code>'@solutionFilename', '@solutionLanguage', '@solutionDependencies', '@solutionPath', '@solutionContent'</code> will be replaced with the solution's name, language, dependencies, and its path or content. In this example task, <code>runner.py</code> is defined as the main program to execute, and our solution is passed as dependency of this program, and automatically named <code>solution.py</code> to be then imported by <code>runner.py</code>.</p>
 <p>You can test the task by running, from the task folder:</p>
 <ul>
 <li><code>taskstarter.py test</code> for the normal test</li>
