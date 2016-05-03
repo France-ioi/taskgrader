@@ -5,6 +5,7 @@ pages:
     - Installing: install.md
     - "Basic usage": basicusage.md
     - "Writing tasks": writing.md
+    - "Input JSON": inputjson.md
 - "Reference":
     - "taskSettings.json": tasksettings.md
     - "defaultParams.json": defaultparams.md

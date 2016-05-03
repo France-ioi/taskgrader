@@ -4,11 +4,11 @@ Use `taskstarter.py init [taskpath]` to interactively create a new task.
 
 A "task" is a set of programs and files representing the problem the solutions will be evaluated against:
 
-* the test cases (input files and the associated expected output),
-* the libraries the solutions can use
-* an optional generator which generates these two types of files
-* a sanitizer, checking the input files are in the required format
-* the checker, grading each solution's output
+* the **test cases** (input files and the associated expected output),
+* the **libraries** the solutions can use
+* an optional **generator** which generates these two types of files
+* a **sanitizer**, validating the input files by checking they are in the required format
+* the **checker**, grading each solution's output
 
 The script `tools/taskstarter/taskstarter.py` can assist with writing a task; use `taskstarter.py help` to see the available commands.
 

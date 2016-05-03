@@ -10,8 +10,9 @@ It uses [isolate](https://github.com/ioi/isolate) as a sandbox to run solutions 
 
 * Getting started:
     * [Installation](install.md)
-    * [Basic usage](basicusage.md) and basic usage
+    * [Basic usage](basicusage.md) of the taskgrader
     * [How to write tasks](writing.md) for use with the taskgrader
+    * [Input JSON](inputjson.md) to send to the taskgrader
 * Reference:
     * [taskSettings.json](tasksettings.md), the settings for auto-detection of the task components and parameters
     * [defaultParams.json](defaultparams.md), the full description of the task for direct use by evaluation processes
