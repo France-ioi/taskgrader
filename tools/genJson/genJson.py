@@ -253,6 +253,12 @@ def genDefaultParams(taskPath, taskSettings):
     for lang in CFG_LANGUAGES:
         defaultParams['defaultDependencies-' + lang] = defDependencies[lang]
 
+    # Aliases for python2 and python3
+    defaultParams['defaultFilterTests-python2'] = '@defaultFilterTests-python'
+    defaultParams['defaultFilterTests-python3'] = '@defaultFilterTests-python'
+    defaultParams['defaultDependencies-python2'] = '@defaultDependencies-python'
+    defaultParams['defaultDependencies-python3'] = '@defaultDependencies-python'
+
     # Add dependencies and filterTest aliases for old languages
     for lang in CFG_LANGUAGES_OLD_NEW.keys():
         newlang = CFG_LANGUAGES_OLD_NEW[lang]
