@@ -916,7 +916,7 @@ class Program():
         logging.info("Compiling Program `%s`" % self.name)
 
         if self.compilationParams['useCache']:
-            cachef = self.cacheHandle.getCacheFolder('compilation-' + self.name, execParams=self.compilationParams)
+            cachef = self.cacheHandle.getCacheFolder('compilation-%s-%s' % (self.compilationDescr['language'], self.name), execParams=self.compilationParams)
             # Check cache
             if cachef.isCached:
                 logging.debug("Compiled version was cached")
@@ -981,7 +981,7 @@ class Program():
             inputFiles = []
             inputFiles.extend(otherInputs)
             if stdinFile: inputFiles.append(stdinFile)
-            cachef = self.cacheHandle.getCacheFolder('execution-' + self.name, args=args, execParams=self.executionParams, inputFiles=inputFiles)
+            cachef = self.cacheHandle.getCacheFolder('execution-%s-%s' % (self.compilationDescr['language'], self.name), args=args, execParams=self.executionParams, inputFiles=inputFiles)
 
             if cachef.isCached:
                 # It is cached, we load the report and output files
