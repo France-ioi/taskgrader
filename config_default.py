@@ -81,5 +81,22 @@ CFG_TRANSFORM_MEM_DEFAULT  = (lambda x: x)
 CFG_TRANSFORM_TIME_DEFAULT = (lambda x: x, lambda x: x)
 
 
+### Miscellaneous ###
+
+# Execute clean_cache at the end of the taskgrader (every hour)
+# Disable this if you already execute it (in graderserver for instance)
+CFG_CLEAN_AUTO = True
+# Cleaning script path
+CFG_CLEAN_SCRIPT = os.path.join(CFG_BINDIR, 'clean_cache.py')
+
+# clean_cache.py variables
+# Max age (since creation) in seconds and total size in bytes for builds
+CFG_BUILDS_MAXTIME = 7200         # Keep builds for 2 hours
+CFG_BUILDS_MAXSIZE = 50*1024*1024 # Keep less than 50 MB of builds
+
+# Max age (since last access) in seconds and total size for cache
+CFG_CACHE_MAXTIME = 14*24*60*60   # Keep old cache for two weeks
+CFG_CACHE_MAXSIZE = 250*1024*1024 # Keep less than 250 MB of cache
+
 
 ##### END OF CONFIGURATION #####

@@ -99,6 +99,11 @@ class CacheFolder(object):
                 self.files = cPickle.load(open(self._makePath('cache.files'), 'r'))
             except:
                 pass
+            # Write in cache.ok the last access timestamp
+            try:
+                open(self._makePath('cache.ok'), 'w').write(str(time.time()))
+            except:
+                pass
             logging.debug("CacheFolder #%d is cached, files: %s." % (cacheId, ', '.join(self.files)))
         else:
             logging.debug("CacheFolder #%d is not cached." % cacheId)
@@ -1523,3 +1528,17 @@ if __name__ == '__main__':
         logging.critical(traceback.format_exc())
         traceback.print_exc()
         sys.exit(1)
+
+    # Auto-clean builds and cache every hour
+    if CFG_CLEAN_AUTO:
+        try:
+            lastClean = float(open('/tmp/.taskgrader-autoclean', 'r').read())
+        except:
+            lastClean = 0
+        if time.time() - lastClean > 3600:
+            logging.info("Executing auto-clean script.")
+            open('/tmp/.taskgrader-autoclean', 'w').write(str(time.time()))
+            cleanProc = subprocess.Popen([CFG_CLEAN_SCRIPT])
+            cleanProc.wait()
+        else:
+            logging.info("Auto-clean done recently, not executing script.")
