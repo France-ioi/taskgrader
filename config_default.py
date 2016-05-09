@@ -57,6 +57,13 @@ CFG_CONTROLGROUPS = False
 # 'auto' will be False on Mac OS X, True on other systems
 CFG_STATIC = 'auto'
 
+# Use only one isolated execution for all checker tests
+# (improves performance as each isolate invocation is slow)
+# If True, use a script inside isolate to do all checker invocations; it will
+# not use the cache system. If False, use normal behavior of executing the
+# checker in isolate for each test case.
+CFG_MULTICHECK = True
+
 # Timeout for accessing the cache
 CFG_CACHE_TIMEOUT = 60
 

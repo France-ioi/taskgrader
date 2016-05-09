@@ -1028,6 +1028,96 @@ class Program():
         return report
 
 
+def multiChecker(workingDir, checkList, checker, executionParams):
+    """Do multiple checks in the same isolated execution."""
+    if len(checkList) == 0:
+        return []
+
+    # Find time executable if present
+    timePath = which('time')
+    if not timePath:
+        raise Exception("Couldn't find 'time' binary, can't do a multicheck. Disable CFG_MULTICHECK.")
+
+    # Make execution params for the multi-execution
+    multiExecParams = {}
+    multiExecParams.update(executionParams)
+    multiExecParams['timeLimitMs'] = min(CFG_MAX_TIMELIMIT, executionParams['timeLimitMs'] * len(checkList))
+
+    # Build the script
+    mcPath = os.path.join(workingDir, 'multichecker.sh')
+    mcFile = open(mcPath, 'w')
+    mcFile.write("#!/bin/sh\n")
+
+    # Add all tests
+    cmdLines = {}
+    for (i, tf) in checkList:
+        # Make checker command-line
+        baseCmdLine = "%(checker)s %(testFile)s.solout %(testFile)s.in %(testFile)s.out"
+        baseCmdLine = baseCmdLine % {'testFile': tf,
+            'checker': './%s' % os.path.basename(checker.executablePath)}
+        cmdLines[i] = baseCmdLine
+
+        # Use time for execution statistics
+        cmdLine = '%(time)s --output %(testFile)s.time --format "%%x %%M %%U" '
+        # Execute the checker
+        cmdLine += baseCmdLine
+        # Redirect output
+        cmdLine += " > %(testFile)s.cout 2> %(testFile)s.cerr"
+        # Replace variables
+        cmdLine = cmdLine % {'time': timePath,
+            'testFile': tf}
+        mcFile.write(cmdLine + "\n")
+
+    mcFile.close()
+    os.chmod(mcPath, 493) # chmod 755
+
+    # Execute the script
+    report = IsolatedExecution(checker.executablePath, multiExecParams, './multichecker.sh').execute(workingDir)
+
+    # Build reports
+    # Many elements aren't present in the reports from a multi-check
+    baseReport = {
+        'timeLimitMs': multiExecParams['timeLimitMs'],
+        'memoryLimitKb': multiExecParams['memoryLimitKb'],
+        'realMemoryLimitKb': -1,
+        'realTimeLimitMs': -1,
+        'wasCached': False,
+        'wasKilled': False,
+        'exitSig': -1}
+
+    filesReports = []
+    for f in globOfGlobs(workingDir, executionParams['getFiles']):
+        filesReports.append(capture(f, name=os.path.basename(f), truncateSize=CFG_MAX_GETFILE))
+    baseReport['files'] = filesReports
+
+    allReports = []
+
+    # Make the report for each check
+    for (i, tf) in checkList:
+        report = {}
+        report.update(baseReport)
+        report['commandLine'] = cmdLines[i]
+
+        timeFile = open(os.path.join(workingDir, '%s.time' % tf), 'r')
+        timeStats = timeFile.read().strip().split()
+        report.update({
+            'exitCode': int(timeStats[0]),
+            'memoryUsedKb': int(timeStats[1]),
+            'timeTakenMs': int(float(timeStats[2])*1000),
+            'realTimeTakenMs': int(float(timeStats[2])*1000)})
+
+        report['stdout'] = capture(os.path.join(workingDir, '%s.cout' % tf),
+            name='stdout',
+            truncateSize=multiExecParams['stdoutTruncateKb'] * 1024)
+        report['stderr'] = capture(os.path.join(workingDir, '%s.cerr' % tf),
+            name='stderr',
+            truncateSize=multiExecParams['stderrTruncateKb'] * 1024)
+
+        allReports.append((i, report))
+
+    return allReports
+
+
 def preprocessJson(json, varData):
     """Preprocess some JSON data, replacing variables with their values.
     There's no checking of the type of values in the variables; the resulting
@@ -1418,6 +1508,10 @@ def evaluation(evaluationParams):
         # Prepare solution execution
         solution.prepareExecution(test['runExecution'])
 
+        # List of delayed checks
+        if CFG_MULTICHECK:
+            multiCheckList = []
+
         # Files to test as input
         testFiles = globOfGlobs(os.path.join(baseWorkingDir, 'tests/'), test['filterTests'])
         for tf in testFiles:
@@ -1443,18 +1537,30 @@ def evaluation(evaluationParams):
                 # Solution returned an error, no need to check
                 mainTestReport['testsReports'].append(subTestReport)
                 continue
+
             # We execute the checker
             if os.path.isfile(tf[:-3] + '.out'):
                 filecopy(tf[:-3] + '.out', testDir, fromlocal=True)
             else:
                 # We write a dummy .out file, the checker probably doesn't need it
                 open(testDir + baseTfName + '.out', 'w')
-            subTestReport['checker'] = checker.execute(testDir,
+
+            if CFG_MULTICHECK:
+                # We delay the checking to later
+                multiCheckList.append((len(mainTestReport['testsReports']), baseTfName))
+            else:
+                subTestReport['checker'] = checker.execute(testDir,
                     args="%s.solout %s.in %s.out" % tuple([baseTfName]*3),
                     stdinFile=testDir + baseTfName + '.out',
                     stdoutFile=testDir + baseTfName + '.ok',
                     otherInputs=[testDir + baseTfName + '.in', testDir + baseTfName + '.solout'])
             mainTestReport['testsReports'].append(subTestReport)
+
+        # Execute delayed checks
+        if CFG_MULTICHECK:
+            multiCheckReports = multiChecker(testDir, multiCheckList, checker, evaluationParams['checker']['runExecution'])
+            for (i, checkReport) in multiCheckReports:
+                mainTestReport['testsReports'][i]['checker'] = checkReport
 
         report['executions'].append(mainTestReport)
 
