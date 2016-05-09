@@ -1277,7 +1277,7 @@ def evaluation(evaluationParams):
     if not evaluationParams.has_key('taskPath'):
         raise Exception("Input JSON missing 'taskPath' key.")
     if not os.path.isdir(evaluationParams['taskPath']):
-        raise Exception("Task path `%s` invalid." % evaluationParams['taskPath'])
+        raise Exception("Task path `%s` invalid (folder not found)." % evaluationParams['taskPath'])
 
     # *** Variables handling
     varData = {'ROOT_PATH': evaluationParams['rootPath'],
@@ -1298,12 +1298,11 @@ def evaluation(evaluationParams):
             raise Exception("defaultParams.json in `%s` is invalid." % evaluationParams['taskPath'])
 
     if evaluationParams.has_key('extraParams'):
-        if type(evaluationParams['extraParams']) is str and isInRestrict(evaluationParams['extraParams']):
-            varData.update(json.load(open(evaluationParams['extraParams'], 'r')))
+        exp = evaluationParams.pop('extraParams')
+        if type(exp) is str and isInRestrict(exp):
+            varData.update(json.load(open(exp, 'r')))
         else:
-            varData.update(evaluationParams['extraParams'])
-        # We don't want preprocessJson to process the extraParams if not needed
-        evaluationParams.pop('extraParams')
+            varData.update(exp)
 
 
     # Check for evaluation elements
