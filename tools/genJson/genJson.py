@@ -7,6 +7,7 @@
 
 
 import argparse, fnmatch, glob, json, os, re, shutil, sys, subprocess, tempfile, time
+from config_default import *
 from config import *
 
 # genJson folder

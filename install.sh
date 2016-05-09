@@ -142,7 +142,7 @@ mkdir -p files/builds
 ### Modify config.py
 if ! [ -f config.py ]
 then
-  cp -p config.py.template config.py
+  cp -p config_default.py config.py
   sed -i "s|^CFG_BASEDIR.*$|CFG_BASEDIR=\"`pwd`/files/\"|" config.py
   sed -i "s|^CFG_BINDIR.*$|CFG_BINDIR=\"`pwd`/\"|" config.py
 else
@@ -152,7 +152,7 @@ fi
 ### Initialize genJson config.py
 if ! [ -f tools/genJson/config.py ]
 then
-  cp -p tools/genJson/config.py.template tools/genJson/config.py
+  cp -p tools/genJson/config_default.py tools/genJson/config.py
 else
   echo "[Notice] genJson config.py detected, no new config.py file written."
 fi
@@ -160,7 +160,7 @@ fi
 ### Initialize stdGrade config.py
 if ! [ -f tools/stdGrade/config.py ]
 then
-  cp -p tools/stdGrade/config.py.template tools/stdGrade/config.py
+  cp -p tools/stdGrade/config_default.py tools/stdGrade/config.py
 else
   echo "[Notice] stdGrade config.py detected, no new config.py file written."
 fi

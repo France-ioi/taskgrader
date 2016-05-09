@@ -10,7 +10,9 @@
 
 
 import argparse, json, os, sys
-from config import CFG_EXECPARAMS, CFG_LANGEXTS
+
+from config_default import *
+from config import *
 
 
 def getDefault(defaultParams, field, lang, default):

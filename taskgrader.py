@@ -13,19 +13,29 @@
 import argparse, cPickle, fcntl, glob, hashlib, json, logging, os, platform
 import random, shlex, shutil, sqlite3, stat, sys, subprocess, threading, time
 import traceback
+
+# Load configuration; default values will be overwritten by user-defined ones
+from config_default import *
 from config import *
+
+# Handle configuration variables
+for var in ['CFG_BASEDIR', 'CFG_BINDIR']:
+    if eval(var) == 'CHANGE_ME':
+        raise Exception("Configuration variable '%s' not defined.\nPlease edit `config.py`." % var)
+
+# Cannot compile as static on Mac OS X
+if CFG_STATIC == 'auto':
+    if platform.system() == 'Darwin':
+        CFG_STATIC = False
+    else:
+        CFG_STATIC = True
+
 
 sys.path.append(CFG_JSONSCHEMA)
 try:
     from jsonschema import validate
 except:
     validate = None
-
-# Cannot compile as static on Mac OS X
-if platform.system() == 'Darwin':
-    CFG_STATIC = False
-else:
-    CFG_STATIC = True
 
 
 class TemporaryException(Exception):

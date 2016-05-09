@@ -5,15 +5,23 @@
 #
 # http://opensource.org/licenses/MIT
 
+# This is the configuration file for the taskgrader.
+# Copy this file to 'config.py' and edit it to fit your needs.
+# The default values from 'config_default.py' will be used if 'config.py'
+# doesn't define them.
+
 import os
 
 ##### START OF CONFIGURATION #####
 
-### taskgrader.py configuration
+### Paths ###
+
 # Base directory for work files, will contain the builds and cache
-CFG_BASEDIR = ''
+# install.sh will change this folder to taskgrader's dir + 'files/'
+CFG_BASEDIR = 'CHANGE_ME'
 # Base directory for binaries, must contain the different binaries needed
-CFG_BINDIR = ''
+# install.sh will change this folder to taskgrader's dir
+CFG_BINDIR = 'CHANGE_ME'
 
 # Internal folders for taskgrader operation
 CFG_BUILDSDIR = os.path.join(CFG_BASEDIR, 'builds/')
@@ -25,24 +33,35 @@ CFG_ISOLATEBIN = os.path.join(CFG_BINDIR, 'isolate-bin')
 CFG_RIGHTSBIN = os.path.join(CFG_BINDIR, 'box-rights')
 CFG_JAVASCOOLBIN = os.path.join(CFG_BINDIR, 'jvs2java')
 
+# jsonschema-related variables
+CFG_JSONSCHEMA = os.path.join(CFG_BINDIR, 'jsonschema')
+CFG_INPUTSCHEMA = os.path.join(CFG_BINDIR, 'schema_input.json')
+CFG_OUTPUTSCHEMA = os.path.join(CFG_BINDIR, 'schema_output.json')
+
+
+### Logging ###
+
 # Log file (when not specified on command-line)
 CFG_LOGFILE = None
 # Log level, must be 'CRITICAL', 'ERROR', 'WARNING', 'INFO' or 'DEBUG'
 CFG_LOGLEVEL = "WARNING"
 
-# Compile as static executables where possible
-CFG_STATIC = True
+
+### Execution ###
 
 # Does the kernel support control groups?
 CFG_CONTROLGROUPS = False
 
+# Compile executables as static
+# Possible values: 'auto', True, False
+# 'auto' will be False on Mac OS X, True on other systems
+CFG_STATIC = 'auto'
+
 # Timeout for accessing the cache
 CFG_CACHE_TIMEOUT = 60
 
-# jsonschema-related variables
-CFG_JSONSCHEMA = os.path.join(CFG_BINDIR, 'jsonschema')
-CFG_INPUTSCHEMA = os.path.join(CFG_BINDIR, 'schema_input.json')
-CFG_OUTPUTSCHEMA = os.path.join(CFG_BINDIR, 'schema_output.json')
+
+### Time and memory limits ###
 
 # Maximum time and memory limits; if input JSON defines limits higher than
 # that, the tasgrader will return an error
@@ -61,17 +80,6 @@ CFG_TRANSFORM_TIME = {}
 CFG_TRANSFORM_MEM_DEFAULT  = (lambda x: x)
 CFG_TRANSFORM_TIME_DEFAULT = (lambda x: x, lambda x: x)
 
+
+
 ##### END OF CONFIGURATION #####
-
-
-### We raise an exception if we don't have all configuration variables
-for var in ['CFG_BASEDIR', 'CFG_BUILDSDIR', 'CFG_CACHEDIR', 'CFG_CACHEDBPATH',
-            'CFG_BINDIR', 'CFG_ISOLATEBIN', 'CFG_RIGHTSBIN',
-            'CFG_JAVASCOOLBIN', 'CFG_LOGFILE', 'CFG_LOGLEVEL',
-            'CFG_CONTROLGROUPS', 'CFG_CACHE_TIMEOUT', 'CFG_JSONSCHEMA',
-            'CFG_INPUTSCHEMA', 'CFG_OUTPUTSCHEMA', 'CFG_MAX_TIMELIMIT',
-            'CFG_MAX_MEMORYLIMIT', 'CFG_MAX_GETFILE', 'CFG_TRANSFORM_MEM',
-            'CFG_TRANSFORM_TIME', 'CFG_TRANSFORM_MEM_DEFAULT',
-            'CFG_TRANSFORM_TIME_DEFAULT']:
-    if var not in globals():
-        raise Exception("Configuration variable %s missing. Please edit config.py." % var)
