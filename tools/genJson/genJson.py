@@ -354,11 +354,11 @@ def genDefaultParams(taskPath, taskSettings):
             'compilationExecution': '@defaultToolCompParams',
             'runExecution': '@defaultToolExecParams'}
     else:
-        print 'No checker detected, using defaultChecker.sh'
+        print 'No checker detected, using defaultChecker.py'
         # We use a generic checker (a wrapper around diff)
         defChecker = {
-            'compilationDescr': {'language': 'sh',
-                'files': [getScript('defaultChecker.sh')],
+            'compilationDescr': {'language': 'python2',
+                'files': [getScript('defaultChecker.py')],
                 'dependencies': []},
             'compilationExecution': '@defaultToolCompParams',
             'runExecution': '@defaultToolExecParams'}
