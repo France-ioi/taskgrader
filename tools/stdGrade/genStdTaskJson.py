@@ -86,8 +86,11 @@ if __name__ == '__main__':
     if not args.task_path and os.path.isfile('defaultParams.json'):
         args.task_path = os.getcwd()
     elif not args.task_path or not os.path.isfile(os.path.join(args.task_path, 'defaultParams.json')):
-        print "Current directory is not a task and no task path given. Aborting."
-        sys.exit(1)
+        argParser.error("Current directory is not a task and no task path given. Aborting.")
+
+    # Check solution file
+    if not os.path.isfile(args.file):
+        argParser.error("Solution `%s` not found." % args.file)
 
     # Add command-line given constraints to execParams
     execParams['memoryLimitKb'] = args.memory_limit
