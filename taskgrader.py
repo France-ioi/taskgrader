@@ -14,6 +14,7 @@ import argparse, cPickle, fcntl, glob, hashlib, json, logging, os, platform
 import random, shlex, shutil, sqlite3, stat, sys, subprocess, threading, time
 import traceback
 
+
 # Load configuration; default values will be overwritten by user-defined ones
 from config_default import *
 from config import *
@@ -29,6 +30,13 @@ if CFG_STATIC == 'auto':
         CFG_STATIC = False
     else:
         CFG_STATIC = True
+
+# Mac OS X doesn't have an appropriate 'time' binary
+if CFG_MULTICHECK and CFG_MULTICHECK_LIGHT == 'auto':
+    if platform.system() == 'Darwin':
+        CFG_MULTICHECK_LIGHT = True
+    else:
+        CFG_MULTICHECK_LIGHT = False
 
 
 sys.path.append(CFG_JSONSCHEMA)
@@ -1034,9 +1042,10 @@ def multiChecker(workingDir, checkList, checker, executionParams):
         return []
 
     # Find time executable if present
-    timePath = which('time')
-    if not timePath:
-        raise Exception("Couldn't find 'time' binary, can't do a multicheck. Disable CFG_MULTICHECK.")
+    if CFG_MULTICHECK_LIGHT:
+        timePath = None
+    else:
+        timePath = which('time')
 
     # Make execution params for the multi-execution
     multiExecParams = {}
@@ -1057,8 +1066,11 @@ def multiChecker(workingDir, checkList, checker, executionParams):
             'checker': './%s' % os.path.basename(checker.executablePath)}
         cmdLines[i] = baseCmdLine
 
-        # Use time for execution statistics
-        cmdLine = '%(time)s --output %(testFile)s.time --format "%%x %%M %%U" '
+        if timePath:
+            # Use time for execution statistics
+            cmdLine = '%(time)s --output %(testFile)s.time --format "%%x %%M %%U" '
+        else:
+            cmdLine = ''
         # Execute the checker
         cmdLine += baseCmdLine
         # Redirect output
@@ -1067,6 +1079,9 @@ def multiChecker(workingDir, checkList, checker, executionParams):
         cmdLine = cmdLine % {'time': timePath,
             'testFile': tf}
         mcFile.write(cmdLine + "\n")
+        if not timePath:
+            # If we don't use time, we ask sh to write the exit code
+            mcFile.write("echo $? > %s.code\n" % tf)
 
     mcFile.close()
     os.chmod(mcPath, 493) # chmod 755
@@ -1098,13 +1113,22 @@ def multiChecker(workingDir, checkList, checker, executionParams):
         report.update(baseReport)
         report['commandLine'] = cmdLines[i]
 
-        timeFile = open(os.path.join(workingDir, '%s.time' % tf), 'r')
-        timeStats = timeFile.read().strip().split()
-        report.update({
-            'exitCode': int(timeStats[0]),
-            'memoryUsedKb': int(timeStats[1]),
-            'timeTakenMs': int(float(timeStats[2])*1000),
-            'realTimeTakenMs': int(float(timeStats[2])*1000)})
+        if timePath:
+            # Fetch time statistics
+            timeFile = open(os.path.join(workingDir, '%s.time' % tf), 'r')
+            timeStats = timeFile.read().strip().split()
+            report.update({
+                'exitCode': int(timeStats[0]),
+                'memoryUsedKb': int(timeStats[1]),
+                'timeTakenMs': int(float(timeStats[2])*1000),
+                'realTimeTakenMs': int(float(timeStats[2])*1000)})
+        else:
+            exitFile = open(os.path.join(workingDir, '%s.code' % tf), 'r')
+            report.update({
+                'exitCode': int(exitFile.read().strip()),
+                'memoryUsedKb': -1,
+                'timeTakenMs': -1,
+                'realTimeTakenMs': -1})
 
         report['stdout'] = capture(os.path.join(workingDir, '%s.cout' % tf),
             name='stdout',

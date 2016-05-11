@@ -63,6 +63,11 @@ CFG_STATIC = 'auto'
 # not use the cache system. If False, use normal behavior of executing the
 # checker in isolate for each test case.
 CFG_MULTICHECK = True
+# Do not use time; no execution statistics will be collected for checker
+# executions.
+# Possible values: 'auto', True, False
+# 'auto' will be True on Mac OS X, False on other systems
+CFG_MULTICHECK_LIGHT = 'auto'
 
 # Timeout for accessing the cache
 CFG_CACHE_TIMEOUT = 60
