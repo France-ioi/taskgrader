@@ -6,7 +6,7 @@
 # http://opensource.org/licenses/MIT
 
 import argparse, json, sys, time, urllib.request, urllib.parse
-from config import *
+from remote_config import *
 
 API = CFG_API
 USERNAME = CFG_USERNAME
@@ -77,8 +77,12 @@ def getJob(jobid):
 
     return apiRequest(request)
 
-def getJobLoop(jobid, display=False):
-    """Wait for completion of a job and return its data."""
+def getJobLoop(jobid, display=False, exit=False):
+    """Wait for completion of a job and return its data.
+    display activates displaying information, exit will exit if the task wasn't
+    evaluated (implies display)."""
+    if exit:
+        display = True
     if display:
         printErr("Waiting for evaluation")
     start_time = time.time()
@@ -112,11 +116,22 @@ def getJobLoop(jobid, display=False):
     if display:
         printErr("\n")
 
+    if exit:
+        if not checkApiOk(jobReq):
+            displayApiError(jobReq)
+            sys.exit(1)
+
+        if jobReq['origin'] == 'queue':
+            printErr("Task wasn't evaluated in %d seconds.\n" % CFG_TIMEOUT)
+            printErr("Use the option '-g %d' to try again fetching results.\n" % jobid)
+            sys.exit(1)
+
     return jobReq
 
 
 def gradeJob(inputJson):
     """Send a job and fetch results."""
+    # Send job
     printErr("Sending job...")
     sendReq = sendJob(inputJson)
 
@@ -125,19 +140,12 @@ def gradeJob(inputJson):
         displayApiError(sendReq, request='sendjob')
         sys.exit(1)
 
+    # Success
     jobid = int(sendReq['jobid'])
     printErr(" queued successfully as id #%d.\n" % jobid)
 
-    jobReq = getJobLoop(jobid, display=True)
-    if not checkApiOk(jobReq):
-        displayApiError(jobReq)
-        sys.exit(1)
-
-    if jobReq['origin'] == 'queue':
-        printErr("Task wasn't evaluated in %d seconds.\n" % CFG_TIMEOUT)
-        printErr("Use `remoteGrader.py -g %d` to try again to fetch results.\n" % jobid)
-        sys.exit(1)
-
+    # Fetch results
+    jobReq = getJobLoop(jobid, exit=True)
     return json.loads(jobReq['data']['resultdata'])['jobdata']
 
 
@@ -145,24 +153,46 @@ def testAuth():
     """Test the authentication."""
     req = apiRequest({'request': 'test'})
     if not checkApiOk(req):
+        printErr("Test failed: ")
         displayApiError(req)
         return False
-    printErr(req['errormsg']+"\n")
+    printErr("Success: %s\n" % req['errormsg'])
     return True
 
 
 def interactiveConfig():
     """Configure interactively."""
     # TODO
+    pass
 
 
 if __name__ == '__main__':
     argParser = argparse.ArgumentParser(description="Launches an evaluation with a remote taskgrader through the graderqueue.")
+    argParser.add_argument('-g', '--getjob', help="Try again to fetch results of ID", action='store', metavar='ID', type=int)
+    argParser.add_argument('-t', '--test', help="Test connection to the graderqueue", action='store_true')
     argParser.add_argument('file', metavar='FILE', nargs='?', help='Input JSON file.', default='')
-    # TODO :: add options: test, getjob, ...
     args = argParser.parse_args()
 
-    # By default, we make the paths given on command-line absolute
+    if not (API and USERNAME and PASSWORD):
+        printErr("API and credentials for remoteGrader not configured.\n")
+        printErr("Please edit `remote_config.py` in `tools/remoteGrader` folder.\n")
+        sys.exit(1)
+
+    # Test connection
+    if args.test:
+        if testAuth():
+            sys.exit(0)
+        else:
+            sys.exit(1)
+
+    # Try again fetching a previously sent job
+    if args.getjob:
+        jobReq = getJobLoop(args.getjob, exit=True)
+        resultdata = json.loads(jobReq['data']['resultdata'])['jobdata']
+        json.dump(resultdata, sys.stdout)
+        sys.exit(0)
+
+    # If no file is given, we load from stdin
     if args.file:
         try:
             inputJson = json.load(open(args.file, 'r'))
@@ -175,4 +205,4 @@ if __name__ == '__main__':
             raise Exception("No valid JSON data received on standard input.")
 
     resultdata = gradeJob(inputJson)
-    print(json.dumps(resultdata))
+    json.dump(resultdata, sys.stdout)

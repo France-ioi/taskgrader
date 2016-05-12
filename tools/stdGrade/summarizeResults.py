@@ -17,8 +17,9 @@ if __name__ == '__main__':
     try:
         resultJson = json.loads(inputData)
     except:
-        print('Error: no valid JSON data read from stdin. Received:')
-        print(inputData)
+        if inputData.strip() != '':
+            print('Error: no valid JSON data read from stdin. Received:')
+            print(inputData)
         sys.exit(1)
 
     lenex = len(resultJson['executions'])

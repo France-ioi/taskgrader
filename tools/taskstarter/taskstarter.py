@@ -416,34 +416,39 @@ def remotetest(args):
     # User probably expects the defaultParams.json to be updated if he made
     # modifications to his task, so we call genJson first (without output)
     # We also use genJson's test evaluation.
-    print("Calling genJson...")
-    proc = subprocess.Popen([CFG_GENJSON, args.taskpath], stdout=DEVNULL, stderr=DEVNULL)
-    proc.wait()
+    if not args.getjob:
+        print("Calling genJson...")
+        proc = subprocess.Popen([CFG_GENJSON, args.taskpath], stdout=DEVNULL, stderr=DEVNULL)
+        proc.wait()
 
     # If genJson failed, we cannot test
-    if proc.returncode > 0:
+    if not args.getjob and proc.returncode > 0:
         print("genJson exited with return code %d, use 'test' action to check the reason." % proc.returncode)
         if proc.returncode == 2:
-            print("Non-fatal genJson error, performing remotetest anyway.")
+            print("Non-fatal genJson error, performing remotetest anyway.\n")
         elif args.force:
-            print("-f option used, performing remotetest anyway.")
+            print("-f option used, performing remotetest anyway.\n")
         else:
             print("Test cancelled because of genJson error.\nYou can force the test by using the -f switch.")
             return proc.returncode
 
-    print("\nTesting with remote taskgrader...")
     # Basically do the same as stdGrade.sh, but using the remoteGrader
-    # Generate the input JSON
-    genProc = subprocess.Popen([CFG_GENSTD, '-p', args.taskpath, '-r', args.path], stdout=subprocess.PIPE, universal_newlines=True)
-    if args.simple:
-        remInput = genProc.stdout
+    if args.getjob:
+        print("Resuming test with remote taskgrader...")
+        # Try fetching the job again
+        resProc = subprocess.Popen([CFG_REMOTE, '-g', str(args.getjob)], stdout=subprocess.PIPE, universal_newlines=True)
     else:
-        # Make it standalone
-        stdProc = subprocess.Popen([CFG_MAKESTD], stdin=genProc.stdout, stdout=subprocess.PIPE, universal_newlines=True)
-        remInput = stdProc.stdout
-
-    # Send to the remoteGrader
-    resProc = subprocess.Popen([CFG_REMOTE], stdin=remInput, stdout=subprocess.PIPE, universal_newlines=True)
+        print("Testing with remote taskgrader...")
+        # Generate the input JSON
+        genProc = subprocess.Popen([CFG_GENSTD, '-p', args.taskpath, '-r', args.path], stdout=subprocess.PIPE, universal_newlines=True)
+        if args.simple:
+            remInput = genProc.stdout
+        else:
+            # Make it standalone
+            stdProc = subprocess.Popen([CFG_MAKESTD], stdin=genProc.stdout, stdout=subprocess.PIPE, universal_newlines=True)
+            remInput = stdProc.stdout
+        # Send to the remoteGrader
+        resProc = subprocess.Popen([CFG_REMOTE], stdin=remInput, stdout=subprocess.PIPE, universal_newlines=True)
     # Feed the results to summarizeResults
     sumProc = subprocess.Popen([CFG_SUMRES], stdin=resProc.stdout, universal_newlines=True)
 
@@ -522,6 +527,7 @@ if __name__ == '__main__':
         The 'remotetest' actions does the same test than the 'test' action, but
         uses a remote taskgrader.""")
     remotetestParser.add_argument('-f', '--force', help='Force test', action='store_true')
+    remotetestParser.add_argument('-g', '--getjob', help='Try to resume a remotetest sent as jobid ID', action='store', metavar='ID', type=int)
     remotetestParser.add_argument('-s', '--simple', help='Send a simple JSON (do not make a full JSON)', action='store_true')
     remotetestParser.add_argument('-t', '--taskpath', help='Task path', default='.')
     remotetestParser.add_argument('path', help='Path to the solution')

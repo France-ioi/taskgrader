@@ -10,9 +10,9 @@ import os.path
 ### remoteGrader.py configuration
 # Path to the graderqueue API
 # Example: "https://graderqueue.example.com/api.php"
-CFG_API = "https://fioi.mblockelet.info/queue/api.php"
+CFG_API = ""
 # Username and password for the graderqueue API
-CFG_USERNAME = "testuser"
-CFG_PASSWORD = "abcdef"
+CFG_USERNAME = ""
+CFG_PASSWORD = ""
 # Timeout for an evaluation
 CFG_TIMEOUT = 20
