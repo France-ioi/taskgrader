@@ -167,13 +167,15 @@
     
         <li class="main active"><a href="#getting-started-on-writing-a-task">Getting started on writing a task</a></li>
         
-            <li><a href="#example-1-only-test-cases">Example 1: only test cases</a></li>
+            <li><a href="#minimal-example-only-test-cases">Minimal example: only test cases</a></li>
         
             <li><a href="#adding-correct-solutions-to-our-task">Adding correct solutions to our task</a></li>
         
-            <li><a href="#example-3-adding-libraries">Example 3: adding libraries</a></li>
+            <li><a href="#tools-example-adding-a-sanitizer-and-a-checker">Tools example: adding a sanitizer and a checker</a></li>
         
-            <li><a href="#example-4-adding-a-generator">Example 4: adding a generator</a></li>
+            <li><a href="#libs-example-adding-libraries">Libs example: adding libraries</a></li>
+        
+            <li><a href="#generator-example-adding-a-generator">Generator example: adding a generator</a></li>
         
             <li><a href="#testing-tasks">Testing tasks</a></li>
         
@@ -182,7 +184,7 @@
     
         <li class="main "><a href="#more-complex-task-writing">More complex task writing</a></li>
         
-            <li><a href="#example-5-solution-skeleton">Example 5: solution skeleton</a></li>
+            <li><a href="#runner-example-solution-skeleton">Runner example: solution skeleton</a></li>
         
     
     </ul>
@@ -201,7 +203,7 @@
 </ul>
 <p>The script <code>tools/taskstarter/taskstarter.py</code> can assist with writing a task; use <code>taskstarter.py help</code> to see the available commands.</p>
 <p>Here are some examples based around a simple problem: the program is given a number as input, and must output the double of the number. These example tasks can be found in the <code>examples</code> folder.</p>
-<h2 id="example-1-only-test-cases">Example 1: only test cases</h2>
+<h2 id="minimal-example-only-test-cases">Minimal example: only test cases</h2>
 <p>A task can be just test cases. The task can be built and tested like this:</p>
 <ul>
 <li>We start our task in a folder with <code>taskstarter.py init</code> (answering 'no' to all questions); it will give us a base task structure we can use as reference</li>
@@ -211,7 +213,7 @@
 <li>We can test this solution with <code>taskstarter.py testsol tests/gen/sol-ok-c.c</code>, it will say the solution got a grade of 100 for each test</li>
 </ul>
 <p>When the task is only test cases, the tools will use default programs as sanitizer and checker. The solution will get a perfect grade of 100 if its output is the expected output (<code>test1.out</code> for the test case <code>test1.in</code>, ...), or the minimum grade of 0 if its output is different.</p>
-<p><em>This example can be found in the <code>examples/task1</code> folder.</em></p>
+<p><em>This example can be found in the <code>examples/taskMinimal</code> folder.</em></p>
 <h2 id="adding-correct-solutions-to-our-task">Adding correct solutions to our task</h2>
 <p>Once our task is almost ready, we can add "correct solutions": they are known solutions which have known results, such as always giving a good answer or always giving a bad answer.</p>
 <p>It allows to test against regressions, that is to say that after modifications, that the task still gives the right grade to our known solutions.</p>
@@ -230,7 +232,7 @@
 <pre><code>Test successful on 2 correctSolutions with up to 2 test cases.
 </code></pre>
 <p>which means the task successfully compiled, that the evaluation of the good solution <code>sol-ok-c.c</code> got a perfect grade of 100 each time, and that the evaluation of the bad solution <code>sol-bad-c.c</code> got a bad grade of 0 each time.</p>
-<h3 id="example-2-adding-a-sanitizer-and-a-checker">Example 2: adding a sanitizer and a checker</h3>
+<h2 id="tools-example-adding-a-sanitizer-and-a-checker">Tools example: adding a sanitizer and a checker</h2>
 <p>It's generally recommended to use a sanitizer and a checker: the sanitizer will ensure only valid input test files are given to solutions, especially in cases where contestants are allowed to use their own test files as examples; the checker can give a more precise grade to solutions, and also handle cases where the solution output is not in the exact format expected.</p>
 <p>We add a sanitizer and a checker to our test like this:</p>
 <ul>
@@ -241,8 +243,8 @@
 <li>Finally, we test the task with <code>taskstarter.py test</code>. It will tell us whether our programs were detected, compiled and executed successfully, and whether the "correct solution" we defined passed the test and got the expected grade of 100.</li>
 </ul>
 <p>The sanitizer and the checker can be written in any language supported by the taskgrader.</p>
-<p><em>This example can be found in the <code>examples/task2</code> folder.</em></p>
-<h2 id="example-3-adding-libraries">Example 3: adding libraries</h2>
+<p><em>This example can be found in the <code>examples/taskTools</code> folder.</em></p>
+<h2 id="libs-example-adding-libraries">Libs example: adding libraries</h2>
 <p>This example is a task with libraries intended for usage by solutions. It's pretty simple to add libraries:</p>
 <ul>
 <li>We write a library <code>lib.h</code> intended for usage with solution in the C language</li>
@@ -250,8 +252,8 @@
 <li>Finally, we test the task with <code>taskstarter.py test</code>.</li>
 </ul>
 <p>As long as the libraries are in the right folder (by default, <code>tests/files/lib/[language]/[library.ext]</code>), they will be automatically detected by <code>genJson</code> and added to the default dependencies for that language. All solutions of that language will have the library available for importation without any configuration necessry.</p>
-<p><em>This example can be found in the <code>examples/task3</code> folder.</em></p>
-<h2 id="example-4-adding-a-generator">Example 4: adding a generator</h2>
+<p><em>This example can be found in the <code>examples/taskLibs</code> folder.</em></p>
+<h2 id="generator-example-adding-a-generator">Generator example: adding a generator</h2>
 <p>It can be handy to use a generator to generate the test cases and/or libraries for the task, instead of writing them all by hand.</p>
 <p>We add a generator like this:</p>
 <ul>
@@ -265,7 +267,7 @@
 <pre><code>Test successful on 2 correctSolutions with up to 4 test cases.
 </code></pre>
 <p>which means the taskgrader successfully found all 4 test cases, the 2 test cases given directly in the task folder, and the 2 test cases generated by our script <code>gen.sh</code>.</p>
-<p><em>This example can be found in the <code>examples/task4</code> folder.</em></p>
+<p><em>This example can be found in the <code>examples/taskGenerator</code> folder.</em></p>
 <h2 id="testing-tasks">Testing tasks</h2>
 <p>Tasks can be tested with:</p>
 <ul>
@@ -276,7 +278,7 @@
 <p>The tool <code>genJson</code>, automatically called when using <code>taskstarter.py test</code>, prepares the task by writing its parameters into a <code>defaultParams.json</code> file. It contains all the required information to evaluate solutions against the task, and can be used by evaluation platforms directly to reference the task. The tool <code>stdGrade</code> will use this file to quickly evaluate solutions.</p>
 <h1 id="more-complex-task-writing">More complex task writing</h1>
 <p>More complex tasks can be written for usage with the taskgrader. The <code>taskstarter</code> tool is meant for simple tasks, you need to edit files manually for these examples. Here is an example, but read the rest of this documentation for more information.</p>
-<h2 id="example-5-solution-skeleton">Example 5: solution skeleton</h2>
+<h2 id="runner-example-solution-skeleton">Runner example: solution skeleton</h2>
 <p>Sometimes, the "solution" to be evaluated is not the file to be executed, but a library or a test file.</p>
 <p>In this example, we have <code>runner.py</code> calling the function <code>min3nombres</code> from the user-sent python file. The "solution" is hence a library, and the actual script executed is <code>runner.py</code> using this library.</p>
 <p>In order to be able to evaluate solutions against this task, we add, in <code>taskSettings.json</code>, the key <code>defaultEvaluationSolutions</code>. This key will get copied directly to <code>defaultParams.json</code>, where it will indicate the skeleton of what needs to be executed by the taskgrader. Some more information can be found in the <a href="../defaultparams/"><code>defaultParams.json</code> reference</a>. Here this key contains:</p>
@@ -301,7 +303,7 @@
 <li><code>taskstarter.py testsol tests/gen/sol-bad-py.py</code> for a bad solution</li>
 </ul>
 <p>The testing tool <code>stdGrade</code> will automatically understand how to evaluate these solutions.</p>
-<p><em>This example can be found in the <code>examples/task5</code> folder.</em></p></div>
+<p><em>This example can be found in the <code>examples/taskRunner</code> folder.</em></p></div>
             
         </div>
 
