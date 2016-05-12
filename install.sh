@@ -157,6 +157,14 @@ else
   echo "[Notice] genJson config.py detected, no new config.py file written."
 fi
 
+### Initialize remoteGrader config.py
+if ! [ -f tools/remoteGrader/config.py ]
+then
+  cp -p tools/remoteGrader/config_default.py tools/remoteGrader/config.py
+else
+  echo "[Notice] remoteGrader config.py detected, no new config.py file written."
+fi
+
 ### Initialize stdGrade config.py
 if ! [ -f tools/stdGrade/config.py ]
 then

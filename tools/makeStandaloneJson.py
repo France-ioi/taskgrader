@@ -23,6 +23,8 @@ def recStandalone(data, varData):
                 return recStandalone(data.replace('$ROOT_PATH', varData['ROOT_PATH']), varData)
             elif '$TASK_PATH' in data:
                 return recStandalone(data.replace('$TASK_PATH', varData['TASK_PATH']), varData)
+            else:
+                return data
         else:
             return data
     elif type(data) is dict:
@@ -31,7 +33,7 @@ def recStandalone(data, varData):
         for k in data.keys():
             newdata[k] = recStandalone(data[k], varData)
         # Is it a fileDescr?
-        if newdata.has_key('name') and newdata.has_key('path'):
+        if newdata.has_key('name') and newdata.has_key('path') and newdata['path'] != '':
             newdata['content'] = open(newdata.pop('path'), 'rb').read().decode('utf-8')
         return newdata
     elif type(data) is list:
@@ -54,21 +56,31 @@ def makeStandaloneJson(data):
     try:
         varData = {'ROOT_PATH': data.get('rootPath', './'),
                    'TASK_PATH': data.get('taskPath', './')}
+        preData = {}
+        preData.update(data)
         try:
-            varData.update(json.load(open(os.path.join(data['taskPath'].replace('$ROOT_PATH', data['rootPath']), 'defaultParams.json'), 'r')))
+            defaultParams = json.load(open(os.path.join(data['taskPath'].replace('$ROOT_PATH', data['rootPath']), 'defaultParams.json'), 'r'))
+            varData.update(defaultParams)
+            preData['extraParams'] = defaultParams
         except:
-            pass
-
+            defaultParams = {}
+            preData['extraParams'] = {}
         if data.has_key('extraParams'):
             if type(data['extraParams']) is str:
-                varData.update(json.load(open(data['extraParams'], 'r')))
+                ep = json.load(open(data['extraParams'], 'r'))
             else:
-                varData.update(data['extraParams'])
+                ep = data['extraParams']
+            varData.update(ep)
+            preData['extraParams'].update(ep)
     except:
         pass
 
     # Start the recursive processing
-    return recStandalone(data, varData)
+    stdData = recStandalone(preData, varData)
+    stdData.update({
+        'rootPath': '/',
+        'taskPath': '/'})
+    return stdData
 
 
 if __name__ == '__main__':
@@ -85,7 +97,7 @@ if __name__ == '__main__':
                 data = json.load(open(f, 'r'))
             except:
                 raise Exception("File `%s` does not contain valid JSON data." % f)
-            newdata = makeStandaloneJson(data)
+            stdData = makeStandaloneJson(data)
             json.dump(newdata, open(f, 'w'))
             
     else:
@@ -93,4 +105,5 @@ if __name__ == '__main__':
             data = json.load(sys.stdin)
         except:
             raise Exception("No valid JSON data received on standard input.")
-        json.dump(makeStandaloneJson(data), sys.stdout)
+        stdData = makeStandaloneJson(data)
+        json.dump(stdData, sys.stdout)

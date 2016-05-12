@@ -51,7 +51,7 @@ def genStdTaskJson(taskPath, execPath, execParams, lang=None):
     extraParams = {
         'solutionLanguage': solLang,
         'solutionFilename': os.path.basename(execPath),
-        'solutionPath': execPath,
+        'solutionPath': os.path.join('$TASK_PATH', os.path.relpath(execPath, taskPath)),
         'solutionDependencies': dep,
         'defaultSolutionExecParams': execParams
         }
@@ -59,7 +59,7 @@ def genStdTaskJson(taskPath, execPath, execParams, lang=None):
     # Final evaluation JSON to be given to the taskgrader
     testEvaluation = {
         'rootPath': defaultParams['rootPath'],
-        'taskPath': os.path.realpath(taskPath),
+        'taskPath': os.path.join('$ROOT_PATH', os.path.relpath(taskPath, defaultParams['rootPath'])),
         'extraParams': extraParams
         }
 
