@@ -53,7 +53,7 @@ These keys correspond to (almost) each root key in the [input JSON](inputjson.md
         "runExecution": "@defaultSolutionExecParams"
         }]
 
-To change the task behavior, you generally need to tweak these `defaultEvaluation` keys (through [`taskSettings.json`](tasksettings.md)); for instance, the example in `examples/task5` changes the solution execution, check the [documentation about this example](writing.md) for more information.
+To change the task behavior, you generally need to tweak these `defaultEvaluation` keys (through [`taskSettings.json`](tasksettings.md)); for instance, the example in `examples/taskRunner` changes the solution execution, check the [documentation about this example](writing.md) for more information.
 
 ## Solution default values
 

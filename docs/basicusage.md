@@ -23,8 +23,8 @@ First command will execute the taskgrader on an example evaluation described by 
 
 This command will start a new task in the folder `mynewtask`; use it if you want to write a task for use with the taskgrader. It will ask you a few questions to guide you through the various components of a task, and write a base task with some example files. The next section describes that in more detail.
 
-    cd examples/task3 ; ../../tools/taskstarter/taskstarter.py test
+    cd examples/taskMinimal ; ../../tools/taskstarter/taskstarter.py test
 
-A task may be tested as shown with this command. Here it will test the example `task3`.
+A task may be tested as shown with this command. Here it will test the example task in folder `taskMinimal`.
 
 More details on usage can be found through this documentation.
