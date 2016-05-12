@@ -1116,7 +1116,7 @@ def multiChecker(workingDir, checkList, checker, executionParams):
         if timePath:
             # Fetch time statistics
             timeFile = open(os.path.join(workingDir, '%s.time' % tf), 'r')
-            timeStats = timeFile.read().strip().split()
+            timeStats = timeFile.read().strip().split()[-3:]
             report.update({
                 'exitCode': int(timeStats[0]),
                 'memoryUsedKb': int(timeStats[1]),
