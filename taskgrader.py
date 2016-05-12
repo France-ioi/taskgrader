@@ -287,6 +287,41 @@ class CacheDatabase():
         return CacheHandle(self.database, files)
 
 
+def getFile(fileDescr, destDir, existsFatal=True, language=None, baseDir=None):
+    """Fetch a file into folder destDir. If no path nor content is given,
+    search for it as a dependency for the language in baseDir."""
+    # The filename is safe as checked by the JSON schema
+    filename = fileDescr['name']
+    filepath = os.path.join(destDir, filename)
+
+    if os.path.isfile(filepath):
+        # File already exists
+        if existsFatal:
+            raise Exception("File %s already exists in %s" % (filename, destDir))
+        else:
+            return filename
+
+    if '/' in filename:
+        # Need to make a folder
+        try:
+            os.makedirs(destDir + '/'.join(filename.split('/')[:-1]))
+        except:
+            pass
+
+    if fileDescr.has_key('path') and fileDescr['path'] != '': # Get file by path
+        if os.path.isfile(fileDescr['path']):
+            symlink(fileDescr['path'], filepath, fromlocal=True)
+        else:
+            raise Exception("File not found: `%s`" % fileDescr['path'])
+    elif fileDescr.has_key('content'): # Content given in descr
+        open(filepath, 'w').write(fileDescr['content'].encode('utf-8'))
+    elif language and baseDir: # File is a built dependency
+        sourcePath = language.getSource(baseDir, filename)
+        symlink(sourcePath, filepath)
+
+    return filename
+
+
 class Execution():
     """Represents an execution of a program.
     It is first created with the program parameters: executable, parameters of
@@ -356,6 +391,10 @@ class Execution():
             raise Exception("Writing to file `%s` not allowed." % stdoutFile)
         else:
             self.stdoutFile = stdoutFile
+
+        # Add files from executionParams/addFiles
+        for fileDescr in self.executionParams.get('addFiles', []):
+            getFile(fileDescr, workingDir, existsFatal=False)
 
 
     def _doExecute(self, workingDir, args=None):
@@ -883,35 +922,7 @@ class Program():
         """Fetch a file contents from a fileDescr object into the Program
         folder. If only the file name is given, getFile will search for a file
         with that name in buildDir, with the language-specific function."""
-
-        # The filename is safe as checked by the JSON schema
-        filename = fileDescr['name']
-        filepath = os.path.join(self.ownDir, filename)
-
-        if os.path.isfile(filepath):
-            # File already exists
-            raise Exception("File %s already exists in %s" % (filename, self.ownDir))
-
-        if '/' in filename:
-            # Need to make a folder
-            try:
-                os.makedirs(self.ownDir + '/'.join(filename.split('/')[:-1]))
-            except:
-                pass
-
-        if fileDescr.has_key('path') and fileDescr['path'] != '': # Get file by path
-            if os.path.isfile(fileDescr['path']):
-                symlink(fileDescr['path'], filepath, fromlocal=True)
-            else:
-                raise Exception("File not found: `%s`" % fileDescr['path'])
-        elif fileDescr.has_key('content'): # Content given in descr
-            open(filepath, 'w').write(fileDescr['content'].encode('utf-8'))
-        else: # File is a built dependency
-            sourcePath = self.language.getSource(self.baseDir, filename)
-            symlink(sourcePath, filepath)
-
-        return filename
-
+        return getFile(fileDescr, self.ownDir, existsFatal=True, language=self.language, baseDir=self.baseDir)
 
     def _compile(self):
         """Effectively compile a program, not using cache (probably because

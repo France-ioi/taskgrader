@@ -116,11 +116,18 @@ def init(args):
     """Start a task in destination folder. taskstarter will ask various
     questions to know which components to add to the task."""
     print("Starting task at `%s`..." % args.dest)
-    try:
-        os.makedirs(args.dest)
-    except:
-        print("Unable to create folder `%s`. Aborting." % args.dest)
-        return 1
+    if args.dest != '.':
+        if os.path.isdir(args.dest):
+            print("Folder `%s` already exists." % args.dest)
+            if not askQuestionBool("Are you sure you want to start a task there?"):
+                print("Aborting.")
+                return 1
+        else:
+            try:
+                os.makedirs(args.dest)
+            except:
+                print("Unable to create folder `%s`. Aborting." % args.dest)
+                return 1
 
     answers = {}
     print("""
