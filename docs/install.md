@@ -6,7 +6,7 @@ On many distributions, the required dependencies are already installed.
 
 On **Debian or Ubuntu**, the recommended dependencies are:
 
-    apt-get install build-essential git python3 sudo
+    apt-get install build-essential git python python3 sudo
 
 Some additional dependencies are required to support all features and languages, on Debian or Ubuntu:
 
