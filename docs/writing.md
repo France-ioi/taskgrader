@@ -128,7 +128,7 @@ In this example, we have `runner.py` calling the function `min3nombres` from the
 
 In order to be able to evaluate solutions against this task, we add, in `taskSettings.json`, the key `defaultEvaluationSolutions`. This key will get copied directly to `defaultParams.json`, where it will indicate the skeleton of what needs to be executed by the taskgrader. Some more information can be found in the [`defaultParams.json` reference](defaultparams.md). Here this key contains:
 
-    defaultEvaluationSolutions": [{
+    "defaultEvaluationSolutions": [{
         "id": "@solutionId",
         "compilationDescr": {
             "language": "python",
@@ -153,3 +153,46 @@ You can test the task by running, from the task folder:
 The testing tool `stdGrade` will automatically understand how to evaluate these solutions.
 
 *This example can be found in the `examples/taskRunner` folder.*
+
+
+## Solution checker example: reading the solution source
+
+In this task, the checker grades the solution source code.
+
+For this example, the checker counts the number of characters of the solution (excluding comment lines and whitespaces), and gives a lower grade if the solution source is too long. (Of course it gives a grade of 0 if the solution doesn't output the correct answer.)
+
+In order to have the checker be able to read the solution source, we use the `addFiles` key of its `runExecution` params; this key allows to add any file in the working folder during an execution. Here, it adds to the checker execution an access to the solution source, stored in file `solution`. The checker can then read this file, along with the test case files, to accordingly grade the solution.
+
+Here, we modify the key `defaultChecker` in order to add the file, like this:
+
+    "defaultChecker": {
+        "compilationDescr": {
+            "language": "python2",
+            "files": [{
+                "name": "checker.py",
+                "path": "$TASK_PATH/tests/gen/checker.py"
+                }],
+            "dependencies": []},
+        "compilationExecution": "@defaultToolCompParams",
+        "runExecution": {
+            "memoryLimitKb": 131072,
+            "timeLimitMs": 60000,
+            "useCache": true,
+            "stdoutTruncateKb": -1,
+            "stderrTruncateKb": -1,
+            "addFiles": [{
+                "name": "solution",
+                "path": "@solutionPath",
+                "content": "@solutionContent"
+                }],
+            "getFiles": []}}
+    }
+
+You can test the task by running, from the task folder:
+
+* `taskstarter.py test` for the normal test, which will check each solution has the expected grade
+* `taskstarter.py testsol tests/gen/sol-ok-c.c` for a good and short solution getting the perfect grade of 100 (right answer, less than 60 characters)
+* `taskstarter.py testsol tests/gen/sol-long-c.c` for a solution too long getting a grade of 93 (right answer, more than 60 characters)
+* `taskstarter.py testsol tests/gen/sol-bad-c.c` for a bad solution getting a grade of 0 (wrong answer)
+
+*This example can be found in the `examples/taskSolchecker` folder.*

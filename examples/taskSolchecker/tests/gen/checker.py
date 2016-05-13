@@ -25,8 +25,8 @@ LINE_IGNORE_PATTERNS = [
 
 def checkSolution():
     """Check the number of characters of the solution."""
-    # The taskSettings add the solution as dependency to the checker, with the
-    # filename 'solution'
+    # The taskSettings add the solution as a file in the execution folder, with
+    # the filename 'solution'
     solFile = open('solution', 'r')
 
     # Compile regular expression patterns
