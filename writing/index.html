@@ -186,6 +186,8 @@
         
             <li><a href="#runner-example-solution-skeleton">Runner example: solution skeleton</a></li>
         
+            <li><a href="#solution-checker-example-reading-the-solution-source">Solution checker example: reading the solution source</a></li>
+        
     
     </ul>
 </div></div>
@@ -282,7 +284,7 @@
 <p>Sometimes, the "solution" to be evaluated is not the file to be executed, but a library or a test file.</p>
 <p>In this example, we have <code>runner.py</code> calling the function <code>min3nombres</code> from the user-sent python file. The "solution" is hence a library, and the actual script executed is <code>runner.py</code> using this library.</p>
 <p>In order to be able to evaluate solutions against this task, we add, in <code>taskSettings.json</code>, the key <code>defaultEvaluationSolutions</code>. This key will get copied directly to <code>defaultParams.json</code>, where it will indicate the skeleton of what needs to be executed by the taskgrader. Some more information can be found in the <a href="../defaultparams/"><code>defaultParams.json</code> reference</a>. Here this key contains:</p>
-<pre><code>defaultEvaluationSolutions": [{
+<pre><code>"defaultEvaluationSolutions": [{
     "id": "@solutionId",
     "compilationDescr": {
         "language": "python",
@@ -303,7 +305,43 @@
 <li><code>taskstarter.py testsol tests/gen/sol-bad-py.py</code> for a bad solution</li>
 </ul>
 <p>The testing tool <code>stdGrade</code> will automatically understand how to evaluate these solutions.</p>
-<p><em>This example can be found in the <code>examples/taskRunner</code> folder.</em></p></div>
+<p><em>This example can be found in the <code>examples/taskRunner</code> folder.</em></p>
+<h2 id="solution-checker-example-reading-the-solution-source">Solution checker example: reading the solution source</h2>
+<p>In this task, the checker grades the solution source code.</p>
+<p>For this example, the checker counts the number of characters of the solution (excluding comment lines and whitespaces), and gives a lower grade if the solution source is too long. (Of course it gives a grade of 0 if the solution doesn't output the correct answer.)</p>
+<p>In order to have the checker be able to read the solution source, we use the <code>addFiles</code> key of its <code>runExecution</code> params; this key allows to add any file in the working folder during an execution. Here, it adds to the checker execution an access to the solution source, stored in file <code>solution</code>. The checker can then read this file, along with the test case files, to accordingly grade the solution.</p>
+<p>Here, we modify the key <code>defaultChecker</code> in order to add the file, like this:</p>
+<pre><code>"defaultChecker": {
+    "compilationDescr": {
+        "language": "python2",
+        "files": [{
+            "name": "checker.py",
+            "path": "$TASK_PATH/tests/gen/checker.py"
+            }],
+        "dependencies": []},
+    "compilationExecution": "@defaultToolCompParams",
+    "runExecution": {
+        "memoryLimitKb": 131072,
+        "timeLimitMs": 60000,
+        "useCache": true,
+        "stdoutTruncateKb": -1,
+        "stderrTruncateKb": -1,
+        "addFiles": [{
+            "name": "solution",
+            "path": "@solutionPath",
+            "content": "@solutionContent"
+            }],
+        "getFiles": []}}
+}
+</code></pre>
+<p>You can test the task by running, from the task folder:</p>
+<ul>
+<li><code>taskstarter.py test</code> for the normal test, which will check each solution has the expected grade</li>
+<li><code>taskstarter.py testsol tests/gen/sol-ok-c.c</code> for a good and short solution getting the perfect grade of 100 (right answer, less than 60 characters)</li>
+<li><code>taskstarter.py testsol tests/gen/sol-long-c.c</code> for a solution too long getting a grade of 93 (right answer, more than 60 characters)</li>
+<li><code>taskstarter.py testsol tests/gen/sol-bad-c.c</code> for a bad solution getting a grade of 0 (wrong answer)</li>
+</ul>
+<p><em>This example can be found in the <code>examples/taskSolchecker</code> folder.</em></p></div>
             
         </div>
 
