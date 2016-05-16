@@ -522,12 +522,15 @@ def processPath(path, args):
             nbOk = 0
             nbTotal = len(execution['testsReports'])
             maxNbTotal = max(maxNbTotal, nbTotal)
+            grades = []
+
             # Check grade for each test
             for test in execution['testsReports']:
                 testGrade = None
                 try:
                     testGrade = int(test['checker']['stdout']['data'].split()[0])
                 except:
+                    # Find why we don't have a grade for this test
                     if test.has_key('execution'):
                         if test['execution']['exitCode'] == 0:
                             print "Checker error, output:\n%s%s" % (test['checker']['stdout']['data'], test['checker']['stderr']['data'])
@@ -538,14 +541,16 @@ def processPath(path, args):
                     else:
                         print "Error reading test data."
                     curError = True
-                if testGrade == cs['grade']:
-                    nbOk += 1
-                elif testGrade is not None:
-                    print "Got grade %d instead of %d" % (testGrade, cs['grade'])
+
+                # Add grade to the list of grades
+                if testGrade is not None:
+                    grades.append(testGrade)
+            if 'grade' in cs and grades:
+                avgGrade = sum(grades)/len(grades)
+                if avgGrade != cs['grade']:
+                    print "/!\ Test failed on %s: average grade %d, expected %d;" % (cs['path'], avgGrade, cs['grade'])
+                    print "grades obtained: %s" % ', '.join(map(str, grades))
                     curError = True
-            if nbOk != nbTotal:
-                print "/!\ Test failed on %s: %d/%d grades incorrect" % (cs['path'], nbTotal-nbOk, nbTotal)
-                curError = True
             if nbTotal != cs.get('nbtests', nbTotal):
                 print "/!\ Test failed on %s: %d tests done / %d tests expected" % (cs['path'], nbTotal, cs['nbtests'])
                 curError = True

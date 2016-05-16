@@ -236,7 +236,7 @@ http://france-ioi.github.io/taskgrader/ .""")
 
 def add(args):
     """Add a program."""
-    taskSettings = getTaskSettings(args.taskpath)
+    taskSettings = getTaskSettings(args)
     progpath = os.path.relpath(args.path, args.taskpath)
 
     if args.type in taskSettings:
@@ -253,7 +253,7 @@ def add(args):
 
 def addsol(args):
     """Add a correctSolution."""
-    taskSettings = getTaskSettings(args.taskpath)
+    taskSettings = getTaskSettings(args)
     solpath = '$TASK_PATH/%s' % os.path.relpath(args.path, args.taskpath)
 
     if 'correctSolutions' not in taskSettings:
@@ -261,7 +261,7 @@ def addsol(args):
     newcs = []
     for cs in taskSettings['correctSolutions']:
         if cs['path'] == solpath:
-            if cs['language'] == args.lang and cs['grade'] == args.grade:
+            if cs.get('language', None) == args.lang and (args.grade is None or cs.get('grade', None) == args.grade):
                 print("Solution `%s` already registered." % args.path)
                 newcs = taskSettings['correctSolutions']
                 break
@@ -272,9 +272,11 @@ def addsol(args):
         else:
             newcs.append(cs)
     else:
-        newcs.append({'path': solpath,
-            'language': args.lang,
-            'grade': args.grade})
+        entry = {'path': solpath,
+            'language': args.lang}
+        if args.grade:
+            entry['grade'] = args.grade
+        newcs.append(entry)
 
     taskSettings['correctSolutions'] = newcs
 
@@ -286,7 +288,7 @@ def addsol(args):
 
 def removesol(args):
     """Remove a correctSolution."""
-    taskSettings = getTaskSettings(args.taskpath)
+    taskSettings = getTaskSettings(args)
 
     if 'correctSolutions' not in taskSettings or len(taskSettings['correctSolutions']) == 0:
         print("No correctSolution defined.")
@@ -321,7 +323,7 @@ def removesol(args):
 
 def show(args):
     """Show settings of a task."""
-    taskSettings = getTaskSettings(args.taskpath)
+    taskSettings = getTaskSettings(args)
     print("Task in folder `%s`:" % args.taskpath)
 
     if 'correctSolutions' in taskSettings:
@@ -490,14 +492,14 @@ if __name__ == '__main__':
 
     addsolParser = subparsers.add_parser('addsol', help='Add a correct solution to the task', description="""
         The 'addsol' action allows to specify a "correct solution" for the
-        task. A "correct solution" is a solution that gets an expected grade
-        when tested against the task, for instance a solution always giving
-        good answers and getting a grade of 100 each time, or a bad solution
-        always getting a grade of 0 for each test. Adding a "correct solution"
-        allows to test automatically whether the task grades properly the
-        solutions.""")
+        task. A "correct solution" is a solution that gets an expected average
+        grade when tested against the task, for instance a solution always
+        giving good answers and getting a grade of 100 each time, or a bad
+        solution sometimes getting a grade of 0 for a test and having a final
+        average grade of 25. Adding a "correct solution" allows to test
+        automatically whether the task grades properly the solutions.""")
     addsolParser.add_argument('-t', '--taskpath', help='Task path', default='.')
-    addsolParser.add_argument('-g', '--grade', help='Expected grade for the solution', type=int, default=100, action='store')
+    addsolParser.add_argument('-g', '--grade', help='Expected average grade for the solution', type=int, action='store')
     addsolParser.add_argument('-l', '--lang', help='Language of the solution', required=True, action='store')
     addsolParser.add_argument('path', help='Path to the solution')
 

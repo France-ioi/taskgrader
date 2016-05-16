@@ -38,13 +38,13 @@ Using again our example task 1, we can add correct solutions like this:
 
     taskstarter.py addsol -g 100 -l c tests/gen/sol-ok-c.c
 
-It means that each time we'll test the task, the solution `sol-ok-c.c` will be automatically evaluated against the task, and `-g 100` means we expect the solution to get a perfect grade of 100 each time.
+It means that each time we'll test the task, the solution `sol-ok-c.c` will be automatically evaluated against the task, and `-g 100` means we expect the solution to get a perfect grade of 100 each time (and having a final average grade of 100).
 
 We can also add an invalid solution, that is to say, a solution who will get the minimum grade of 0 each time. In this example, we have such a solution, `sol-bad-c.c`. We add it as a "bad solution" like this:
 
     taskstarter.py addsol -g 0 -l c tests/gen/sol-bad-c.c
 
-which means that we expect it to get a grade of 0 on each test.
+which means that we expect it to get a grade of 0 on each test (hence a final expected average grade of 0).
 
 We can finally test the task by executing, in the task folder,
 

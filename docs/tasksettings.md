@@ -72,7 +72,7 @@ Key name | Type | Description
 -------- | ---- | -----------
 `path` | required `string` | Path to the solution
 `language` | optional `string` | Language of the solution
-`grade` | required `int` | Grade expected for this solution
+`grade` | optional `int` | Average grade expected for this solution
 `nbtests` | optional `int` | Number of test cases this solution is expected to be evaluated against
 
 ## default*
