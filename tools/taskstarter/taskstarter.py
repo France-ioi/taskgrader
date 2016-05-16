@@ -448,6 +448,31 @@ def remotetest(args):
         resProc = subprocess.Popen([CFG_REMOTE, '-g', str(args.getjob)], stdout=subprocess.PIPE, universal_newlines=True)
     else:
         print("Testing with remote taskgrader...")
+        svnTarget = None
+        if args.simple:
+            # Try to fetch SVN version information
+            # We don't fetch if the JSON sent is full as in that case we don't
+            # need to update the SVN repository
+            try:
+                svnv = subprocess.check_output(['/usr/bin/svnversion', args.taskpath], universal_newlines=True)
+                if 'M' in svnv:
+                    print("Task was not committed into the SVN repository.")
+                    if not askQuestionBool("Continue anyway?"):
+                        print("Aborting.")
+                        return 1
+                else:
+                    svnTarget = ''
+                    for c in svnv.strip():
+                        if c.isdigit():
+                            svnTarget += c
+                        elif c not in ['M', 'P']:
+                            # It's not all digits, it indicates that not all files
+                            # are in the same revision
+                            svnTarget = None
+                            break
+            except:
+                pass
+
         # Generate the input JSON
         genProc = subprocess.Popen([CFG_GENSTD, '-p', args.taskpath, '-r', args.path], stdout=subprocess.PIPE, universal_newlines=True)
         if args.simple:
@@ -457,13 +482,18 @@ def remotetest(args):
             stdProc = subprocess.Popen([CFG_MAKESTD], stdin=genProc.stdout, stdout=subprocess.PIPE, universal_newlines=True)
             remInput = stdProc.stdout
         # Send to the remoteGrader
-        resProc = subprocess.Popen([CFG_REMOTE], stdin=remInput, stdout=subprocess.PIPE, universal_newlines=True)
+        resCmd = [CFG_REMOTE]
+        if svnTarget is not None:
+            resCmd.extend(['-r', svnTarget])
+        resProc = subprocess.Popen(resCmd, stdin=remInput, stdout=subprocess.PIPE, universal_newlines=True)
     # Feed the results to summarizeResults
     sumProc = subprocess.Popen([CFG_SUMRES], stdin=resProc.stdout, universal_newlines=True)
 
     # Wait for all programs to finish
     resProc.wait()
     sumProc.wait()
+
+    return resProc.returncode
 
 
 if __name__ == '__main__':

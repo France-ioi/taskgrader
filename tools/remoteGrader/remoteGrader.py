@@ -8,10 +8,6 @@
 import argparse, json, sys, time, urllib.request, urllib.parse
 from remote_config import *
 
-API = CFG_API
-USERNAME = CFG_USERNAME
-PASSWORD = CFG_PASSWORD
-
 def printErr(msg):
     """Print a message on stderr."""
     sys.stderr.write(msg)
@@ -21,10 +17,10 @@ def apiRequest(request):
     """Make a request to the API."""
     postdata = urllib.parse.urlencode({
         'rRequest': json.dumps(request),
-        'rUsername': USERNAME,
-        'rPassword': PASSWORD
+        'rUsername': CFG_USERNAME,
+        'rPassword': CFG_PASSWORD
         })
-    post = urllib.request.urlopen(API, postdata.encode('ascii'))
+    post = urllib.request.urlopen(CFG_API, postdata.encode('ascii'))
     resp = post.read().decode('utf-8')
     try:
         resp = json.loads(resp)
@@ -55,7 +51,7 @@ def displayApiError(response, request=None):
             response.get('errormsg', '[no error message]')))
 
 
-def sendJob(inputJson, jobname='remotetest'):
+def sendJob(inputJson, jobname='remotetest', revision=None):
     """Send a job to the graderqueue."""
     request = {
         'request': 'sendjob',
@@ -64,6 +60,8 @@ def sendJob(inputJson, jobname='remotetest'):
         'jobname': jobname,
         'jobdata': json.dumps(inputJson)
     }
+    if revision is not None:
+        request['taskrevision'] = revision
 
     return apiRequest(request)
 
@@ -129,11 +127,11 @@ def getJobLoop(jobid, display=False, exit=False):
     return jobReq
 
 
-def gradeJob(inputJson):
+def gradeJob(inputJson, revision=None):
     """Send a job and fetch results."""
     # Send job
     printErr("Sending job...")
-    sendReq = sendJob(inputJson)
+    sendReq = sendJob(inputJson, revision=revision)
 
     if not checkApiOk(sendReq):
         printErr("\n")
@@ -160,20 +158,15 @@ def testAuth():
     return True
 
 
-def interactiveConfig():
-    """Configure interactively."""
-    # TODO
-    pass
-
-
 if __name__ == '__main__':
     argParser = argparse.ArgumentParser(description="Launches an evaluation with a remote taskgrader through the graderqueue.")
     argParser.add_argument('-g', '--getjob', help="Try again to fetch results of ID", action='store', metavar='ID', type=int)
+    argParser.add_argument('-r', '--revision', help="Tell the queue which task revision is needed", action='store', metavar='REV')
     argParser.add_argument('-t', '--test', help="Test connection to the graderqueue", action='store_true')
     argParser.add_argument('file', metavar='FILE', nargs='?', help='Input JSON file.', default='')
     args = argParser.parse_args()
 
-    if not (API and USERNAME and PASSWORD):
+    if not (CFG_API and CFG_USERNAME and CFG_PASSWORD):
         printErr("API and credentials for remoteGrader not configured.\n")
         printErr("Please edit `remote_config.py` in `tools/remoteGrader` folder.\n")
         sys.exit(1)
@@ -204,5 +197,5 @@ if __name__ == '__main__':
         except:
             raise Exception("No valid JSON data received on standard input.")
 
-    resultdata = gradeJob(inputJson)
+    resultdata = gradeJob(inputJson, revision=args.revision)
     json.dump(resultdata, sys.stdout)
