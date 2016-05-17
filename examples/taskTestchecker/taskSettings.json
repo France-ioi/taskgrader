@@ -1,0 +1,94 @@
+{
+"sanitizer": "tests/gen/sanitizer.py",
+"sanitizerDeps": [{
+    "name": "sol_reference.py",
+    "path": "$TASK_PATH/tests/gen/sol_reference.py"
+    }],
+"checker": "tests/gen/checker.py",
+"checkerDeps": [{
+    "name": "sol_reference.py",
+    "path": "$TASK_PATH/tests/gen/sol_reference.py"
+    }],
+"correctSolutions": [
+    {"path": "$TASK_PATH/tests/gen/sol_reference.py",
+    "language": "python2",
+    "grade": 100
+    },
+    {"path": "$TASK_PATH/tests/gen/sol_wrong1.py",
+    "language": "python2",
+    "grade": 60
+    },
+    {"path": "$TASK_PATH/tests/gen/sol_wrong2.py",
+    "language": "python2",
+    "grade": 80
+    },
+    {"path": "$TASK_PATH/tests/gen/sol_wrong3.py",
+    "language": "python2",
+    "grade": 80
+    },
+    {"path": "$TASK_PATH/tests/gen/sol_wrong4.py",
+    "language": "python2",
+    "grade": 40
+    }],
+"overrideParams": {
+    "testEvaluationSolutions": [
+        {"id": "solwrong1",
+        "compilationDescr": {
+            "language": "python2",
+            "files": [
+                {"name": "sol_wrong1.py",
+                "path": "$TASK_PATH/tests/gen/sol_wrong1.py"}],
+            "dependencies": []},
+        "compilationExecution": "@defaultSolutionCompParams"
+        },
+        {"id": "solwrong2",
+        "compilationDescr": {
+            "language": "python2",
+            "files": [
+                {"name": "sol_wrong2.py",
+                "path": "$TASK_PATH/tests/gen/sol_wrong2.py"}],
+            "dependencies": []},
+        "compilationExecution": "@defaultSolutionCompParams"
+        },
+        {"id": "solwrong3",
+        "compilationDescr": {
+            "language": "python2",
+            "files": [
+                {"name": "sol_wrong3.py",
+                "path": "$TASK_PATH/tests/gen/sol_wrong3.py"}],
+            "dependencies": []},
+        "compilationExecution": "@defaultSolutionCompParams"
+        },
+        {"id": "solwrong4",
+        "compilationDescr": {
+            "language": "python2",
+            "files": [
+                {"name": "sol_wrong4.py",
+                "path": "$TASK_PATH/tests/gen/sol_wrong4.py"}],
+            "dependencies": []},
+        "compilationExecution": "@defaultSolutionCompParams"
+        }
+        ],
+    "testEvaluationExecutions": [
+        {"id": "execwrong1",
+        "idSolution": "solwrong1",
+        "filterTests": "@defaultFilterTests",
+        "runExecution": "@defaultSolutionExecParams"
+        },
+        {"id": "execwrong2",
+        "idSolution": "solwrong2",
+        "filterTests": "@defaultFilterTests",
+        "runExecution": "@defaultSolutionExecParams"
+        },
+        {"id": "execwrong3",
+        "idSolution": "solwrong3",
+        "filterTests": "@defaultFilterTests",
+        "runExecution": "@defaultSolutionExecParams"
+        },
+        {"id": "execwrong4",
+        "idSolution": "solwrong4",
+        "filterTests": "@defaultFilterTests",
+        "runExecution": "@defaultSolutionExecParams"
+        }
+    ]}
+}

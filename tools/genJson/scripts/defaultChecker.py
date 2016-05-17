@@ -77,6 +77,10 @@ def diff(solPath, outPath):
             truncatedAfter = (lastLine != '')
             break
 
+    # Put a single line in the expected answer if it was empty
+    if len(expLines) == 0:
+        expLines = ["\n"]
+
     # Find difference in the diff line
     relLine = diffLine-chunkLine
     solDLine = solLines[relLine]
