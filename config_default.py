@@ -11,6 +11,7 @@
 # doesn't define them.
 
 import os
+CFG_DEFAULT_SELFDIR = os.path.normpath(os.path.dirname(os.path.abspath(__file__)))
 
 ##### START OF CONFIGURATION #####
 
@@ -18,15 +19,16 @@ import os
 
 # Base directory for work files, will contain the builds and cache
 # install.sh will change this folder to taskgrader's dir + 'files/'
-CFG_BASEDIR = 'CHANGE_ME'
+CFG_BASEDIR = os.path.join(CFG_DEFAULT_SELFDIR, 'files/')
 # Base directory for binaries, must contain the different binaries needed
 # install.sh will change this folder to taskgrader's dir
-CFG_BINDIR = 'CHANGE_ME'
+CFG_BINDIR = CFG_DEFAULT_SELFDIR
 
 # Internal folders for taskgrader operation
 CFG_BUILDSDIR = os.path.join(CFG_BASEDIR, 'builds/')
 CFG_CACHEDIR = os.path.join(CFG_BASEDIR, 'cache/')
 CFG_CACHEDBPATH = os.path.join(CFG_CACHEDIR, 'taskgrader-cache.sqlite')
+CFG_RESET_SCRIPT = os.path.join(CFG_BINDIR, 'cache_reset.py')
 
 # Paths to binaries
 CFG_ISOLATEBIN = os.path.join(CFG_BINDIR, 'isolate-bin')

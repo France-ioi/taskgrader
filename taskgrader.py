@@ -279,9 +279,23 @@ class CacheHandle():
 class CacheDatabase():
     """Represents the cache database."""
 
-    def __init__(self):
+    def _loadDatabase(self):
+        """Load the database."""
         self.database = sqlite3.connect(CFG_CACHEDBPATH)
         self.database.row_factory = sqlite3.Row
+
+    def __init__(self):
+        self._loadDatabase()
+        # Recreate cache table if it was deleted for some reason
+        try:
+            self.database.execute("SELECT 1 FROM cache WHERE 1=1")
+        except:
+            logging.warning("Cache database was corrupted, resetting...")
+            self.database.close()
+            self.database = None
+            resetProc = subprocess.Popen([CFG_RESET_SCRIPT])
+            resetProc.wait()
+            self._loadDatabase()
 
     def getHandle(self, files):
         return CacheHandle(self.database, files)
@@ -1354,6 +1368,9 @@ def evaluation(evaluationParams):
     evaluationParams = preprocessJson(evaluationParams, varData)
 
 
+    cache = CacheDatabase()
+
+
     # Path where the evaluation will take place
     if evaluationParams.has_key('outputPath'):
         if '../' in evaluationParams['outputPath']:
@@ -1383,9 +1400,6 @@ def evaluation(evaluationParams):
             raise Exception("Validation failed for input JSON, error message: %s" % str(err))
     else:
         logging.warning("Unable to import jsonschema library, continuing without input/output JSON validation.")
-
-
-    cache = CacheDatabase()
 
 
     os.mkdir(baseWorkingDir + "libs/")
