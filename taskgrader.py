@@ -39,6 +39,12 @@ if CFG_MULTICHECK and CFG_MULTICHECK_LIGHT == 'auto':
         CFG_MULTICHECK_LIGHT = False
 
 
+SELFDIR = os.path.normpath(os.path.dirname(os.path.abspath(__file__)))
+# Add taskgrader dir to ENV
+os.environ["TASKGRADERDIR"] = SELFDIR
+
+RESTRICT_PATHS = []
+
 sys.path.append(CFG_JSONSCHEMA)
 try:
     from jsonschema import validate
@@ -490,13 +496,13 @@ class IsolatedExecution(Execution):
             raise Exception("Error while initializing isolate box (#%d)." % initProc.returncode)
 
         # isolatePath will be the path of the sandbox, as given by isolate
-        isolateDir = isolateDir.strip() + '/box/'
+        isolateDir = os.path.join(isolateDir.strip(), 'box/')
 
         # Build isolate command line
         isolatedCmdLine  = CFG_ISOLATEBIN
         isolatedCmdLine += ' --processes'
         isolatedCmdLine += ' --env=HOME --env=PATH'
-        isolatedCmdLine += ' --meta=' + workingDir + 'isolate.meta'
+        isolatedCmdLine += ' --meta=%s' % os.path.join(workingDir, 'isolate.meta')
         # Use an unique box ID
         isolatedCmdLine += ' --box-id=%d' % boxId
         if self.executionParams['timeLimitMs'] > 0:
@@ -508,7 +514,7 @@ class IsolatedExecution(Execution):
             else:
                 isolatedCmdLine += ' --mem=' + str(self.realMemoryLimitKb)
         if self.stdinFile:
-            filecopy(self.stdinFile, workingDir + 'isolated.stdin', fromlocal=True)
+            filecopy(self.stdinFile, os.path.join(workingDir, 'isolated.stdin'), fromlocal=True)
             isolatedCmdLine += ' --stdin=isolated.stdin'
         if CFG_CONTROLGROUPS:
             isolatedCmdLine += ' --cg --cg-timing'
@@ -526,10 +532,10 @@ class IsolatedExecution(Execution):
             pass
         # Copy files from working directory to sandbox
         for f in os.listdir(workingDir):
-            filecopy(workingDir + f, isolateDir + f)
+            filecopy(os.path.join(workingDir, f), os.path.join(isolateDir, f))
 
         # Create meta file with right owner/permissions
-        open(workingDir + 'isolate.meta', 'w')
+        open(os.path.join(workingDir, 'isolate.meta'), 'w')
 
         logging.debug("Executing isolate: `%s`" % isolatedCmdLine)
 
@@ -540,7 +546,7 @@ class IsolatedExecution(Execution):
         # Get metadata from isolate execution
         isolateMeta = {}
         try:
-            for l in open(workingDir + 'isolate.meta', 'r').readlines():
+            for l in open(os.path.join(workingDir, 'isolate.meta'), 'r').readlines():
                 [name, val] = l.split(':', 1)
                 isolateMeta[name] = val.strip()
         except:
@@ -564,9 +570,9 @@ class IsolatedExecution(Execution):
 
         # Copy back the files from sandbox
         for f in os.listdir(isolateDir):
-            if os.path.isfile(isolateDir + f) and not os.path.isfile(workingDir + f):
-                filecopy(isolateDir + f, workingDir + f)
-        filecopy(isolateDir + 'isolated.stdout', self.stdoutFile)
+            if os.path.isfile(os.path.join(isolateDir, f)) and not os.path.isfile(os.path.join(workingDir, f)):
+                filecopy(os.path.join(isolateDir, f), os.path.join(workingDir, f))
+        filecopy(os.path.join(isolateDir, 'isolated.stdout'), self.stdoutFile)
 
         # Generate execution report
         if isolateMeta.has_key('time'):
@@ -594,9 +600,9 @@ class IsolatedExecution(Execution):
         else:
             report['exitSig'] = 0
 
-        report['stdout'] = capture(workingDir + 'isolated.stdout', name='stdout',
+        report['stdout'] = capture(os.path.join(workingDir, 'isolated.stdout'), name='stdout',
                 truncateSize=self.executionParams['stdoutTruncateKb'] * 1024)
-        report['stderr'] = capture(workingDir + 'isolated.stderr', name='stderr',
+        report['stderr'] = capture(os.path.join(workingDir, 'isolated.stderr'), name='stderr',
                 truncateSize=self.executionParams['stderrTruncateKb'] * 1024)
 
         # Cleanup sandbox
@@ -817,7 +823,10 @@ class LanguageShell(LanguageScript):
     dependencies = ["openssl"]
 
     def _scriptLines(self, sourceFiles, depFiles):
-        lines = ["export TASKGRADER_DEPFILES=\"%s\"\n" % ' '.join(depFiles)]
+        lines = [
+            "export TASKGRADER_DEPFILES=\"%s\"\n" % ' '.join(depFiles),
+            "export TASKGRADERDIR=\"%s\"\n" % SELFDIR,
+            ]
         lines.extend(map(lambda x: "/bin/sh %s $@\n" % x, sourceFiles))
         return lines
 
@@ -904,6 +913,15 @@ class Program():
         self.compiled = False
         self.triedCompile = False
         self.execution = None
+
+        # Check whether execution should be isolated
+        self.isolate = True
+        for f in compilationDescr['files']:
+            if 'path' in f and f['path'] != '':
+                fPath = os.path.abspath(f['path'])
+                if fPath in CFG_NOISOLATE:
+                    self.isolate = False
+        logging.info("Program will%s be isolated." % ('' if self.isolate else ' not'))
 
         # TODO :: move languages into libraries
         CFG_LANGUAGES = {
@@ -1005,7 +1023,11 @@ class Program():
                 raise Exception("Program failed compilation, execution impossible.")
             else:
                 raise Exception("Program has not yet been compiled, execution impossible.")
-        self.execution = IsolatedExecution(self.executablePath, executionParams, './%s' % os.path.basename(self.executablePath), language=self.compilationDescr['language'])
+
+        if self.isolate:
+            self.execution = IsolatedExecution(self.executablePath, executionParams, './%s' % os.path.basename(self.executablePath), language=self.compilationDescr['language'])
+        else:
+            self.execution = Execution(self.executablePath, executionParams, './%s' % os.path.basename(self.executablePath), language=self.compilationDescr['language'])
         self.executionParams = executionParams
 
     def execute(self, workingDir, args=None, stdinFile=None, stdoutFile=None, otherInputs=[], outputFiles=[]):
@@ -1112,7 +1134,10 @@ def multiChecker(workingDir, checkList, checker, executionParams):
     os.chmod(mcPath, 493) # chmod 755
 
     # Execute the script
-    report = IsolatedExecution(checker.executablePath, multiExecParams, './multichecker.sh').execute(workingDir)
+    if checker.isolate:
+        report = IsolatedExecution(checker.executablePath, multiExecParams, './multichecker.sh').execute(workingDir)
+    else:
+        report = Execution(checker.executablePath, multiExecParams, './multichecker.sh').execute(workingDir)
 
     # Build reports
     # Many elements aren't present in the reports from a multi-check
@@ -1240,10 +1265,10 @@ def communicateWithTimeout(subProc, timeout=0, input=None):
 
 def isInRestrict(path):
     """Check whether a path is in the allowed paths for read/write."""
-    global restrictToPaths
-    if len(restrictToPaths) == 0:
+    global RESTRICT_PATHS
+    if len(RESTRICT_PATHS) == 0:
         return True
-    for folder in restrictToPaths:
+    for folder in RESTRICT_PATHS:
         if os.path.abspath(path).startswith(os.path.abspath(folder) + '/'):
             return True
     return False
@@ -1310,7 +1335,7 @@ def capture(path, name='', truncateSize=-1):
 def evaluation(evaluationParams):
     """Full evaluation process."""
 
-    global restrictToPaths
+    global RESTRICT_PATHS
 
     logging.info("Initializing evaluation")
 
@@ -1333,10 +1358,10 @@ def evaluation(evaluationParams):
                'TASK_PATH': evaluationParams['taskPath']}
 
     # Load path restriction if present
-    if evaluationParams.has_key('restrictToPaths'):
-        restrictToPaths = evaluationParams['restrictToPaths']
+    if evaluationParams.has_key('RESTRICT_PATHS'):
+        RESTRICT_PATHS = evaluationParams['RESTRICT_PATHS']
     else:
-        restrictToPaths = []
+        RESTRICT_PATHS = []
 
     # Load a "preprocessing" JSON node or file
     defParamsPath = os.path.join(evaluationParams['taskPath'], 'defaultParams.json')
@@ -1389,8 +1414,8 @@ def evaluation(evaluationParams):
 
     varData['BUILD_PATH'] = baseWorkingDir
     report['buildPath'] = baseWorkingDir
-    if len(restrictToPaths) > 0:
-        restrictToPaths.append(baseWorkingDir)
+    if len(RESTRICT_PATHS) > 0:
+        RESTRICT_PATHS.append(baseWorkingDir)
 
     # We validate the input JSON format
     if validate is not None:

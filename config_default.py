@@ -71,6 +71,12 @@ CFG_MULTICHECK = True
 # 'auto' will be True on Mac OS X, False on other systems
 CFG_MULTICHECK_LIGHT = 'auto'
 
+# Do not use isolate on these scripts
+# This variable is a list of full paths to the source files of the scripts
+# which should be executed without isolate
+# Example: CFG_NOISOLATE = ["/home/taskgrader/myscripts/safecode.c"]
+CFG_NOISOLATE = []
+
 # Timeout for accessing the cache
 CFG_CACHE_TIMEOUT = 60
 
