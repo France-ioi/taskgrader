@@ -1,0 +1,54 @@
+{
+"checker": "tests/gen/checker.sh",
+"checkerDeps": [
+    {"name": "turtleToPng.py",
+    "path": "$TASK_PATH/tests/gen/turtleToPng.py"
+    },
+    {"name": "checker.py",
+    "path": "$TASK_PATH/tests/gen/checker.py"
+    }],
+"correctSolutions": [
+    {"path": "$TASK_PATH/tests/gen/sol-ok-py.py",
+    "language": "python2",
+    "grade": 100
+    },
+    {"path": "$TASK_PATH/tests/gen/sol-bad-py.py",
+    "language": "python2",
+    "grade": 50
+    }],
+"defaultChecker": {
+    "compilationDescr": {
+        "language": "shell",
+        "files": [
+            {"name": "checker.sh",
+            "path": "$TASK_PATH/tests/gen/checker.sh"
+            }],
+        "dependencies": [
+            {"name": "turtleToPng.py",
+            "path": "$TASK_PATH/tests/gen/turtleToPng.py"
+            },
+            {"name": "checker.py",
+            "path": "$TASK_PATH/tests/gen/checker.py"
+            }]},
+    "compilationExecution": "@defaultToolCompParams",
+    "runExecution": {
+        "memoryLimitKb": 131072,
+        "timeLimitMs": 60000,
+        "stderrTruncateKb": -1,
+        "stdoutTruncateKb": -1,
+        "useCache": true,
+        "getFiles": ["turtle_png.b64"]
+        }
+    },
+"defaultEvaluationSolutions": [{
+    "id": "@solutionId",
+    "compilationDescr": {
+        "language": "python2",
+        "files": [{"name": "runner.py",
+                   "path": "$TASK_PATH/tests/gen/runner.py"}],
+        "dependencies": [{"name": "solution.py",
+                          "path": "@solutionPath",
+                          "content": "@solutionContent"}]
+        },
+    "compilationExecution": "@defaultSolutionCompParams"}]
+}
