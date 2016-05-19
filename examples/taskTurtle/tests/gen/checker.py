@@ -33,7 +33,7 @@ def checkTurtleLog(log, target):
             # Turtle was created, we go to the next log entry
             continue
 
-        # EXAMPLE: check at least one turtle went through the position (100, 0)
+        # EXAMPLE: check at least one turtle went through the position 'target'
 
         # Replay only movements
         if comp == 'nav':

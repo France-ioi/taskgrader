@@ -1,0 +1,15 @@
+<!-- This snippet shows how to display the turtle result image from
+taskgrader's output JSON. -->
+<img id="resultimage" src="" />
+<script type="text/javascript">
+// Give it the value of [outputjson]/executions[idx]/testReports[idx]/checker
+var checkerJson = '' // EDIT ME
+var checkerData = JSON.parse(checkerJson);
+
+// Get image data and remove newlines
+var imgData = checkerData.files[0].data;
+imgData = imgData.replace(/(\n|\r)/g, " ");
+
+// Set the image data
+document.getElementById("resultimage").setAttribute('src', 'data:image/png;base64,' + imgData);
+</script>
