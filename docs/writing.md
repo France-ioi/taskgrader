@@ -10,13 +10,50 @@ A "task" is a set of programs and files representing the problem the solutions w
 * a **sanitizer**, validating the input files by checking they are in the required format
 * the **checker**, grading each solution's output
 
+## First steps
+
 The script `tools/taskstarter/taskstarter.py` can assist with writing a task; use `taskstarter.py help` to see the available commands.
 
-Here are some examples based around a simple problem: the program is given a number as input, and must output the double of the number. These example tasks can be found in the `examples` folder.
+You might start a new task interactively by executing `taskstarter.py init`.
+
+Alternatively, you can also copy one of the example tasks and use it as a base for your task.
+
+## Testing tasks
+
+Tasks can be tested with:
+
+* `taskstarter.py test`, which will use the tool `genJson` to prepare the task for usage (read about `defaultParams.json` file below for more information) and test it for valid compilation, and test that the "correct solutions" get the expected grades.
+* `taskstarter.py testsol [SOLUTION.c]`, which if the task is valid, will test `SOLUTION.c` against the task. It is meant for quick solution testing; it uses the `stdGrade` tool.
+
+## Remote testing
+
+If you have access to a [graderqueue](https://github.com/France-ioi/graderqueue) instance, you can evaluate your task through it (for instance, to evaluate on contest servers).
+
+Once you configured the remoteGrader in the file `tools/remoteGrader/config.py` with the URL, login and password to a graderqueue, you can use taskstarter to test remotely.
+
+Once you have tested your task locally, you can use:
+
+    taskstarter.py remotetest [SOLUTION.c]
+
+to test your task and `SOLUTION.c` with a remote server. It will behave as the `testsol` command, except using a remote server instead of the local taskgrader. It will send a "full input JSON", which means that all task files will be contained in the JSON file and the remote server doesn't need any file from your task to evaluate.
+
+If your task is saved/synchronized on the remote server, and the `ROOT_PATH` is configured accordingly (contact your graderqueue/graderserver administrator to know how to configure it), you can test your task with a "simple JSON" with the following command:
+
+    taskstarter.py remotetest -s [SOLUTION.c]
+
+It will send a simple solution with only your solution; the remote server will then read the task files locally for the evaluation. It's thus important that the remote server has the most recent files for the evaluation; if the task are locally and remotely on a SVN repository, taskstarter will check the task has been committed and send the corresponding revision number to the remote server for it to make sure it's on the latest version.
+
+## Using tasks
+
+The tool `genJson`, automatically called when using `taskstarter.py test`, prepares the task by writing its parameters into a `defaultParams.json` file. It contains all the required information to evaluate solutions against the task, and can be used by evaluation platforms directly to reference the task. The tool `stdGrade` will use this file to quickly evaluate solutions.
+
+# Basic examples
+
+Here are some basic examples based around a simple problem: the program is given a number as input, and must output the double of the number. These example tasks can be found in the `examples` folder.
 
 ## Minimal example: only test cases
 
-A task can be just test cases. The task can be built and tested like this:
+A task can be just test cases and their corresponding expected outputs. The task can be built and tested like this:
 
 * We start our task in a folder with `taskstarter.py init` (answering 'no' to all questions); it will give us a base task structure we can use as reference
 * We put the test cases input files `test1.in` and `test2.in` in the subfolder `tests/files/`
@@ -105,17 +142,6 @@ which means the taskgrader successfully found all 4 test cases, the 2 test cases
 
 *This example can be found in the `examples/taskGenerator` folder.*
 
-## Testing tasks
-
-Tasks can be tested with:
-
-* `taskstarter.py test`, which will use the tool `genJson` to prepare the task for usage (read about `defaultParams.json` file below for more information) and test it for valid compilation, and test that the "correct solutions" get the expected grades.
-* `taskstarter.py testsol [SOLUTION.c]`, which if the task is valid, will test `SOLUTION.c` against the task. It is meant for quick solution testing; it uses the `stdGrade` tool.
-
-## Using tasks
-
-The tool `genJson`, automatically called when using `taskstarter.py test`, prepares the task by writing its parameters into a `defaultParams.json` file. It contains all the required information to evaluate solutions against the task, and can be used by evaluation platforms directly to reference the task. The tool `stdGrade` will use this file to quickly evaluate solutions.
-
 # More complex task writing
 
 More complex tasks can be written for usage with the taskgrader. The `taskstarter` tool is meant for simple tasks, you need to edit files manually for these examples. Here is an example, but read the rest of this documentation for more information.
@@ -153,7 +179,6 @@ You can test the task by running, from the task folder:
 The testing tool `stdGrade` will automatically understand how to evaluate these solutions.
 
 *This example can be found in the `examples/taskRunner` folder.*
-
 
 ## Solution checker example: reading the solution source
 
@@ -196,3 +221,69 @@ You can test the task by running, from the task folder:
 * `taskstarter.py testsol tests/gen/sol-bad-c.c` for a bad solution getting a grade of 0 (wrong answer)
 
 *This example can be found in the `examples/taskSolchecker` folder.*
+
+## Turtle example: using and saving graphics
+
+In this task, the solution is a [turtle](https://docs.python.org/2/library/turtle.html) script; here, its task is to simply to go to a specified position (but more advanced criterias can be written).
+
+This task is complex for two reasons:
+
+* the base turtle library needs a graphic window to work (unavailable on an evaluation server), and we still need to "isolate" the solution execution
+* we save the resulting image as a PNG file
+
+### Requirements
+
+To work, this task needs:
+
+* Xvfb, "X virtual framebuffer", a X server without display (to make turtle show graphics and then save them)
+* PIL, "Python Imaging Library", a library to handle images
+
+On Debian, they can be installed with the following command:
+
+    apt-get install xvfb python-pil
+
+The task also needs the `checker.sh` to be whitelisted for use outside of isolate; this is done by adding its path in `CFG_NOISOLATE` in taskgrader's `config.py` file, for instance:
+
+    CFG_NOISOLATE = ["/path/to/taskgrader/examples/taskTurtle/tests/gen/checker.sh"]
+
+(It must be an absolute path, as returned by Python's `os.path.abspath`.)
+
+### How it works
+
+This task works by saving all turtle commands executed by the solution, and then replaying them to generate the resulting PNG, and also to evaluate the criteria of task completion.
+
+#### runner.py
+
+The execution of solutions is wrapped in a `runner.py` execution.
+
+The runner of this task defines a class, `LoggedTurtle`, which logs all the turtle commands executed while inhibiting their graphics. It also modifies the solution source code to change all instances of the normal `Turtle` class to this `LoggedTurtle` class; and then executes the solution while logging all commands. It finally prints the full JSON-encoded log, whose entries contain the following elements:
+
+* ID number for the turtle (to allow multiple turtles)
+* Component, either 'nav' for the navigator, 'turtle' for other functions
+* Name of turtle's function called
+* args and kwargs of the call
+
+See `turtleToPng.py` or `checker.py` for examples on how to use this log.
+
+#### checker.sh
+
+This script has two sub-components:
+
+* `turtleToPng.py` is a script generating the base64-encoded PNG image resulting from the execution of the turtle
+* `checker.py` is the actual checker, using the turtle log to evaluate the criteria and grade the solution
+
+As said above, this script must be whitelisted for executiong outside of isolate by the taskgrader. It will allow the script to run Xvfb and `turtleToPng.py` outside of isolate, as X displays cannot run inside isolate.
+
+It will then use the taskgrader tool `tools/isolate-run.py` to run the actual checker `checker.py` inside isolate.
+
+### Usage
+
+As usual, you can test the task by running, from the task folder:
+
+* `taskstarter.py test` for the normal test, which will check each solution has the expected grade
+* `taskstarter.py testsol tests/gen/sol-ok-py.py` for a good solution
+* `taskstarter.py testsol tests/gen/sol-bad-py.py` for a bad solution
+
+If you grade a solution against the task, the output JSON will contain a file `turtle_png.b64`, which is the base64-encoded PNG image resulting from each execution of the solution against a test case. It is in the `files` key of each `checker` report (in `/executions[idx]/testReports[idx]`). The file `view.html` in the task folder contains an example JavaScript to display it in a browser.
+
+*This example can be found in the `examples/taskTurtle` folder.*
