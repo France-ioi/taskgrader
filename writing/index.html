@@ -167,6 +167,17 @@
     
         <li class="main active"><a href="#getting-started-on-writing-a-task">Getting started on writing a task</a></li>
         
+            <li><a href="#first-steps">First steps</a></li>
+        
+            <li><a href="#testing-tasks">Testing tasks</a></li>
+        
+            <li><a href="#remote-testing">Remote testing</a></li>
+        
+            <li><a href="#using-tasks">Using tasks</a></li>
+        
+    
+        <li class="main "><a href="#basic-examples">Basic examples</a></li>
+        
             <li><a href="#minimal-example-only-test-cases">Minimal example: only test cases</a></li>
         
             <li><a href="#adding-correct-solutions-to-our-task">Adding correct solutions to our task</a></li>
@@ -177,16 +188,14 @@
         
             <li><a href="#generator-example-adding-a-generator">Generator example: adding a generator</a></li>
         
-            <li><a href="#testing-tasks">Testing tasks</a></li>
-        
-            <li><a href="#using-tasks">Using tasks</a></li>
-        
     
         <li class="main "><a href="#more-complex-task-writing">More complex task writing</a></li>
         
             <li><a href="#runner-example-solution-skeleton">Runner example: solution skeleton</a></li>
         
             <li><a href="#solution-checker-example-reading-the-solution-source">Solution checker example: reading the solution source</a></li>
+        
+            <li><a href="#turtle-example-using-and-saving-graphics">Turtle example: using and saving graphics</a></li>
         
     
     </ul>
@@ -203,10 +212,33 @@
 <li>a <strong>sanitizer</strong>, validating the input files by checking they are in the required format</li>
 <li>the <strong>checker</strong>, grading each solution's output</li>
 </ul>
+<h2 id="first-steps">First steps</h2>
 <p>The script <code>tools/taskstarter/taskstarter.py</code> can assist with writing a task; use <code>taskstarter.py help</code> to see the available commands.</p>
-<p>Here are some examples based around a simple problem: the program is given a number as input, and must output the double of the number. These example tasks can be found in the <code>examples</code> folder.</p>
+<p>You might start a new task interactively by executing <code>taskstarter.py init</code>.</p>
+<p>Alternatively, you can also copy one of the example tasks and use it as a base for your task.</p>
+<h2 id="testing-tasks">Testing tasks</h2>
+<p>Tasks can be tested with:</p>
+<ul>
+<li><code>taskstarter.py test</code>, which will use the tool <code>genJson</code> to prepare the task for usage (read about <code>defaultParams.json</code> file below for more information) and test it for valid compilation, and test that the "correct solutions" get the expected grades.</li>
+<li><code>taskstarter.py testsol [SOLUTION.c]</code>, which if the task is valid, will test <code>SOLUTION.c</code> against the task. It is meant for quick solution testing; it uses the <code>stdGrade</code> tool.</li>
+</ul>
+<h2 id="remote-testing">Remote testing</h2>
+<p>If you have access to a <a href="https://github.com/France-ioi/graderqueue">graderqueue</a> instance, you can evaluate your task through it (for instance, to evaluate on contest servers).</p>
+<p>Once you configured the remoteGrader in the file <code>tools/remoteGrader/config.py</code> with the URL, login and password to a graderqueue, you can use taskstarter to test remotely.</p>
+<p>Once you have tested your task locally, you can use:</p>
+<pre><code>taskstarter.py remotetest [SOLUTION.c]
+</code></pre>
+<p>to test your task and <code>SOLUTION.c</code> with a remote server. It will behave as the <code>testsol</code> command, except using a remote server instead of the local taskgrader. It will send a "full input JSON", which means that all task files will be contained in the JSON file and the remote server doesn't need any file from your task to evaluate.</p>
+<p>If your task is saved/synchronized on the remote server, and the <code>ROOT_PATH</code> is configured accordingly (contact your graderqueue/graderserver administrator to know how to configure it), you can test your task with a "simple JSON" with the following command:</p>
+<pre><code>taskstarter.py remotetest -s [SOLUTION.c]
+</code></pre>
+<p>It will send a simple solution with only your solution; the remote server will then read the task files locally for the evaluation. It's thus important that the remote server has the most recent files for the evaluation; if the task are locally and remotely on a SVN repository, taskstarter will check the task has been committed and send the corresponding revision number to the remote server for it to make sure it's on the latest version.</p>
+<h2 id="using-tasks">Using tasks</h2>
+<p>The tool <code>genJson</code>, automatically called when using <code>taskstarter.py test</code>, prepares the task by writing its parameters into a <code>defaultParams.json</code> file. It contains all the required information to evaluate solutions against the task, and can be used by evaluation platforms directly to reference the task. The tool <code>stdGrade</code> will use this file to quickly evaluate solutions.</p>
+<h1 id="basic-examples">Basic examples</h1>
+<p>Here are some basic examples based around a simple problem: the program is given a number as input, and must output the double of the number. These example tasks can be found in the <code>examples</code> folder.</p>
 <h2 id="minimal-example-only-test-cases">Minimal example: only test cases</h2>
-<p>A task can be just test cases. The task can be built and tested like this:</p>
+<p>A task can be just test cases and their corresponding expected outputs. The task can be built and tested like this:</p>
 <ul>
 <li>We start our task in a folder with <code>taskstarter.py init</code> (answering 'no' to all questions); it will give us a base task structure we can use as reference</li>
 <li>We put the test cases input files <code>test1.in</code> and <code>test2.in</code> in the subfolder <code>tests/files/</code></li>
@@ -222,11 +254,11 @@
 <p>Using again our example task 1, we can add correct solutions like this:</p>
 <pre><code>taskstarter.py addsol -g 100 -l c tests/gen/sol-ok-c.c
 </code></pre>
-<p>It means that each time we'll test the task, the solution <code>sol-ok-c.c</code> will be automatically evaluated against the task, and <code>-g 100</code> means we expect the solution to get a perfect grade of 100 each time.</p>
+<p>It means that each time we'll test the task, the solution <code>sol-ok-c.c</code> will be automatically evaluated against the task, and <code>-g 100</code> means we expect the solution to get a perfect grade of 100 each time (and having a final average grade of 100).</p>
 <p>We can also add an invalid solution, that is to say, a solution who will get the minimum grade of 0 each time. In this example, we have such a solution, <code>sol-bad-c.c</code>. We add it as a "bad solution" like this:</p>
 <pre><code>taskstarter.py addsol -g 0 -l c tests/gen/sol-bad-c.c
 </code></pre>
-<p>which means that we expect it to get a grade of 0 on each test.</p>
+<p>which means that we expect it to get a grade of 0 on each test (hence a final expected average grade of 0).</p>
 <p>We can finally test the task by executing, in the task folder,</p>
 <pre><code>taskstarter.py test
 </code></pre>
@@ -270,14 +302,6 @@
 </code></pre>
 <p>which means the taskgrader successfully found all 4 test cases, the 2 test cases given directly in the task folder, and the 2 test cases generated by our script <code>gen.sh</code>.</p>
 <p><em>This example can be found in the <code>examples/taskGenerator</code> folder.</em></p>
-<h2 id="testing-tasks">Testing tasks</h2>
-<p>Tasks can be tested with:</p>
-<ul>
-<li><code>taskstarter.py test</code>, which will use the tool <code>genJson</code> to prepare the task for usage (read about <code>defaultParams.json</code> file below for more information) and test it for valid compilation, and test that the "correct solutions" get the expected grades.</li>
-<li><code>taskstarter.py testsol [SOLUTION.c]</code>, which if the task is valid, will test <code>SOLUTION.c</code> against the task. It is meant for quick solution testing; it uses the <code>stdGrade</code> tool.</li>
-</ul>
-<h2 id="using-tasks">Using tasks</h2>
-<p>The tool <code>genJson</code>, automatically called when using <code>taskstarter.py test</code>, prepares the task by writing its parameters into a <code>defaultParams.json</code> file. It contains all the required information to evaluate solutions against the task, and can be used by evaluation platforms directly to reference the task. The tool <code>stdGrade</code> will use this file to quickly evaluate solutions.</p>
 <h1 id="more-complex-task-writing">More complex task writing</h1>
 <p>More complex tasks can be written for usage with the taskgrader. The <code>taskstarter</code> tool is meant for simple tasks, you need to edit files manually for these examples. Here is an example, but read the rest of this documentation for more information.</p>
 <h2 id="runner-example-solution-skeleton">Runner example: solution skeleton</h2>
@@ -341,7 +365,56 @@
 <li><code>taskstarter.py testsol tests/gen/sol-long-c.c</code> for a solution too long getting a grade of 93 (right answer, more than 60 characters)</li>
 <li><code>taskstarter.py testsol tests/gen/sol-bad-c.c</code> for a bad solution getting a grade of 0 (wrong answer)</li>
 </ul>
-<p><em>This example can be found in the <code>examples/taskSolchecker</code> folder.</em></p></div>
+<p><em>This example can be found in the <code>examples/taskSolchecker</code> folder.</em></p>
+<h2 id="turtle-example-using-and-saving-graphics">Turtle example: using and saving graphics</h2>
+<p>In this task, the solution is a <a href="https://docs.python.org/2/library/turtle.html">turtle</a> script; here, its task is to simply to go to a specified position (but more advanced criterias can be written).</p>
+<p>This task is complex for two reasons:</p>
+<ul>
+<li>the base turtle library needs a graphic window to work (unavailable on an evaluation server), and we still need to "isolate" the solution execution</li>
+<li>we save the resulting image as a PNG file</li>
+</ul>
+<h3 id="requirements">Requirements</h3>
+<p>To work, this task needs:</p>
+<ul>
+<li>Xvfb, "X virtual framebuffer", a X server without display (to make turtle show graphics and then save them)</li>
+<li>PIL, "Python Imaging Library", a library to handle images</li>
+</ul>
+<p>On Debian, they can be installed with the following command:</p>
+<pre><code>apt-get install xvfb python-pil
+</code></pre>
+<p>The task also needs the <code>checker.sh</code> to be whitelisted for use outside of isolate; this is done by adding its path in <code>CFG_NOISOLATE</code> in taskgrader's <code>config.py</code> file, for instance:</p>
+<pre><code>CFG_NOISOLATE = ["/path/to/taskgrader/examples/taskTurtle/tests/gen/checker.sh"]
+</code></pre>
+<p>(It must be an absolute path, as returned by Python's <code>os.path.abspath</code>.)</p>
+<h3 id="how-it-works">How it works</h3>
+<p>This task works by saving all turtle commands executed by the solution, and then replaying them to generate the resulting PNG, and also to evaluate the criteria of task completion.</p>
+<h4 id="runnerpy">runner.py</h4>
+<p>The execution of solutions is wrapped in a <code>runner.py</code> execution.</p>
+<p>The runner of this task defines a class, <code>LoggedTurtle</code>, which logs all the turtle commands executed while inhibiting their graphics. It also modifies the solution source code to change all instances of the normal <code>Turtle</code> class to this <code>LoggedTurtle</code> class; and then executes the solution while logging all commands. It finally prints the full JSON-encoded log, whose entries contain the following elements:</p>
+<ul>
+<li>ID number for the turtle (to allow multiple turtles)</li>
+<li>Component, either 'nav' for the navigator, 'turtle' for other functions</li>
+<li>Name of turtle's function called</li>
+<li>args and kwargs of the call</li>
+</ul>
+<p>See <code>turtleToPng.py</code> or <code>checker.py</code> for examples on how to use this log.</p>
+<h4 id="checkersh">checker.sh</h4>
+<p>This script has two sub-components:</p>
+<ul>
+<li><code>turtleToPng.py</code> is a script generating the base64-encoded PNG image resulting from the execution of the turtle</li>
+<li><code>checker.py</code> is the actual checker, using the turtle log to evaluate the criteria and grade the solution</li>
+</ul>
+<p>As said above, this script must be whitelisted for executiong outside of isolate by the taskgrader. It will allow the script to run Xvfb and <code>turtleToPng.py</code> outside of isolate, as X displays cannot run inside isolate.</p>
+<p>It will then use the taskgrader tool <code>tools/isolate-run.py</code> to run the actual checker <code>checker.py</code> inside isolate.</p>
+<h3 id="usage">Usage</h3>
+<p>As usual, you can test the task by running, from the task folder:</p>
+<ul>
+<li><code>taskstarter.py test</code> for the normal test, which will check each solution has the expected grade</li>
+<li><code>taskstarter.py testsol tests/gen/sol-ok-py.py</code> for a good solution</li>
+<li><code>taskstarter.py testsol tests/gen/sol-bad-py.py</code> for a bad solution</li>
+</ul>
+<p>If you grade a solution against the task, the output JSON will contain a file <code>turtle_png.b64</code>, which is the base64-encoded PNG image resulting from each execution of the solution against a test case. It is in the <code>files</code> key of each <code>checker</code> report (in <code>/executions[idx]/testReports[idx]</code>). The file <code>view.html</code> in the task folder contains an example JavaScript to display it in a browser.</p>
+<p><em>This example can be found in the <code>examples/taskTurtle</code> folder.</em></p></div>
             
         </div>
 
