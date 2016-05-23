@@ -53,7 +53,6 @@ def genStdTaskJson(taskPath, execPath, execParams, lang=None):
         'solutionFilename': os.path.basename(execPath),
         'solutionPath': os.path.join('$TASK_PATH', os.path.relpath(execPath, taskPath)),
         'solutionDependencies': dep,
-        'defaultSolutionExecParams': execParams
         }
 
     # Final evaluation JSON to be given to the taskgrader

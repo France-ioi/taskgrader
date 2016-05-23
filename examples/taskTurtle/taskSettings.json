@@ -32,7 +32,7 @@
             }]},
     "compilationExecution": "@defaultToolCompParams",
     "runExecution": {
-        "memoryLimitKb": 131072,
+        "memoryLimitKb": 256000,
         "timeLimitMs": 60000,
         "stderrTruncateKb": -1,
         "stdoutTruncateKb": -1,
@@ -50,5 +50,13 @@
                           "path": "@solutionPath",
                           "content": "@solutionContent"}]
         },
-    "compilationExecution": "@defaultSolutionCompParams"}]
+    "compilationExecution": "@defaultSolutionCompParams"}],
+"defaultSolutionExecParams": {
+    "memoryLimitKb": 256000,
+    "timeLimitMs": 10000,
+    "getFiles": [],
+    "useCache": true,
+    "stdoutTruncateKb": -1,
+    "stderrTruncateKb": -1
+    }
 }

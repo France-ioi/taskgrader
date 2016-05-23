@@ -1,0 +1,27 @@
+{
+"checker": "tests/gen/checker.py",
+"correctSolutions": [
+    {"path": "$TASK_PATH/tests/gen/sol-ok-py.py",
+    "language": "python2",
+    "grade": 100
+    }],
+"defaultEvaluationSolutions": [{
+    "id": "@solutionId",
+    "compilationDescr": {
+        "language": "python2",
+        "files": [{"name": "runner.py",
+                   "path": "$TASK_PATH/tests/gen/runner.py"}],
+        "dependencies": [{"name": "solution.py",
+                          "path": "@solutionPath",
+                          "content": "@solutionContent"}]
+        },
+    "compilationExecution": "@defaultSolutionCompParams"}],
+"defaultSolutionExecParams": {
+    "memoryLimitKb": 256000,
+    "timeLimitMs": 10000,
+    "getFiles": [],
+    "useCache": true,
+    "stdoutTruncateKb": -1,
+    "stderrTruncateKb": -1
+    }
+}
