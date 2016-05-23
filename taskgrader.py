@@ -503,6 +503,9 @@ class IsolatedExecution(Execution):
         isolatedCmdLine += ' --processes'
         isolatedCmdLine += ' --env=HOME --env=PATH'
         isolatedCmdLine += ' --meta=%s' % os.path.join(workingDir, 'isolate.meta')
+        # Add access to some folders
+        for folder in CFG_ISOLATE_AVAILABLE:
+            isolatedCmdLine += ' --dir="%s":maybe' % folder
         # Use an unique box ID
         isolatedCmdLine += ' --box-id=%d' % boxId
         if self.executionParams['timeLimitMs'] > 0:

@@ -71,6 +71,10 @@ CFG_MULTICHECK = True
 # 'auto' will be True on Mac OS X, False on other systems
 CFG_MULTICHECK_LIGHT = 'auto'
 
+# Folders available inside of the isolate box
+# Isolated executions will have access to these folders, use with care.
+CFG_ISOLATE_AVAILABLE = ['/etc/alternatives']
+
 # Do not use isolate on these scripts
 # This variable is a list of full paths to the source files of the scripts
 # which should be executed without isolate
