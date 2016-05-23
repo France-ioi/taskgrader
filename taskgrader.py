@@ -1361,8 +1361,8 @@ def evaluation(evaluationParams):
                'TASK_PATH': evaluationParams['taskPath']}
 
     # Load path restriction if present
-    if evaluationParams.has_key('RESTRICT_PATHS'):
-        RESTRICT_PATHS = evaluationParams['RESTRICT_PATHS']
+    if evaluationParams.has_key('restrictToPaths'):
+        RESTRICT_PATHS = evaluationParams['restrictToPaths']
     else:
         RESTRICT_PATHS = []
 
