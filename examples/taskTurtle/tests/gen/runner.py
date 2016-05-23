@@ -74,7 +74,8 @@ def changeTurtle(scriptPath):
             imported = map(lambda x: x.strip(), l[7:].strip().split(','))
             if 'turtle' in imported:
                 imported.remove('turtle')
-            newScriptLines.append(', '.join(imported) + "\n")
+            if len(imported) > 0:
+                newScriptLines.append("import %s\n" % ', '.join(imported))
 
         # Modify Turtle instances to LoggedTurtle instances
         if 'Turtle' in l:
