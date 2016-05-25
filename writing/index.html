@@ -378,9 +378,10 @@
 <ul>
 <li>Xvfb, "X virtual framebuffer", a X server without display (to make turtle show graphics and then save them)</li>
 <li>PIL, "Python Imaging Library", a library to handle images</li>
+<li>Tkinter, used by the turtle for its graphics</li>
 </ul>
 <p>On Debian, they can be installed with the following command:</p>
-<pre><code>apt-get install xvfb python-pil
+<pre><code>apt-get install xvfb python-pil python-tk
 </code></pre>
 <p>The task also needs the <code>checker.sh</code> to be whitelisted for use outside of isolate; this is done by adding its path in <code>CFG_NOISOLATE</code> in taskgrader's <code>config.py</code> file, for instance:</p>
 <pre><code>CFG_NOISOLATE = ["/path/to/taskgrader/examples/taskTurtle/tests/gen/checker.sh"]
