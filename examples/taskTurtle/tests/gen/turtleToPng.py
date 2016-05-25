@@ -33,6 +33,10 @@ def replayTurtleLog(log, speed=6):
 def getTurtlePng(log):
     """Get the base64-encoded data of the resulting image of turtle
     movements."""
+    # Put the window size to 600x450 (for some reason turtle reduces the
+    # numbers by 25%)
+    turtle.setup(width=800, height=600)
+
     # Start turtle replay
     replayTurtleLog(log, speed=0)
 
