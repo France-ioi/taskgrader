@@ -14,7 +14,7 @@
     },
     {"path": "$TASK_PATH/tests/gen/sol-bad-py.py",
     "language": "python2",
-    "grade": 50
+    "grade": 25
     }],
 "defaultChecker": {
     "compilationDescr": {

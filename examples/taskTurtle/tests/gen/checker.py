@@ -4,6 +4,8 @@
 # Checking program: checks the output of the solution is the expected output
 
 import json, sys, turtle
+from PIL import Image
+from StringIO import StringIO
 
 def checkTurtleLog(log, target):
     """Check the turtle log is what we expected."""
@@ -56,6 +58,28 @@ def checkTurtleLog(log, target):
     return False
 
 
+def ratioImage():
+    """Compute the ratio of black pixels in the output image."""
+    # Open image
+    # The image is stored by the runner in 'turtle_png.b64', and is
+    # base64-encoded. We need to first decode it before loading in PIL.
+    imgData = open('turtle_png.b64', 'r').read().decode('base64')
+    imgData = StringIO(imgData)
+    img = Image.open(imgData)
+
+    # Read pixel data
+    pixels = img.getdata()
+    nbBlack = 0
+    nbTotal = 0
+    for r, g, b in pixels:
+        nbTotal += 1
+        # Test if black
+        if r < 5 and g < 5 and b < 5:
+            nbBlack += 1
+
+    return int(nbBlack*100/nbTotal)
+
+
 if __name__ == '__main__':
     if len(sys.argv) != 4:
         print "Error: invalid number of arguments."
@@ -72,9 +96,23 @@ if __name__ == '__main__':
     target = tuple(map(int, open(sys.argv[2], 'r').read().split()))
 
     # Check the log
-    if checkTurtleLog(solLog, target):
-        # Criteria was satisfied
+    logOk = checkTurtleLog(solLog, target)
+
+    # Check the image
+    imgRatio = ratioImage()
+    imgOk = (imgRatio >= 45 and imgRatio <= 55)
+    if logOk and imgOk:
+        # Criterias were satisfied
         print "100"
+    elif logOk or imgOk:
+        # Only one criteria was satisfied
+        print "50"
+        if logOk:
+            # Target position criteria was satisfied, not image
+            print "Target position was reached, but image was only %d%% black." % imgRatio
+        else:
+            # Target image black ratio was satisfied, not log
+            print "Target image black ratio was reached, but target position was not."
     else:
         # Criteria was never satisfied
         print "0"
