@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Task gomoku testing</title>
+    <link class="task" type="text/css" rel="stylesheet" href="../../_common/modules/pemFioi/progTask.css">
+    <link class="task" type="text/css" rel="stylesheet" href="../../_common/modules/ext/bootstrap/css/bootstrap.min.css">
+    <script class="remove" src="../../_common/modules/ext/requirejs/require.js"></script>
+    <script type="text/javascript">
+      var modulesPath ='../../_common/modules';
+      var taskPlatformPath ='../../_common/task-platform';
+    </script>
+    <script type="text/javascript" src="../../_common/modules/pemFioi/progTaskConfig-1.0.js"></script>
+    <script type="text/javascript" class="remove">
+      // general metadata conforming the PEM API Documentation for getMetaData
+      var PEMTaskMetaData = {
+        // title is automatically fetched from the <title> markup
+        id : 'Examples/taskgraderTurtle',
+        license : 'MIT',
+        authors : ["France IOI"],
+        language : "en",
+        version: "0.1",
+        baseUrl : "https://github.com/France-ioi/fioi-tasks-template",
+        limits : {
+          "*": {time: 1000, memory: 64000},
+        }
+      }
+
+      // Metadata specific to the FranceIOI tasks
+      var FIOITaskMetaData = {
+        // This lists all possible languages
+        supportedLanguages: ['python'],
+        // file extensions must follow the following conventions so that language is recognized automatically.
+        // Additionally, a .txt file is recognized as 'pseudo' language
+        solutionSources : {
+          "firstSource" : []
+        },
+        // can user build tests?
+        hasUserTests: false,
+        /* 
+           source for hint 1 would be
+           hintsSources: {
+              1: {
+                 "firstHintSource" : [ "hint.cpp", "hint.py", etc. ]
+              }
+           }
+        */
+        taskSamples : [],
+        graderSamples: []
+      }
+    </script>
+  </head>
+  <body ng-controller="taskController">
+
+    <h1>Gomoku testing</h1>
+
+    <div id="task">
+
+      <h3 id="statement">Statement</h3>
+      <p>For this task, a few "solution" programs are given to find the winning player in a game of Gomoku. However, these "solutions" all have mistakes in them. Your task is to write <b>valid</b> test cases, on which these bad "solution programs" output the wrong result.</p>
+      <p>There are 4 wrong solutions, your submission must be a set of tests where for each wrong solution, at least one test case highlight their mistake (by making them output a wrong result). All test cases written will be submitted for evaluation at the same time.</p>
+
+      <h3>Gomoku</h3>
+      <p>Gomoku is a board game with two players, where in order to win, a player must manage to align 5 pawns on consecutive spots of the board, either horizontally, vertically, or diagonally. The board is a square of any dimension.</p>
+      <p>Solutions are given on input: <i>N</i> the size of the square, and then the contents of the board as <i>N x N</i> integers representing either a pawn from player 1 or 2 (values 1 or 2), either an empty spot (value 0).</p>
+
+      <h3>Example test case</h3>
+      <p>Here is an example test case; you must submit test cases in the same format.</p>
+      <pre>6
+0 0 2 0 1 0
+0 1 2 2 2 1
+0 0 2 0 1 0
+0 0 2 1 0 0
+0 0 1 0 0 0
+0 1 0 0 0 0</pre>
+      <p>In this example test case, the grid is of size 6 (first line), and we then have the grid (row 1 has two empty spots, then a player 2 pawn, then an empty spot, then a player 1 pawn, then a last empty spot). Here, player 1 wins; a correct solution will simply output "1".</p>
+    </div>
+
+   <div class="hint">
+     Try various sizes of grids, various winning players and various alignment directions.
+   </div>
+
+    <div id="solution">
+    </div>
+  </body>
+</html>  
