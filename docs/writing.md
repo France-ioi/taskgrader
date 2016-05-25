@@ -238,10 +238,11 @@ To work, this task needs:
 * Xvfb, "X virtual framebuffer", a X server without display (to make turtle show graphics and then save them)
 * PIL, "Python Imaging Library", a library to handle images
 * Tkinter, used by the turtle for its graphics
+* Ghostscript, for PIL to read the saved output from Tk
 
 On Debian, they can be installed with the following command:
 
-    apt-get install xvfb python-pil python-tk
+    apt-get install xvfb python-pil python-tk ghostscript
 
 The task also needs the `checker.sh` to be whitelisted for use outside of isolate; this is done by adding its path in `CFG_NOISOLATE` in taskgrader's `config.py` file, for instance:
 
