@@ -592,6 +592,8 @@ if __name__ == '__main__':
             helpParser.error("Action '%s' does not exist." % args.helpaction)
         else:
             argParser.print_help()
-    else:
+    elif args.action:
         # Execute the action; each action function returns an exitcode
         sys.exit(ACTIONS[args.action]['f'](args))
+    else:
+        argParser.print_help()
