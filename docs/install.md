@@ -36,6 +36,15 @@ and then executing `update-grub` as root. Once enabled, set `CFG_CONTROLGROUPS` 
 
 Some more information can be found in the [isolate man page](http://www.ucw.cz/moe/isolate.1.html).
 
+### On Windows
+
+You can use the taskgrader in a Windows environment thanks to [Cygwin](https://cygwin.com). Most features will work, except isolate, and some languages which are not supported under Cygwin.
+
+Download and install Cygwin from [its website](https://cygwin.com/install.html). Install the following dependencies (you can reexecute Cygwin's setup.exe anytime to install more dependencies):
+`git python python3 gcc gcc-g++`.
+
+You can then follow the next steps normally.
+
 ## Installation
 
 Execute `install.sh` in the taskgrader directory to install, as the user who will be running the taskgrader. It will help you install everything.
