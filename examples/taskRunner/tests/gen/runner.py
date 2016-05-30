@@ -4,10 +4,16 @@
 # This is the runner of this task: it reads the input, and then executes the
 # function 'min3nombres' of the solution
 
-import sys
+import sys, traceback
 
 # Import the function min3nombres from the solution
-from solution import min3nombres
+try:
+    from solution import min3nombres
+except:
+    # Remove the runner from the traceback
+    excInfo = sys.exc_info()
+    traceback.print_exception(excInfo[0], excInfo[1], excInfo[2].tb_next)
+    sys.exit(1)
 
 if __name__ == '__main__':
     # Read the input

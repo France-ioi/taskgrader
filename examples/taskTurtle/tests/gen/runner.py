@@ -1,7 +1,8 @@
 #!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 
-import json, turtle
+import json, sys, traceback
+import turtle
 from functools import partial
 
 
@@ -93,7 +94,13 @@ def changeTurtle(scriptPath):
 changeTurtle("solution.py")
 
 # Execute the solution
-execfile("solution.py")
+try:
+    execfile("solution.py")
+except:
+    # Remove the runner from the traceback
+    excInfo = sys.exc_info()
+    traceback.print_exception(excInfo[0], excInfo[1], excInfo[2].tb_next)
+    sys.exit(1)
 
 # Output as JSON
 print(json.dumps(LoggedTurtle.log))
