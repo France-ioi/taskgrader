@@ -205,6 +205,11 @@
 </code></pre>
 <p>and then executing <code>update-grub</code> as root. Once enabled, set <code>CFG_CONTROLGROUPS</code> to <code>True</code> in <code>config.py</code> (after installation) to enable their usage within the taskgrader.</p>
 <p>Some more information can be found in the <a href="http://www.ucw.cz/moe/isolate.1.html">isolate man page</a>.</p>
+<h3 id="on-windows">On Windows</h3>
+<p>You can use the taskgrader in a Windows environment thanks to <a href="https://cygwin.com">Cygwin</a>. Most features will work, except isolate, and some languages which are not supported under Cygwin.</p>
+<p>Download and install Cygwin from <a href="https://cygwin.com/install.html">its website</a>. Install the following dependencies (you can reexecute Cygwin's setup.exe anytime to install more dependencies):
+<code>git python python3 gcc gcc-g++</code>.</p>
+<p>You can then follow the next steps normally.</p>
 <h2 id="installation">Installation</h2>
 <p>Execute <code>install.sh</code> in the taskgrader directory to install, as the user who will be running the taskgrader. It will help you install everything.</p>
 <p>The installation of 'isolate' needs root access, and ability to have files owned by root with setuid on the current directory (doesn't work with remote folders such as NFS). If you cannot, you won't be able to use 'isolate', but the taskgrader will still work.</p>
