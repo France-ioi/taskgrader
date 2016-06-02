@@ -11,6 +11,7 @@
 import os, shutil, sqlite3, time
 
 # Local imports
+from config_default import *
 from config import *
 
 def getFolderSize(path):

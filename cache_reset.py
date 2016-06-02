@@ -11,6 +11,7 @@ import os, shutil
 
 # Local imports
 import schema_db
+from config_default import CFG_BUILDSDIR, CFG_CACHEDIR
 from config import CFG_BUILDSDIR, CFG_CACHEDIR
 
 if __name__ == '__main__':
