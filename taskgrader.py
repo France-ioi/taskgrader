@@ -238,6 +238,7 @@ class CacheHandle():
         must be the same string among all executions of the program."""
 
         # We add an identifier for execution limits
+        # TODO :: add identifiers for all executionParams?
         params = ''
         if execParams:
             params = 'timelimit:%s;memlimit:%s' % (execParams['timeLimitMs'], execParams['memoryLimitKb'])
@@ -307,7 +308,7 @@ class CacheDatabase():
         return CacheHandle(self.database, files)
 
 
-def getFile(fileDescr, destDir, existsFatal=True, language=None, baseDir=None):
+def getFile(fileDescr, destDir, errorFatal=True, language=None, baseDir=None):
     """Fetch a file into folder destDir. If no path nor content is given,
     search for it as a dependency for the language in baseDir."""
     # The filename is safe as checked by the JSON schema
@@ -316,7 +317,7 @@ def getFile(fileDescr, destDir, existsFatal=True, language=None, baseDir=None):
 
     if os.path.isfile(filepath):
         # File already exists
-        if existsFatal:
+        if errorFatal:
             raise Exception("File %s already exists in %s" % (filename, destDir))
         else:
             return filename
@@ -331,13 +332,14 @@ def getFile(fileDescr, destDir, existsFatal=True, language=None, baseDir=None):
     if fileDescr.has_key('path') and fileDescr['path'] != '': # Get file by path
         if os.path.isfile(fileDescr['path']):
             symlink(fileDescr['path'], filepath, fromlocal=True)
-        else:
+        elif errorFatal:
             raise Exception("File not found: `%s`" % fileDescr['path'])
     elif fileDescr.has_key('content'): # Content given in descr
         open(filepath, 'w').write(fileDescr['content'].encode('utf-8'))
     elif language and baseDir: # File is a built dependency
-        sourcePath = language.getSource(baseDir, filename)
-        symlink(sourcePath, filepath)
+        sourcePath = language.getSource(baseDir, filename, errorFatal=errorFatal)
+        if sourcePath:
+            symlink(sourcePath, filepath)
 
     return filename
 
@@ -367,12 +369,14 @@ class Execution():
         (timeTransform, self.timeUntransform) = CFG_TRANSFORM_TIME.get(language, CFG_TRANSFORM_TIME_DEFAULT)
         self.realTimeLimit = timeTransform(executionParams['timeLimitMs'])
 
-        # Report values from arguments
+        # Copy values from arguments
         self.baseReport = {'timeLimitMs': self.executionParams['timeLimitMs'],
             'memoryLimitKb': self.executionParams['memoryLimitKb'],
             'wasCached': False,
             'realMemoryLimitKb': self.realMemoryLimitKb,
             'realTimeLimitMs': self.realTimeLimit}
+        if 'continueOnError' in self.executionParams:
+            self.baseReport['continueOnError'] = self.executionParams['continueOnError']
 
         logging.debug("New Execution initialized for executable `%s`, cmd `%s`" % (executablePath, cmd))
 
@@ -414,7 +418,7 @@ class Execution():
 
         # Add files from executionParams/addFiles
         for fileDescr in self.executionParams.get('addFiles', []):
-            getFile(fileDescr, workingDir, existsFatal=False)
+            getFile(fileDescr, workingDir, errorFatal=False)
 
 
     def _doExecute(self, workingDir, args=None):
@@ -425,8 +429,10 @@ class Execution():
         # Open stdin file
         stdinHandle = (open(self.stdinFile, 'rb') if self.stdinFile else None)
 
+        stderrFile = os.path.join(workingDir, 'stderr')
+
         proc = subprocess.Popen(shlex.split(cmdLine), stdin=stdinHandle, stdout=open(self.stdoutFile, 'w'),
-                stderr=open(workingDir + 'stderr', 'w'), cwd=workingDir)
+                stderr=open(stderrFile, 'w'), cwd=workingDir)
         # We allow a wall time of 3 times the timeLimit
         waitWithTimeout(proc, (1+int(self.executionParams['timeLimitMs']/1000))*3)
 
@@ -444,7 +450,7 @@ class Execution():
 
         report['stdout'] = capture(self.stdoutFile, name='stdout',
                 truncateSize=self.executionParams['stdoutTruncateKb'] * 1024)
-        report['stderr'] = capture(workingDir + 'stderr', name='stderr',
+        report['stderr'] = capture(stderrFile, name='stderr',
                 truncateSize=self.executionParams['stderrTruncateKb'] * 1024)
 
         filesReports = []
@@ -662,14 +668,17 @@ class Language():
             # We search for [name] in the libs directory
             os.path.join(baseDir, 'libs', filename)]
 
-    def getSource(self, baseDir, filename):
+    def getSource(self, baseDir, filename, errorFatal=True):
         """Returns the path for a dependency filename, for a build based in
         baseDir."""
         for path in self._getPossiblePaths(baseDir, filename):
             if os.path.isfile(path):
                 return path
         else:
-            raise Exception("Dependency not found: `%s` (language: %s)." % (filename, self.lang))
+            if errorFatal:
+                raise Exception("Dependency not found: `%s` (language: %s)." % (filename, self.lang))
+            else:
+                return None
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
         """Compile an executable in ownDir, from source files sourceFiles,
@@ -957,7 +966,7 @@ class Program():
         """Fetch a file contents from a fileDescr object into the Program
         folder. If only the file name is given, getFile will search for a file
         with that name in buildDir, with the language-specific function."""
-        return getFile(fileDescr, self.ownDir, existsFatal=True, language=self.language, baseDir=self.baseDir)
+        return getFile(fileDescr, self.ownDir, errorFatal=True, language=self.language, baseDir=self.baseDir)
 
     def _compile(self):
         """Effectively compile a program, not using cache (probably because
@@ -976,7 +985,15 @@ class Program():
         depFiles = map(self._getFile, compilationDescr['dependencies'])
 
         # We call the language-specific compilation process
-        return self.language.compile(self.compilationParams, self.ownDir, sourceFiles, depFiles, self.name)
+        report = self.language.compile(self.compilationParams, self.ownDir, sourceFiles, depFiles, self.name)
+
+        if isExecError(report, checkContinue=False) and self.compilationParams.get('continueOnError', False):
+            # Compilation didn't succeed but the continueOnError flag is set
+            # We write a dummy executable which just exits with code 1
+            open(self.executablePath, 'w').write("#!/bin/sh\nexit 1\n")
+            os.chmod(self.executablePath, 493)
+
+        return report
 
 
     def compile(self):
@@ -995,9 +1012,9 @@ class Program():
             else:
                 logging.debug("No cached version")
                 report = self._compile()
-                # Make the executable u=rwx,g=rx,a=rx
                 cachef.addReport(report)
                 if not isExecError(report):
+                    # Make the executable u=rwx,g=rx,a=rx
                     os.chmod(self.executablePath, 493)
                     cachef.addFile(self.executablePath, isExecutable=True)
                 cachef.save()
@@ -1007,6 +1024,22 @@ class Program():
             report = self._compile()
             if not isExecError(report):
                 os.chmod(self.executablePath, 493)
+
+        # Save (again?) stdout and stderr reports
+        if 'stdout' in report:
+            stdoutData = report['stdout']['data']
+            if type(stdoutData) is unicode:
+                stdoutData = stdoutData.encode("utf-8")
+        else:
+            stdoutData = ''
+        open(os.path.join(self.ownDir, 'stdout'), 'wb').write(stdoutData)
+        if 'stderr' in report:
+            stderrData = report['stderr']['data']
+            if type(stderrData) is unicode:
+                stderrData = stderrData.encode("utf-8")
+        else:
+            stderrData = ''
+        open(os.path.join(self.ownDir, 'stderr'), 'wb').write(stderrData)
 
         self.compiled = not isExecError(report)
         self.triedCompile = True
@@ -1312,9 +1345,12 @@ def filecopy(filefrom, fileto, fromlocal=False, tolocal=False):
     shutil.copy2(filefrom, fileto)
 
 
-def isExecError(executionReport):
-    """Returns whether an execution returned an error according to its exit code."""
-    return (executionReport['exitCode'] != 0)
+def isExecError(executionReport, checkContinue=True):
+    """Returns whether an execution returned an error according to its exit
+    code. checkContinue means that we also return False if the continueOnError
+    flag is True."""
+    return (executionReport['exitCode'] != 0 and
+            not (checkContinue and executionReport.get('continueOnError', False)))
 
 
 def capture(path, name='', truncateSize=-1):
@@ -1393,12 +1429,6 @@ def evaluation(evaluationParams):
             else:
                 raise Exception("Input JSON doesn't have key '%s', and no default for this key was defined by the task." % elem)
 
-    evaluationParams = preprocessJson(evaluationParams, varData)
-
-
-    cache = CacheDatabase()
-
-
     # Path where the evaluation will take place
     if evaluationParams.has_key('outputPath'):
         if '../' in evaluationParams['outputPath']:
@@ -1419,6 +1449,10 @@ def evaluation(evaluationParams):
     report['buildPath'] = baseWorkingDir
     if len(RESTRICT_PATHS) > 0:
         RESTRICT_PATHS.append(baseWorkingDir)
+
+    evaluationParams = preprocessJson(evaluationParams, varData)
+
+    cache = CacheDatabase()
 
     # We validate the input JSON format
     if validate is not None:

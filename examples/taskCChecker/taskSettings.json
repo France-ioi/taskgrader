@@ -1,0 +1,70 @@
+{
+"checker": "tests/gen/checker.py",
+"correctSolutions": [
+    {
+    "path": "$TASK_PATH/tests/gen/sol-ok-c.c",
+    "language": "c",
+    "grade": 100
+    },
+    {
+    "path": "$TASK_PATH/tests/gen/sol-error-c.c",
+    "language": "c",
+    "grade": 0
+    }],
+"defaultChecker": {
+    "compilationDescr": {
+        "language": "python2",
+        "files": [{
+            "name": "checker.py",
+            "path": "$TASK_PATH/tests/gen/checker.py"
+            }],
+        "dependencies": []},
+    "compilationExecution": "@defaultToolCompParams",
+    "runExecution": {
+        "memoryLimitKb": 131072,
+        "timeLimitMs": 60000,
+        "useCache": true,
+        "stdoutTruncateKb": -1,
+        "stderrTruncateKb": -1,
+        "addFiles": [
+            {"name": "solution",
+            "path": "@solutionPath",
+            "content": "@solutionContent"
+            },
+            {"name": "compilationStdout",
+            "path": "$BUILD_PATH/solutions/solution/stdout"
+            },
+            {"name": "compilationStderr",
+            "path": "$BUILD_PATH/solutions/solution/stderr"
+            }],
+        "getFiles": []}},
+"defaultEvaluationSolutions": [{
+    "id": "solution",
+    "compilationDescr": {
+        "language": "@solutionLanguage",
+        "files": [{"name": "@solutionFilename",
+                   "path": "@solutionPath",
+                   "content": "@solutionContent"}],
+        "dependencies": "@solutionDependencies"
+        },
+    "compilationExecution": "@defaultSolutionCompParams"
+    }],
+"defaultSolutionCompParams": {
+    "memoryLimitKb": 16000,
+    "timeLimitMs": 1000,
+    "continueOnError": true,
+    "getFiles": [],
+    "useCache": true,
+    "stdoutTruncateKb": -1,
+    "stderrTruncateKb": -1
+    },
+"defaultSolutionExecParams": {
+    "memoryLimitKb": 16000,
+    "timeLimitMs": 1000,
+    "continueOnError": true,
+    "getFiles": [],
+    "useCache": true,
+    "stdoutTruncateKb": -1,
+    "stderrTruncateKb": -1
+    }
+}

@@ -512,12 +512,12 @@ def processPath(path, args):
             # Totals
             nbTests += len(execution['testsReports'])
             for report in execution['testsReports']:
-                if report['sanitizer']['exitCode'] == 0:
+                if 'sanitizer' in report and report['sanitizer']['exitCode'] == 0:
                     nbSan += 1
-                    if report['execution']['exitCode'] == 0:
-                        nbSol += 1
-                        if report['checker']['exitCode'] == 0:
-                            nbCheck += 1
+                if 'execution' in report and report['execution']['exitCode'] == 0:
+                    nbSol += 1
+                if 'checker' in report and report['checker']['exitCode'] == 0:
+                    nbCheck += 1
 
             nbOk = 0
             nbTotal = len(execution['testsReports'])
@@ -621,19 +621,19 @@ def processPath(path, args):
         nbTests = len(execution['testsReports'])
         nbSan, nbSol, nbCheck = 0, 0, 0
         for report in execution['testsReports']:
-            if report['sanitizer']['exitCode'] == 0:
+            if 'sanitizer' in report and report['sanitizer']['exitCode'] == 0:
                 nbSan += 1
-                if report['execution']['exitCode'] == 0:
-                    nbSol += 1
-                    if report['checker']['exitCode'] == 0:
-                        nbCheck += 1
+            if 'execution' in report and report['execution']['exitCode'] == 0:
+                nbSol += 1
+            if 'checker' in report and report['checker']['exitCode'] == 0:
+                nbCheck += 1
         print "Test with a dummy solution: %d test cases," % nbTests
         print "%d cases validated by sanitizer, %d successful dummy solution executions," % (nbSan, nbSol)
         print "%d successful checker executions." % nbCheck
         if nbSan < nbTests:
             print '%d test cases not validated by sanitizer' % (nbTests - nbSan)
         if nbCheck < nbSol:
-            print 'Checker failed on %d tests' % (nbSan - nbCheck)
+            print 'Checker failed on %d tests' % (nbSol - nbCheck)
 
 
 if __name__ == '__main__':
