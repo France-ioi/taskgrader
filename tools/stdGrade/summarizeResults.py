@@ -22,16 +22,18 @@ if __name__ == '__main__':
             print(inputData)
         sys.exit(1)
 
-    lenex = len(resultJson['executions'])
-    lensol = len(resultJson['solutions'])
-    if lenex < lensol:
-        print(" * %d / %d solutions didn't compile properly:" % (lensol-lenex, lensol))
+    # Check how many solutions didn't compile
+    lensolnok = len(list(filter(lambda x: x['compilationExecution']['exitCode'] != 0, resultJson['solutions'])))
+    if lensolnok > 0:
+        lensol = len(resultJson['solutions'])
+        print(" * %d / %d solutions didn't compile properly:" % (lensolnok, lensol))
         for execution in resultJson['solutions']:
             if execution['compilationExecution']['exitCode'] != 0:
                 print("-> Solution `%s` failed compilation, output:" % execution['id'])
-                print("stdout: %s" % execution['compilationExecution']['stdout'])
-                print("stderr: %s" % execution['compilationExecution']['stderr'])
+                print("stdout: %s" % execution['compilationExecution']['stdout']['data'])
+                print("stderr: %s" % execution['compilationExecution']['stderr']['data'])
 
+    # Show executions information
     for execution in resultJson['executions']:
         print(' * Execution %s:' % execution['name'])
         for report in execution['testsReports']:
