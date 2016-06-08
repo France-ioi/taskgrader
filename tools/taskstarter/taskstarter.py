@@ -111,6 +111,44 @@ def checkEditMe(path):
                 pass
     return foundMarker
 
+def checkSvn(path):
+    """Check, if the folder is versioned with SVN, that all files have been
+    committed."""
+    proc = subprocess.Popen(['/usr/bin/svn', 'status'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    procOut, procErr = proc.communicate()
+
+    warningDisplayed = False
+
+    for line in procOut.splitlines():
+        linePath = line[8:]
+        if not linePath:
+            # Not a status line, we're done with the main status elements
+            return 0
+        lineStatus = line[0]
+        lineFile = os.path.basename(linePath)
+
+        # Excluded filenames
+        if lineFile in ['defaultParams.json', 'testSelect.json']:
+            continue
+
+        # Excluded statuses
+        if lineStatus in [' ', 'I']:
+            continue
+
+        if not warningDisplayed:
+            print("\n/!\ Warning: some modifications have not yet been committed to the SVN:")
+            warningDisplayed = True
+
+        if lineStatus in ['A', '?', 'R']:
+            print("not added: %s" % linePath)
+        elif lineStatus in ['D', '!']:
+            print("not removed: %s" % linePath)
+        else:
+            print("modified (%s): %s" % (lineStatus, linePath))
+
+    return 0
+
+
 ### Action-handling functions
 def init(args):
     """Start a task in destination folder. taskstarter will ask various
@@ -390,6 +428,7 @@ tested. We will only test whether the task compiles.\n""")
         print("genJson exited with return code %d, read output to check for errors." % proc.returncode)
     else:
         print("genJson completed successfully, task seems correct.")
+        checkSvn(args.taskpath)
 
     # Exit with the same returncode as genJson
     return proc.returncode
