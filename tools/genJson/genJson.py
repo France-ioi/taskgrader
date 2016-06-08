@@ -500,51 +500,49 @@ def processPath(path, args):
                 cError = True
                 continue
 
-            try:
-                execution = outJson['executions'][0]
-            except:
+            if len(outJson['executions']) == 0:
                 print "/!\ Compilation failed for correctSolution `%s`." % csPath
                 cError = True
                 continue
 
             nbCsOk += 1
+            for execution in outJson['executions']:
+                # Totals
+                nbTests += len(execution['testsReports'])
+                for report in execution['testsReports']:
+                    if 'sanitizer' in report and report['sanitizer']['exitCode'] == 0:
+                        nbSan += 1
+                    if 'execution' in report and report['execution']['exitCode'] == 0:
+                        nbSol += 1
+                    if 'checker' in report and report['checker']['exitCode'] == 0:
+                        nbCheck += 1
 
-            # Totals
-            nbTests += len(execution['testsReports'])
-            for report in execution['testsReports']:
-                if 'sanitizer' in report and report['sanitizer']['exitCode'] == 0:
-                    nbSan += 1
-                if 'execution' in report and report['execution']['exitCode'] == 0:
-                    nbSol += 1
-                if 'checker' in report and report['checker']['exitCode'] == 0:
-                    nbCheck += 1
+                nbOk = 0
+                nbTotal = len(execution['testsReports'])
+                maxNbTotal = max(maxNbTotal, nbTotal)
+                grades = []
 
-            nbOk = 0
-            nbTotal = len(execution['testsReports'])
-            maxNbTotal = max(maxNbTotal, nbTotal)
-            grades = []
-
-            # Check grade for each test
-            for test in execution['testsReports']:
-                testGrade = None
-                try:
-                    testGrade = int(test['checker']['stdout']['data'].split()[0])
-                except:
-                    # Find why we don't have a grade for this test
-                    if test.has_key('execution'):
-                        if test['execution']['exitCode'] == 0:
-                            print "Checker error, output:\n%s%s" % (test['checker']['stdout']['data'], test['checker']['stderr']['data'])
+                # Check grade for each test
+                for test in execution['testsReports']:
+                    testGrade = None
+                    try:
+                        testGrade = int(test['checker']['stdout']['data'].split()[0])
+                    except:
+                        # Find why we don't have a grade for this test
+                        if test.has_key('execution'):
+                            if test['execution']['exitCode'] == 0:
+                                print "Checker error, output:\n%s%s" % (test['checker']['stdout']['data'], test['checker']['stderr']['data'])
+                            else:
+                                print "Solution exited with non-zero exit code:\n%s%s" % (test['execution']['stdout']['data'], test['execution']['stderr']['data'])
+                        elif test['sanitizer']['exitCode'] > 0:
+                            print "Sanitizer didn't validate test case:\n%s%s" % (test['sanitizer']['stdout']['data'], test['sanitizer']['stderr']['data'])
                         else:
-                            print "Solution exited with non-zero exit code:\n%s%s" % (test['execution']['stdout']['data'], test['execution']['stderr']['data'])
-                    elif test['sanitizer']['exitCode'] > 0:
-                        print "Sanitizer didn't validate test case:\n%s%s" % (test['sanitizer']['stdout']['data'], test['sanitizer']['stderr']['data'])
-                    else:
-                        print "Error reading test data."
-                    curError = True
+                            print "Error reading test data."
+                        curError = True
 
-                # Add grade to the list of grades
-                if testGrade is not None:
-                    grades.append(testGrade)
+                    # Add grade to the list of grades
+                    if testGrade is not None:
+                        grades.append(testGrade)
             if 'grade' in cs and grades:
                 avgGrade = sum(grades)/len(grades)
                 if avgGrade != cs['grade']:

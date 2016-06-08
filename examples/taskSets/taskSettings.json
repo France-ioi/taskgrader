@@ -1,0 +1,27 @@
+{
+"correctSolutions": [
+    {"path": "$TASK_PATH/tests/gen/sol-ok-c.c",
+    "language": "c",
+    "grade": 100
+    },
+    {"path": "$TASK_PATH/tests/gen/sol-bad-c.c",
+    "language": "c",
+    "grade": 0
+    }],
+"defaultEvaluationExecutions": [
+    {"id": "test-positive",
+    "idSolution": "@solutionId",
+    "filterTests": ["testpos1.in", "testpos2.in", "testpos3.in"],
+    "runExecution": "@defaultSolutionExecParams"
+    },
+    {"id": "test-negative",
+    "idSolution": "@solutionId",
+    "filterTests": ["testneg1.in", "testneg2.in"],
+    "runExecution": "@defaultSolutionExecParams"
+    },
+    {"id": "test-all",
+    "idSolution": "@solutionId",
+    "filterTests": ["test*.in"],
+    "runExecution": "@defaultSolutionExecParams"
+    }]
+}
