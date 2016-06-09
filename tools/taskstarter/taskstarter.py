@@ -114,7 +114,7 @@ def checkEditMe(path):
 def checkSvn(path):
     """Check, if the folder is versioned with SVN, that all files have been
     committed."""
-    proc = subprocess.Popen(['/usr/bin/svn', 'status'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    proc = subprocess.Popen(['/usr/bin/svn', 'status', path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     procOut, procErr = proc.communicate()
 
     warningDisplayed = False
