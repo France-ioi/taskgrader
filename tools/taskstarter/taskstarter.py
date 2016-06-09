@@ -16,11 +16,12 @@ SELFDIR = os.path.normpath(os.path.dirname(os.path.abspath(__file__)))
 
 CFG_GENJSON = os.path.normpath(os.path.join(SELFDIR, '../genJson/genJson.py'))
 CFG_MAKESTD = os.path.normpath(os.path.join(SELFDIR, '../makeStandaloneJson.py'))
+CFG_TASKGRADER = os.path.normpath(os.path.join(SELFDIR, '../../taskgrader.py'))
 CFG_REMOTE = os.path.normpath(os.path.join(SELFDIR, '../remoteGrader/remoteGrader.py'))
 
-CFG_STDGRADE = os.path.normpath(os.path.join(SELFDIR, '../stdGrade/stdGrade.sh'))
 CFG_GENSTD = os.path.normpath(os.path.join(SELFDIR, '../stdGrade/genStdTaskJson.py'))
 CFG_SUMRES = os.path.normpath(os.path.join(SELFDIR, '../stdGrade/summarizeResults.py'))
+CFG_FULLREP = os.path.normpath(os.path.join(SELFDIR, '../stdGrade/fullReport.py'))
 
 # subprocess.DEVNULL is only present in python 3.3+.
 DEVNULL = open(os.devnull, 'w')
@@ -453,10 +454,19 @@ def testsol(args):
             print("Test cancelled because of genJson error.\nYou can force the test by using the -f switch.")
             return proc.returncode
 
-    print("\nTesting with stdGrade.sh...")
-    proc = subprocess.Popen([CFG_STDGRADE, args.path], cwd=args.taskpath)
-    proc.wait()
-    return proc.returncode
+    print("\nTesting with stdGrade...")
+    # Execute all components
+    genProc = subprocess.Popen([CFG_GENSTD, '-p', args.taskpath, '-r', args.path], stdout=subprocess.PIPE, universal_newlines=True)
+    graderProc = subprocess.Popen([CFG_TASKGRADER], stdin=genProc.stdout, stdout=subprocess.PIPE, universal_newlines=True)
+    if args.verbose:
+        dispProc = subprocess.Popen([CFG_FULLREP], stdin=graderProc.stdout, universal_newlines=True)
+    else:
+        dispProc = subprocess.Popen([CFG_SUMRES], stdin=graderProc.stdout, universal_newlines=True)
+
+    graderProc.wait()
+    dispProc.wait()
+
+    return graderProc.returncode
 
 
 def remotetest(args):
@@ -525,12 +535,15 @@ def remotetest(args):
         if svnTarget is not None:
             resCmd.extend(['-r', svnTarget])
         resProc = subprocess.Popen(resCmd, stdin=remInput, stdout=subprocess.PIPE, universal_newlines=True)
-    # Feed the results to summarizeResults
-    sumProc = subprocess.Popen([CFG_SUMRES], stdin=resProc.stdout, universal_newlines=True)
+    # Feed the results to summarizeResults or fullReport
+    if args.verbose:
+        dispProc = subprocess.Popen([CFG_FULLREP], stdin=resProc.stdout, universal_newlines=True)
+    else:
+        dispProc = subprocess.Popen([CFG_SUMRES], stdin=resProc.stdout, universal_newlines=True)
 
     # Wait for all programs to finish
     resProc.wait()
-    sumProc.wait()
+    dispProc.wait()
 
     return resProc.returncode
 
@@ -599,6 +612,7 @@ if __name__ == '__main__':
         test with default parameters and give you a summary of the results.""")
     testsolParser.add_argument('-f', '--force', help='Force test', action='store_true')
     testsolParser.add_argument('-t', '--taskpath', help='Task path', default='.')
+    testsolParser.add_argument('-v', '--verbose', help='Be more verbose', action='store_true')
     testsolParser.add_argument('path', help='Path to the solution')
 
     remotetestParser = subparsers.add_parser('remotetest', help='Test a task with a remote taskgrader', description="""
@@ -608,6 +622,7 @@ if __name__ == '__main__':
     remotetestParser.add_argument('-g', '--getjob', help='Try to resume a remotetest sent as jobid ID', action='store', metavar='ID', type=int)
     remotetestParser.add_argument('-s', '--simple', help='Send a simple JSON (do not make a full JSON)', action='store_true')
     remotetestParser.add_argument('-t', '--taskpath', help='Task path', default='.')
+    remotetestParser.add_argument('-v', '--verbose', help='Be more verbose', action='store_true')
     remotetestParser.add_argument('path', help='Path to the solution')
 
     args = argParser.parse_args()
