@@ -1,0 +1,15 @@
+*.log
+*.pyc
+*.swp
+__pycache__
+
+config.py
+remote_config.py
+files
+
+box-rights
+isolate-bin
+jvs2java
+
+defaultParams.json
+testSelect.json
