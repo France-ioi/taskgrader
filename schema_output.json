@@ -16,6 +16,8 @@
             "properties": {
                 "timeLimitMs": {"type": "integer", "description": "Time limit in milliseconds."},
                 "memoryLimitKb": {"type": "integer", "description": "Memory limit in kilobytes."},
+                "realTimeLimitMs": {"type": "integer", "description": "Actual time limit used by the taskgrader in milliseconds."},
+                "realMemoryLimitKb": {"type": "integer", "description": "Actual memory limit used by the taskgrader in kilobytes."},
                 "commandLine": {"type": "string", "description": "Command-line executed."},
                 "timeTakenMs": {"type": "number", "description": "Time taken by the execution in milliseconds."},
                 "realTimeTakenMs": {"type": "number", "description": "Actual time taken by the execution in milliseconds, when there is a time transformation function for the language."},
