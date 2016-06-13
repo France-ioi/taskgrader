@@ -455,7 +455,7 @@ class Execution():
 
         filesReports = []
         for f in globOfGlobs(workingDir, self.executionParams['getFiles']):
-            filesReports.append(capture(f, name=os.path.basename(f), truncateSize=CFG_MAX_GETFILE))
+            filesReports.append(capture(f, name=os.path.basename(f)))
         report['files'] = filesReports
 
         return report
@@ -1188,7 +1188,7 @@ def multiChecker(workingDir, checkList, checker, executionParams):
 
     filesReports = []
     for f in globOfGlobs(workingDir, executionParams['getFiles']):
-        filesReports.append(capture(f, name=os.path.basename(f), truncateSize=CFG_MAX_GETFILE))
+        filesReports.append(capture(f, name=os.path.basename(f)))
     baseReport['files'] = filesReports
 
     allReports = []
@@ -1361,12 +1361,12 @@ def capture(path, name='', truncateSize=-1):
     report = {'name': name,
               'sizeKb': os.path.getsize(path) / 1024}
     fd = open(path, 'r')
-    if truncateSize > -1:
-        report['data'] = fd.read(truncateSize)
-        report['wasTruncated'] = (len(fd.read(1)) > 0)
+    if truncateSize <= 0:
+        tSize = CFG_MAX_GETFILE
     else:
-        report['data'] = fd.read()
-        report['wasTruncated'] = False
+        tSize = min(truncateSize, CFG_MAX_GETFILE)
+    report['data'] = fd.read(tSize)
+    report['wasTruncated'] = (len(fd.read(1)) > 0)
     fd.close()
     return report
 
