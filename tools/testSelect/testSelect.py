@@ -618,7 +618,8 @@ def cleanup(args):
 
 if __name__ == '__main__':
     # Parse command-line arguments
-    argParser = argparse.ArgumentParser(description="This tool helps task writers create and test their tasks.")
+    argParser = argparse.ArgumentParser(description="""This tool finds a subset
+        of test cases which are sufficient to find errors in solutions.""")
 
     # Parsers for each sub-command
     subparsers = argParser.add_subparsers(help='Action', dest='action')
