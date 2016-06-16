@@ -21,7 +21,21 @@ CFG_MAX_TIMELIMIT = 60000       # in milliseconds
 CFG_MAX_MEMORYLIMIT = 1024*1024 # in kilobytes
 
 
-def tryEvaluation(taskPath, solution, timeLimit=None, memoryLimit=None):
+def linearRegression(xyList):
+    """Return the coefficients a b so that yList ~= a * xList + b."""
+    avgX, avgY, avgX2, avgXY = 0, 0, 0, 0
+    for x, y in xyList:
+        avgX += x / len(xyList)
+        avgY += y / len(xyList)
+        avgX2 += x**2 / len(xyList)
+        avgXY += x*y / len(xyList)
+    a = (avgXY - avgX * avgY) / (avgX2 - avgX**2)
+    b = avgY - a * avgX
+
+    return (int(a), int(b))
+
+
+def tryEvaluation(taskPath, solution, timeLimit=None, memoryLimit=None, language=None):
     """Evaluate a solution against a task, using specified limits.
     If limits are None, the default limits set for the task are used."""
 
@@ -31,6 +45,8 @@ def tryEvaluation(taskPath, solution, timeLimit=None, memoryLimit=None):
         genCmd.extend(['-t', str(timeLimit)])
     if memoryLimit is not None:
         genCmd.extend(['-m', str(memoryLimit)])
+    if language is not None:
+        genCmd.extend(['-l', language])
 
     # Launch an evaluation
     genProc = subprocess.Popen(genCmd, stdout=subprocess.PIPE, universal_newlines=True)
@@ -73,12 +89,12 @@ def tryEvaluation(taskPath, solution, timeLimit=None, memoryLimit=None):
             'maxMemLimit': maxMemLimit}
 
 
-def tryMultipleEvaluations(taskPath, solutionList, timeLimit=None, memoryLimit=None):
+def tryMultipleEvaluations(taskPath, solutionList, timeLimit=None, memoryLimit=None, language=None):
     """Evaluate multiple solutions against a task, summarizing the results."""
     # Evaluate each solution individually
     reports = []
     for solution in solutionList:
-        reports.append(tryEvaluation(taskPath, solution, timeLimit, memoryLimit))
+        reports.append(tryEvaluation(taskPath, solution, timeLimit, memoryLimit, language))
 
     # Fetch values from each report
     finalReport = {}
@@ -89,7 +105,7 @@ def tryMultipleEvaluations(taskPath, solutionList, timeLimit=None, memoryLimit=N
     return finalReport
 
 
-def findLimits(taskPath, solutionList):
+def findLimits(taskPath, solutionList, language=None):
     """Find good limits for a task, encompassing solutions from solutionList."""
     minTimeLimit = 0
     maxTimeLimit = CFG_MAX_TIMELIMIT
@@ -118,7 +134,7 @@ def findLimits(taskPath, solutionList):
         curTimeLimit = int((minTimeLimit + maxTimeLimit) / 2)
 
         # Make new evaluations
-        curEval = tryMultipleEvaluations(taskPath, solutionList, timeLimit=curTimeLimit, memoryLimit=maxMemLimit)
+        curEval = tryMultipleEvaluations(taskPath, solutionList, timeLimit=curTimeLimit, memoryLimit=maxMemLimit, language=language)
 
         # Check if evaluation was successful or failed
         if curEval['failed']:
@@ -139,7 +155,7 @@ def findLimits(taskPath, solutionList):
         curMemLimit = int((minMemLimit + maxMemLimit) / 2)
 
         # Make new evaluations
-        curEval = tryMultipleEvaluations(taskPath, solutionList, timeLimit=maxTimeLimit, memoryLimit=curMemLimit)
+        curEval = tryMultipleEvaluations(taskPath, solutionList, timeLimit=maxTimeLimit, memoryLimit=curMemLimit, language=language)
 
         # Check if evaluation was successful or failed
         if curEval['failed']:
@@ -160,12 +176,51 @@ def findLimits(taskPath, solutionList):
         'maxMem': finalEval['maxMem']
         }
 
+def configLang(reference, lang):
+    """Find the limit transformations to apply globally for the specified
+    language."""
+    progsPath = os.path.join(SELFDIR, 'programs/')
+
+    timeList = []
+    memList = []
+    for solution in reference[lang]:
+        print("* Evaluating '%s' for language '%s'" % (solution['name'], lang))
+        results = findLimits(progsPath, [os.path.join(progsPath, solution['name'])], language=lang)
+        print("Time: %dms (ref: %dms) / Memory: %dKb (ref: %dKb)" % (
+            results['maxTimeLimit'], solution['time'],
+            results['maxMemLimit'], solution['memory']))
+
+        timeList.append((solution['time'], results['maxTimeLimit']))
+        memList.append((solution['memory'], results['maxMemLimit']))
+
+    timeA, timeB = linearRegression(timeList)
+    memA, memB = linearRegression(memList)
+    print("""
+Results for language '%s':
+Time transformation: lambda x: %d * x + %d
+Memory transformation: lambda x: %d * x + %d
+""" % (lang, timeA, timeB, memA, memB))
+
+
 ### Actions
 def config(args):
     """Find the limit transformations to apply globally."""
-    print("Not implemented yet.")
-    return 1
-    # TODO
+    print("/!\ The reference limits aren't set yet.") # TODO :: remove once reference.json is populated
+    reference = json.load(open(os.path.join(SELFDIR, 'reference.json'), 'r'))
+    # Language specified on the command-line
+    if args.lang:
+        if args.lang not in reference:
+            print("Error: language '%s' has no reference limits." % args.lang)
+            return 1
+        configLang(reference, args.lang)
+        return 0
+
+    # We do all languages
+    for lang in reference:
+        configLang(reference, lang)
+
+    return 0
+
 
 def task(args):
     """Find the adequate limits for a task."""
@@ -204,6 +259,7 @@ if __name__ == '__main__':
     configParser = subparsers.add_parser('config', help='Find global transformation functions', description="""
         Find the limits for the reference task and solution, to determine which
         transformation functions should be set in taskgrader's configuration.""")
+    configParser.add_argument('-l', '--lang', help='Only determine for this language')
 
     taskParser = subparsers.add_parser('task', help='Find limits for a task', description="""
         Find good time and memory limits for a task, testing on which limits

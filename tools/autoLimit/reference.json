@@ -1,0 +1,42 @@
+{
+"c": [
+    {"name": "program1.c",
+    "time": 1,
+    "memory": 1},
+    {"name": "program2.c",
+    "time": 2,
+    "memory": 2}
+    ],
+"cpp": [
+    {"name": "program1.c",
+    "time": 1,
+    "memory": 1},
+    {"name": "program2.c",
+    "time": 2,
+    "memory": 2}
+    ],
+"ocaml": [
+    {"name": "program1.ml",
+    "time": 1,
+    "memory": 1},
+    {"name": "program2.ml",
+    "time": 2,
+    "memory": 2}
+    ],
+"python2": [
+    {"name": "program1.py",
+    "time": 1,
+    "memory": 1},
+    {"name": "program2.py",
+    "time": 2,
+    "memory": 2}
+    ],
+"python3": [
+    {"name": "program1.py",
+    "time": 1,
+    "memory": 1},
+    {"name": "program2.py",
+    "time": 2,
+    "memory": 2}
+    ]
+}

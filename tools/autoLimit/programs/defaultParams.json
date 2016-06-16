@@ -1,0 +1,137 @@
+{
+"defaultChecker": {
+  "compilationDescr": {
+    "dependencies": [],
+    "files": [
+      {
+        "content": "#!/bin/sh\necho \"Dummy script\"\nexit 0\n",
+        "name": "true.sh"
+      }
+    ],
+    "language": "sh"
+  },
+  "compilationExecution": "@defaultToolCompParams",
+  "runExecution": "@defaultToolExecParams"
+},
+"defaultDependencies-c": [],
+"defaultDependencies-cpp": "@defaultDependencies-c",
+"defaultDependencies-java": [],
+"defaultDependencies-javascool": [],
+"defaultDependencies-jvs": "@defaultDependencies-javascool",
+"defaultDependencies-ml": "@defaultDependencies-ocaml",
+"defaultDependencies-ocaml": [],
+"defaultDependencies-pas": "@defaultDependencies-pascal",
+"defaultDependencies-pascal": [],
+"defaultDependencies-py": "@defaultDependencies-python",
+"defaultDependencies-python": [],
+"defaultDependencies-python2": "@defaultDependencies-python",
+"defaultDependencies-python3": "@defaultDependencies-python",
+"defaultDependencies-sh": [],
+"defaultDependencies-shell": [],
+"defaultEvaluationChecker": "@defaultChecker",
+"defaultEvaluationExecutions": [
+  {
+    "filterTests": "@solutionFilterTests",
+    "id": "@solutionExecId",
+    "idSolution": "@solutionId",
+    "runExecution": "@defaultSolutionExecParams"
+  }
+],
+"defaultEvaluationExtraTests": "@defaultExtraTests",
+"defaultEvaluationGenerations": [
+  "@defaultGeneration"
+],
+"defaultEvaluationGenerators": [
+  "@defaultGenerator"
+],
+"defaultEvaluationSanitizer": "@defaultSanitizer",
+"defaultEvaluationSolutions": [
+  {
+    "compilationDescr": {
+      "dependencies": "@solutionDependencies",
+      "files": [
+        {
+          "content": "@solutionContent",
+          "name": "@solutionFilename",
+          "path": "@solutionPath"
+        }
+      ],
+      "language": "@solutionLanguage"
+    },
+    "compilationExecution": "@defaultSolutionCompParams",
+    "id": "@solutionId"
+  }
+],
+"defaultExtraTests": [
+  {
+    "name": "test.in",
+    "content": "dummy"
+  }
+],
+"defaultFilterTests": [
+  "test.in"
+],
+"defaultFilterTests-c": "@defaultFilterTests",
+"defaultFilterTests-cpp": "@defaultFilterTests",
+"defaultFilterTests-java": "@defaultFilterTests",
+"defaultFilterTests-javascool": "@defaultFilterTests",
+"defaultFilterTests-jvs": "@defaultFilterTests-javascool",
+"defaultFilterTests-ml": "@defaultFilterTests-ocaml",
+"defaultFilterTests-ocaml": "@defaultFilterTests",
+"defaultFilterTests-pas": "@defaultFilterTests-pascal",
+"defaultFilterTests-pascal": "@defaultFilterTests",
+"defaultFilterTests-py": "@defaultFilterTests-python",
+"defaultFilterTests-python": "@defaultFilterTests",
+"defaultFilterTests-python2": "@defaultFilterTests-python",
+"defaultFilterTests-python3": "@defaultFilterTests-python",
+"defaultFilterTests-sh": "@defaultFilterTests",
+"defaultFilterTests-shell": "@defaultFilterTests",
+"defaultGeneration": null,
+"defaultGenerator": null,
+"defaultSanitizer": {
+  "compilationDescr": {
+    "dependencies": [],
+    "files": [
+      {
+        "content": "#!/bin/sh\necho \"Dummy script\"\nexit 0\n",
+        "name": "true.sh"
+      }
+    ],
+    "language": "sh"
+  },
+  "compilationExecution": "@defaultToolCompParams",
+  "runExecution": "@defaultToolExecParams"
+},
+"defaultSolutionCompParams": {
+  "getFiles": [],
+  "memoryLimitKb": 64000,
+  "stderrTruncateKb": -1,
+  "stdoutTruncateKb": -1,
+  "timeLimitMs": 20000,
+  "useCache": true
+},
+"defaultSolutionExecParams": {
+  "getFiles": [],
+  "memoryLimitKb": 64000,
+  "stderrTruncateKb": -1,
+  "stdoutTruncateKb": -1,
+  "timeLimitMs": 10000,
+  "useCache": true
+},
+"defaultToolCompParams": {
+  "getFiles": [],
+  "memoryLimitKb": 131072,
+  "stderrTruncateKb": -1,
+  "stdoutTruncateKb": -1,
+  "timeLimitMs": 60000,
+  "useCache": true
+},
+"defaultToolExecParams": "@defaultToolCompParams",
+"rootPath": "/",
+"solutionContent": "",
+"solutionDependencies": [],
+"solutionExecId": "execution",
+"solutionFilterTests": "@defaultFilterTests",
+"solutionId": "solution",
+"solutionPath": ""
+}
