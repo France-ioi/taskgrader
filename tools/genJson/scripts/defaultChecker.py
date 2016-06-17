@@ -3,6 +3,7 @@
 
 # Default checking program: checks the output of the solution is the given
 # expected output (test.out).
+# Note that it can be used as a library, via the diff function.
 # Takes three arguments on command-line:
 #   ./defaultChecker.py test.solout test.in test.out
 # where
@@ -14,13 +15,38 @@ from json import dumps
 from subprocess import Popen, PIPE
 from sys import argv, exit
 
-MAX_CHARS = 500
+DEFAULT_OPTIONS = {
+    'ignoreSpaceChange': True,
+    'ignoreBlankLines': True,
+    'maxChars': 500
+    }
 
-def diff(solPath, outPath):
-    """Generate a diff report of two files."""
+
+def diff(solPath, outPath, options=None):
+    """Generate a diff report of two files.
+    The arguments are:
+    -solPath: path to the solution output
+    -outPath: path to the expected output
+    -options: dict with the following options:
+     ignoreSpaceChange (bool): ignore consecutive whitespaces
+     ignoreBlankLines (bool): ignore blank lines
+     maxChar (int): maximum chars in the displayed output
+    Returns a tuple (grade, result), where grade is the grade from 0 to 100,
+    and result is a dict containing the diff information."""
+
+    # Read options
+    if options:
+        opt = {}
+        opt.update(DEFAULT_OPTIONS)
+        opt.update(options)
+    else:
+        opt = DEFAULT_OPTIONS
 
     # Execute diff
-    diffProc = Popen(['/usr/bin/env', 'diff', '-bBu',
+    diffOptions = '-u'
+    if opt['ignoreSpaceChange']: diffOptions += 'b'
+    if opt['ignoreBlankLines']: diffOptions += 'B'
+    diffProc = Popen(['/usr/bin/env', 'diff', diffOptions,
         solPath, outPath], stdout=PIPE)
 
     # Ignore first two lines
@@ -74,7 +100,7 @@ def diff(solPath, outPath):
 
         # We read max 3 lines after the first difference
         if diffLine is not None and curLine-diffLine > 3:
-            truncatedAfter = (lastLine != '')
+            truncatedAfter = (lastLine != '') and (lastLine != '\ No newline at end of file\n')
             break
 
     # Put a single line in the expected answer if it was empty
@@ -83,25 +109,34 @@ def diff(solPath, outPath):
 
     # Find difference in the diff line
     relLine = diffLine-chunkLine
+    while relLine >= len(solLines):
+        solLines.append("\n")
     solDLine = solLines[relLine]
+    while relLine >= len(expLines):
+        expLines.append("\n")
     expDLine = expLines[relLine]
     solCur = 0
     expCur = 0
     while True:
-        # We ignore consecutive whitespaces
-        # It's a line so the character before the first one is a newline
-        if solDLine[solCur] in whitespace:
-            if solCur == len(solDLine)-1:
+        if opt['ignoreSpaceChange']:
+            # We ignore consecutive whitespaces
+            # It's a line so the character before the first one is a newline
+            if solDLine[solCur] in whitespace:
+                if solCur == len(solDLine)-1:
+                    break
+                elif solCur == 0 or solDLine[solCur+1] in whitespace:
+                    solCur += 1
+                    continue
+            if expDLine[expCur] in whitespace:
+                if expCur == len(expDLine)-1:
+                    break
+                elif expCur == 0 or expDLine[expCur+1] in whitespace:
+                    expCur += 1
+                    continue
+        else:
+            if solCur > len(solDLine) or expCur > len(expDLine):
                 break
-            elif solCur == 0 or solDLine[solCur+1] in whitespace:
-                solCur += 1
-                continue
-        if expDLine[expCur] in whitespace:
-            if expCur == len(expDLine)-1:
-                break
-            elif expCur == 0 or expDLine[expCur+1] in whitespace:
-                expCur += 1
-                continue
+
         if solDLine[solCur] != expDLine[expCur]:
             break
         else:
@@ -115,17 +150,18 @@ def diff(solPath, outPath):
     result['diffCol'] = solCur+1
 
     # Select lines to display
-    if len(solDLine) > MAX_CHARS or len(expDLine) > MAX_CHARS:
+    maxChars = opt['maxChars']
+    if len(solDLine) > maxChars or len(expDLine) > maxChars:
         # We only display the differing line because it's already too long
-        if solCur < MAX_CHARS/2:
+        if solCur < maxChars/2:
             colStart = 0
-            colEnd = MAX_CHARS
-        elif len(solDLine) - solCur < MAX_CHARS/2:
-            colStart = len(solDLine)-MAX_CHARS
+            colEnd = maxChars
+        elif len(solDLine) - solCur < maxChars/2:
+            colStart = len(solDLine)-maxChars
             colEnd = max(len(solDLine), len(expDLine))
         else:
-            colStart = solCur - MAX_CHARS/2
-            colEnd = solCur + MAX_CHARS/2
+            colStart = solCur - maxChars/2
+            colEnd = solCur + maxChars/2
         result['displayedSolutionOutput'] = solDLine[colStart:colEnd]
         result['displayedExpectedOutput'] = expDLine[colStart:colEnd]
         result['truncatedBefore'] = (diffLine > 1)
@@ -134,8 +170,8 @@ def diff(solPath, outPath):
         result['excerptCol'] = colStart+1
 
     else:
-        # We add lines before and/or after as long as we stay within MAX_CHARS
-        remChars = MAX_CHARS - max(len(solDLine), len(expDLine))
+        # We add lines before and/or after as long as we stay within maxChars
+        remChars = maxChars - max(len(solDLine), len(expDLine))
         dispStartLine = relLine
         dispEndLine = relLine
         while dispStartLine > 0:
