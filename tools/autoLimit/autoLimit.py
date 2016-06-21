@@ -25,14 +25,14 @@ def linearRegression(xyList):
     """Return the coefficients a b so that yList ~= a * xList + b."""
     avgX, avgY, avgX2, avgXY = 0, 0, 0, 0
     for x, y in xyList:
-        avgX += x / len(xyList)
-        avgY += y / len(xyList)
-        avgX2 += x**2 / len(xyList)
-        avgXY += x*y / len(xyList)
-    a = (avgXY - avgX * avgY) / (avgX2 - avgX**2)
+        avgX += x
+        avgY += y
+        avgX2 += x**2
+        avgXY += x*y
+    a = float(avgXY - avgX * avgY) / float(avgX2 - avgX**2)
     b = avgY - a * avgX
 
-    return (int(a), int(b))
+    return (a, int(b))
 
 
 def tryEvaluation(taskPath, solution, timeLimit=None, memoryLimit=None, language=None):
@@ -197,15 +197,14 @@ def configLang(reference, lang):
     memA, memB = linearRegression(memList)
     print("""
 Results for language '%s':
-Time transformation: lambda x: %d * x + %d
-Memory transformation: lambda x: %d * x + %d
-""" % (lang, timeA, timeB, memA, memB))
+Time transformation: lambda x: %s * x + %d
+Memory transformation: lambda x: %s * x + %d
+""" % (lang, round(timeA, 5), timeB, round(memA, 5), memB))
 
 
 ### Actions
 def config(args):
     """Find the limit transformations to apply globally."""
-    print("/!\ The reference limits aren't set yet.") # TODO :: remove once reference.json is populated
     reference = json.load(open(os.path.join(SELFDIR, 'reference.json'), 'r'))
     # Language specified on the command-line
     if args.lang:

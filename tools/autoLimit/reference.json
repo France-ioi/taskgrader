@@ -1,42 +1,42 @@
 {
 "c": [
     {"name": "program1.c",
-    "time": 1,
-    "memory": 1},
+    "time": 10313,
+    "memory": 1055},
     {"name": "program2.c",
-    "time": 2,
-    "memory": 2}
+    "time": 22500,
+    "memory": 1056}
     ],
 "cpp": [
     {"name": "program1.c",
-    "time": 1,
-    "memory": 1},
+    "time": 10313,
+    "memory": 1055},
     {"name": "program2.c",
-    "time": 2,
-    "memory": 2}
+    "time": 22500,
+    "memory": 1056}
     ],
 "ocaml": [
     {"name": "program1.ml",
-    "time": 1,
-    "memory": 1},
+    "time": 5391,
+    "memory": 6400},
     {"name": "program2.ml",
-    "time": 2,
-    "memory": 2}
+    "time": 11719,
+    "memory": 7168}
     ],
 "python2": [
     {"name": "program1.py",
-    "time": 1,
-    "memory": 1},
+    "time": 6563,
+    "memory": 6912},
     {"name": "program2.py",
-    "time": 2,
-    "memory": 2}
+    "time": 11719,
+    "memory": 7424}
     ],
 "python3": [
     {"name": "program1.py",
-    "time": 1,
-    "memory": 1},
+    "time": 5625,
+    "memory": 11775},
     {"name": "program2.py",
-    "time": 2,
-    "memory": 2}
+    "time": 9375,
+    "memory": 11776}
     ]
 }
