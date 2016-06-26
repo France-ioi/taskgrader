@@ -126,8 +126,9 @@ def makeEvaluationJson(taskPath, solution, casesToTest):
     return testEvaluation
 
 
-def testComplexity(case, taskPath):
-    """Compute the 'complexity' of a test case, here its length."""
+def getComplexity(case, taskPath):
+    """Compute the 'complexity' of a test case or a solution, here its
+    length."""
     if case.get('path', None):
         data = open(os.path.join(taskPath, case['path']), 'r').read()
     else:
@@ -136,14 +137,14 @@ def testComplexity(case, taskPath):
     return len(data)
 
 
-def greedyCover(testCases, testCov, testCompl, solSet):
+def greedyCover(coveringSet, coverTable, caseCompl, coveredSet):
     """Find an approximation of the smallest set cover (greedy algorithm)."""
     # Copy variables to avoid side effects
-    curSet = solSet.copy()
-    remCases = testCases[:]
+    curSet = coveredSet.copy()
+    remCases = coveringSet[:]
     curCov = {}
-    for case in testCases:
-        curCov[case] = testCov[case].copy()
+    for case in coveringSet:
+        curCov[case] = coverTable[case].copy()
 
     selectedCases = []
     while len(curSet) > 0:
@@ -156,7 +157,7 @@ def greedyCover(testCases, testCov, testCompl, solSet):
                 caseCandidates = [case]
             elif len(curCov[case]) == maxElems:
                 caseCandidates.append(case)
-        selCase = sorted(caseCandidates, key=lambda c: testCompl[c])[-1]
+        selCase = sorted(caseCandidates, key=lambda c: caseCompl[c])[-1]
 
         # Select this case
         selectedCases.append(selCase)
@@ -166,15 +167,27 @@ def greedyCover(testCases, testCov, testCompl, solSet):
         for case in remCases:
             curCov[case] = curCov[case] - curCov[selCase]
 
-    return (len(selectedCases), sum(map(lambda c: testCompl[c], selectedCases)), selectedCases)
+    return (len(selectedCases), sum(map(lambda c: caseCompl[c], selectedCases)), selectedCases)
 
 
-def makeHtmlTable(coverage, solutions, testCases):
+def makeHtmlTable(coverage, solutionsList, testCasesList):
     """Generate the table for coverage of solutions by testCases."""
+
+    # Filter lists of dicts to lists of names
+    if len(solutionsList) > 0 and type(solutionsList[0]) is dict:
+        solutions = list(map(lambda x: x['name'], solutionsList))
+    else:
+        solutions = solutionsList
+    if len(testCasesList) > 0 and type(testCasesList[0]) is dict:
+        testCases = list(map(lambda x: x['name'], testCasesList))
+    else:
+        testCases = testCasesList
+
+    # Get coverage information
     solCovs = []
     solOk = []
     for solution in solutions:
-        solCovs.append(coverage.get(solution['name'], {}))
+        solCovs.append(coverage.get(solution, {}))
         solOk.append(False)
 
     # Generate lines for each test
@@ -203,9 +216,9 @@ def makeHtmlTable(coverage, solutions, testCases):
     html += '<tr><th class="corner"></th>'
     for i, solution in enumerate(solutions):
         if solOk[i]:
-            html += '<th class="solCovered">%s</th>' % solution['name']
+            html += '<th class="solCovered">%s</th>' % solution
         else:
-            html += '<th class="solNotCovered">%s</th>' % solution['name']
+            html += '<th class="solNotCovered">%s</th>' % solution
     html += '</tr>'
 
     html += innerHtml
@@ -277,11 +290,23 @@ td.coverageNoTest {
     else:
         html += '<p>No test cases selected yet.</p>'
 
+    # Selected solutions table
+    # (it is considered as non-default to select solutions, hence this section
+    # is hidden by default)
+    if len(data.get('selectedSols', [])) > 0:
+        html += """
+<hr />
+<h3>Selected solutions</h3>
+<p>These are the selected solutions which will be exported for usage with the task when running <i>testSelect.py export --solutions</i>.</p>
+<p>These cases are automatically selected by <i>testSelect.py select --solutions</i>; you can manually change the selection by editing the file <i>testSelect.json</i> in the task folder, and adding/removing test case names in the key <i>"selectedSols"</i>.</p>
+"""
+        html += makeHtmlTable(data['coverage'], data['selectedSols'], data['testCases'])
+
     # All test cases table
     html += """<hr />
 <h3>All test cases</h3>"""
 
-    html += makeHtmlTable(data['coverage'], data['solutions'], map(lambda c: c['name'], data['testCases']))
+    html += makeHtmlTable(data['coverage'], data['solutions'], data['testCases'])
     html += '</body></html>'
 
     return html
@@ -474,12 +499,12 @@ def select(args):
             elif solCov[case['name']] != 'success':
                 solCovered = True
                 if case['name'] in testCov:
+                    # Test case is already in the pool of possible selections
                     testCov[case['name']].add(sol['name'])
                 else:
                     # Add test case to the pool of possible selections
                     testCov[case['name']] = set([sol['name']])
                     testCases.append(case['name'])
-                    testCompl[case['name']] = testComplexity(case, args.taskpath)
 
         if solCovered:
             solutions.append(sol['name'])
@@ -490,11 +515,37 @@ def select(args):
         print("Warning: coverage data missing for %d solution/test case pair(s)." % covMissing)
 
     # Find the smallest cover
-    number, totalCompl, selected = greedyCover(testCases, testCov, testCompl, set(solutions))
+    if args.solutions:
+        # Get solutions complexity and coverage
+        allSolCov = {}
+        solCompl = {}
+        for sol in data['solutions']:
+            if sol['name'] not in solutions:
+                continue
 
-    print("Best selection found for %d solutions: %d tests, complexity %d." % (len(solutions), number, totalCompl))
-    selected.sort()
-    data['selected'] = selected
+            solCov = data['coverage'][sol['name']]
+            allSolCov[sol['name']] = set(filter(lambda c: solCov[c] != 'success', solCov.keys()))
+            solCompl[sol['name']] = getComplexity(sol, args.taskpath)
+
+        # Find the smallest set of solutions
+        number, totalCompl, selected = greedyCover(solutions, allSolCov, solCompl, set(testCases))
+
+        print("Best selection found for %d tests: %d solutions, complexity %d." % (len(testCases), number, totalCompl))
+        selected.sort()
+        data['selectedSols'] = selected
+
+    else:
+        # Get tests complexity
+        for case in data['testCases']:
+            if case['name'] in testCases:
+                testCompl[case['name']] = getComplexity(case, args.taskpath)
+
+        # Find the smallest set of test cases
+        number, totalCompl, selected = greedyCover(testCases, testCov, testCompl, set(solutions))
+
+        print("Best selection found for %d solutions: %d tests, complexity %d." % (len(solutions), number, totalCompl))
+        selected.sort()
+        data['selected'] = selected
 
     saveData(args, data)
 
@@ -523,6 +574,10 @@ def export(args):
     data = loadData(args)
 
     # Warn about a few errors
+    if len(data.get('selected', [])) == 0:
+        print("Error: no selected tests.")
+        return 1
+
     tsPath = os.path.join(args.taskpath, 'taskSettings.json')
 
     warning = False
@@ -532,6 +587,7 @@ def export(args):
     else:
         taskSettings = json.load(open(tsPath, 'r'))
 
+    # Check destination path
     testsPath = os.path.join(args.taskpath, 'tests/files/')
     try:
         testsList = list(filter(lambda x: x[-3:] == '.in', os.listdir(testsPath)))
@@ -564,14 +620,96 @@ def export(args):
                 casePath = os.path.join(args.taskpath, case['path'])
                 # We're saving a test case to the same path
                 if casePath == targetPath:
-                    continue 
+                    continue
                 testData = open(os.path.join(args.taskpath, case['path']), 'r').read()
             else:
                 testData = case['content']
             open(targetPath, 'w').write(testData)
 
     taskSettings['defaultFilterTests'] = filterTests
-    json.dump(taskSettings, open(tsPath, 'w'))
+    json.dump(taskSettings, open(tsPath, 'w'),
+        indent=2, sort_keys=True)
+
+    return 0
+
+
+def exportsols(args):
+    """Export selected solutions for usage by the task."""
+    data = loadData(args)
+
+    # Warn about a few errors
+    if len(data.get('selectedSols', [])) == 0:
+        print("Error: no selected solutions.")
+        return 1
+
+    tsPath = os.path.join(args.taskpath, 'taskSettings.json')
+
+    warning = False
+    if not os.path.isfile(tsPath):
+        print("Warning: no 'taskSettings.json' file in current folder.")
+        taskSettings = {}
+    else:
+        taskSettings = json.load(open(tsPath, 'r'))
+
+    # Check destination path
+    solsPath = os.path.join(args.taskpath, 'tests/badsols/')
+    try:
+        solsList = os.listdir(solsPath)
+    except:
+        solsList = []
+    if len(solsList) > 0:
+        print("Warning: solutions found in 'tests/badsols/'.")
+        if not askQuestionBool("Do you still want to continue?"):
+            print("Aborting.")
+            return 1
+
+    # Make solutions dir
+    try:
+        os.makedirs(solsPath)
+    except:
+        pass
+
+    # Save new solutions
+    evalSolutions = []
+    evalExecutions = []
+    for solution in data['solutions']:
+        if solution['name'] in data['selectedSols']:
+            # Write solution
+            targetPath = os.path.join(solsPath, solution['name'])
+            if solution.get('path', None):
+                solPath = os.path.join(args.taskpath, solution['path'])
+                # We're saving a test case to the same path
+                if solPath == targetPath:
+                    continue
+                solData = open(os.path.join(args.taskpath, solution['path']), 'r').read()
+            else:
+                solData = solution['content']
+            open(targetPath, 'w').write(solData)
+
+            # Add to the test evaluations
+            solId = 'solwrong-%s' % solution['name']
+            evalSolutions.append({
+                "id": solId,
+                "compilationDescr": {
+                    "language": solution['language'],
+                    "files": [
+                        {"name": solution['name'],
+                        "path": '$TASK_PATH/%s' % os.path.relpath(targetPath, args.taskpath)}],
+                    "dependencies": "@defaultDependencies-%s" % solution['language']},
+                "compilationExecution": "@defaultSolutionCompParams"})
+            evalExecutions.append({
+                "id": "execwrong-%s" % solution['name'],
+                "idSolution": solId,
+                "filterTests": "@defaultFilterTests",
+                "runExecution": "@defaultSolutionExecParams"})
+
+    if 'overrideParams' not in taskSettings:
+        taskSettings['overrideParams'] = {}
+    taskSettings['overrideParams'].update({
+        'testEvaluationSolutions': evalSolutions,
+        'testEvaluationExecutions': evalExecutions})
+    json.dump(taskSettings, open(tsPath, 'w'),
+        indent=2, sort_keys=True)
 
     return 0
 
@@ -651,9 +789,15 @@ if __name__ == '__main__':
     computeParser.add_argument('-t', '--taskpath', help='Task path', default='.')
 
     exportParser = subparsers.add_parser('export', help='Export selected test cases into the task', description="""
-        Save the selected test cases for usage by the task.""")        
+        Save the selected test cases for usage by the task.""")
     exportParser.add_argument('-f', '--force', help='Force export', action='store_true')
     exportParser.add_argument('-t', '--taskpath', help='Task path', default='.')
+
+    exportsolsParser = subparsers.add_parser('exportsols', help='Export selected solutions into the task', description="""
+        Save the selected solutions for usage by the task, with the special
+        keys testEvaluationSolutions and testEvaluationExecutions.""")
+    exportsolsParser.add_argument('-f', '--force', help='Force export', action='store_true')
+    exportsolsParser.add_argument('-t', '--taskpath', help='Task path', default='.')
 
     htmlParser = subparsers.add_parser('html', help='Outputs an HTML table about test coverage', description="""
         Outputs an HTML table describing which tests find errors in which
@@ -663,6 +807,7 @@ if __name__ == '__main__':
     selectParser = subparsers.add_parser('select', help='Select the best test cases', description="""
         Find the smallest number of test cases necessary to cover all solution
         errors.""")
+    selectParser.add_argument('-s', '--solutions', help='Select solutions instead of test cases', action='store_true')
     selectParser.add_argument('-t', '--taskpath', help='Task path', default='.')
 
     serveParser = subparsers.add_parser('serve', help='Serve an HTML table about test coverage', description="""
@@ -679,6 +824,7 @@ if __name__ == '__main__':
         'cleanup': {'p': cleanupParser, 'f': cleanup},
         'compute': {'p': computeParser, 'f': compute},
         'export': {'p': exportParser, 'f': export},
+        'exportsols': {'p': exportsolsParser, 'f': exportsols},
         'html': {'p': htmlParser, 'f': html},
         'select': {'p': selectParser, 'f': select},
         'serve': {'p': serveParser, 'f': serve}
