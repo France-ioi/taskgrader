@@ -112,6 +112,8 @@ CFG_TRANSFORM_TIME_DEFAULT = (lambda x: x, lambda x: x)
 CFG_CLEAN_AUTO = True
 # Cleaning script path
 CFG_CLEAN_SCRIPT = os.path.join(CFG_BINDIR, 'clean_cache.py')
+# File to store the timestamp in
+CFG_CLEAN_TIMESTAMP = '/tmp/.taskgrader-autoclean'
 
 # clean_cache.py variables
 # Max age (since creation) in seconds and total size in bytes for builds

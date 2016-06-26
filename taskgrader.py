@@ -1748,12 +1748,12 @@ if __name__ == '__main__':
     # Auto-clean builds and cache every hour
     if CFG_CLEAN_AUTO:
         try:
-            lastClean = float(open('/tmp/.taskgrader-autoclean', 'r').read())
+            lastClean = float(open(CFG_CLEAN_TIMESTAMP, 'r').read())
         except:
             lastClean = 0
         if time.time() - lastClean > 3600:
             logging.info("Executing auto-clean script.")
-            open('/tmp/.taskgrader-autoclean', 'w').write(str(time.time()))
+            open(CFG_CLEAN_TIMESTAMP, 'w').write(str(time.time()))
             cleanProc = subprocess.Popen([CFG_CLEAN_SCRIPT])
             cleanProc.wait()
         else:
