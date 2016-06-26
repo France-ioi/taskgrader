@@ -254,6 +254,27 @@ You can test the task by running, from the task folder:
 
 *This example can be found in the `examples/taskSolchecker` folder.*
 
+
+## Compilation checker example: reading the compiler output
+
+In this task, the checker reads the compiler output. It then, as an example, displays it on his grading output; a more detailed checker could though read the compiler output to check for specific errors.
+
+This is done by using again the `addFiles` key as done in the previous example, and adding the compiler output in the files to give to the checker:
+
+    "addFiles": [
+      {
+        "name": "compilationStdout",
+        "path": "$BUILD_PATH/solutions/solution/stdout"
+      }, {
+        "name": "compilationStderr",
+        "path": "$BUILD_PATH/solutions/solution/stderr"
+      }]
+
+This will give the checker access to the compilation output through the files `compilationStdout` and `compilationStderr`.
+
+*This example can be found in the `examples/taskCChecker` folder.*
+
+
 ## Turtle example: using and saving graphics
 
 In this task, the solution is a [turtle](https://docs.python.org/2/library/turtle.html) script; here, its task is to simply to go to a specified position (but more advanced criterias can be written).
