@@ -197,6 +197,8 @@
         
             <li><a href="#solution-checker-example-reading-the-solution-source">Solution checker example: reading the solution source</a></li>
         
+            <li><a href="#compilation-checker-example-reading-the-compiler-output">Compilation checker example: reading the compiler output</a></li>
+        
             <li><a href="#turtle-example-using-and-saving-graphics">Turtle example: using and saving graphics</a></li>
         
     
@@ -393,6 +395,20 @@
 <li><code>taskstarter.py testsol tests/gen/sol-bad-c.c</code> for a bad solution getting a grade of 0 (wrong answer)</li>
 </ul>
 <p><em>This example can be found in the <code>examples/taskSolchecker</code> folder.</em></p>
+<h2 id="compilation-checker-example-reading-the-compiler-output">Compilation checker example: reading the compiler output</h2>
+<p>In this task, the checker reads the compiler output. It then, as an example, displays it on his grading output; a more detailed checker could though read the compiler output to check for specific errors.</p>
+<p>This is done by using again the <code>addFiles</code> key as done in the previous example, and adding the compiler output in the files to give to the checker:</p>
+<pre><code>"addFiles": [
+  {
+    "name": "compilationStdout",
+    "path": "$BUILD_PATH/solutions/solution/stdout"
+  }, {
+    "name": "compilationStderr",
+    "path": "$BUILD_PATH/solutions/solution/stderr"
+  }]
+</code></pre>
+<p>This will give the checker access to the compilation output through the files <code>compilationStdout</code> and <code>compilationStderr</code>.</p>
+<p><em>This example can be found in the <code>examples/taskCChecker</code> folder.</em></p>
 <h2 id="turtle-example-using-and-saving-graphics">Turtle example: using and saving graphics</h2>
 <p>In this task, the solution is a <a href="https://docs.python.org/2/library/turtle.html">turtle</a> script; here, its task is to simply to go to a specified position (but more advanced criterias can be written).</p>
 <p>This task is complex for two reasons:</p>
