@@ -82,25 +82,45 @@ def diff(solPath, outPath, options=None):
     curLine = chunkLine
     diffLine = None
     lastLine = do.readline()
+    # Read maximum 3 lines after the diff line
+    # (these variables are still incremented past 3 but the lines aren't
+    # actually added)
+    solPostDiff = 0
+    expPostDiff = 0
     while lastLine:
         if lastLine[0] == ' ':
-            solLines.append(lastLine[1:])
-            expLines.append(lastLine[1:])
+            if solPostDiff < 3:
+                solLines.append(lastLine[1:])
+                truncatedAfter = True
+            if expPostDiff < 3:
+                expLines.append(lastLine[1:])
+                truncatedAfter = True
+            if diffLine is not None:
+                solPostDiff += 1
+                expPostDiff += 1
         elif lastLine[0] == '-':
+            if solPostDiff < 3:
+                solLines.append(lastLine[1:])
+                truncatedAfter = True
             if diffLine is None:
                 diffLine = curLine
-            solLines.append(lastLine[1:])
+            if diffLine is not None:
+                solPostDiff += 1
         elif lastLine[0] == '+':
+            if expPostDiff < 3:
+                expLines.append(lastLine[1:])
+                truncatedAfter = True
             if diffLine is None:
                 diffLine = curLine
-            expLines.append(lastLine[1:])
+            if diffLine is not None:
+                expPostDiff += 1
 
         curLine += 1
         lastLine = do.readline()
 
         # We read max 3 lines after the first difference
-        if diffLine is not None and curLine-diffLine > 3:
-            truncatedAfter = (lastLine != '') and (lastLine != '\ No newline at end of file\n')
+        if diffLine is not None and solPostDiff > 3 and expPostDiff > 3:
+            truncatedAfter = truncatedAfter or (lastLine != '') and (lastLine != '\ No newline at end of file\n')
             break
 
     # Put a single line in the expected answer if it was empty
