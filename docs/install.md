@@ -62,3 +62,9 @@ If you didn't install dependencies for all languages, some tests will fail.
 ## Usage
 
 Now that the taskgrader is installed, you can use it as described in the [Basic Usage](basicusage.md) section.
+
+For convenience, you can add some taskgrader commands by adding the `path/` subfolder of this repository into your `PATH` environment variable. You can do so by adding to your shell profile file (for instance `~/.bashrc` if you use `bash`):
+
+    export PATH="/your/copy/of/taskgrader/path/:$PATH"
+
+It will allow a few commands to be used directly in your shell, such as `taskstarter` or `taskgrader`. Check the `path/` folder to see the full list of commands.
