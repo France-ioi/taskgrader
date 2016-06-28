@@ -454,9 +454,28 @@ def testsol(args):
             print("Test cancelled because of genJson error.\nYou can force the test by using the -f switch.")
             return proc.returncode
 
-    print("\nTesting with stdGrade...")
+    print("\nTesting with stdGrade...", end='')
+
+    # Get solution language from correctSolutions if not specified
+    solLang = args.lang
+    if not solLang:
+        taskSettings = getTaskSettings(args)
+        solPath = '$TASK_PATH/%s' % os.path.relpath(args.path, args.taskpath)
+        for cs in taskSettings.get('correctSolutions', []):
+            if cs['path'] == solPath:
+                solLang = cs['language']
+                break
+
     # Execute all components
-    genProc = subprocess.Popen([CFG_GENSTD, '-p', args.taskpath, '-r', args.path], stdout=subprocess.PIPE, universal_newlines=True)
+    genCmd = [CFG_GENSTD, '-p', args.taskpath, '-r', args.path]
+    if solLang:
+        print(" (lang: %s)" % solLang)
+        genCmd.extend(['-l', solLang])
+    else:
+        # Language not specified, will be auto-detected by genStdTaskJson
+        print('')
+
+    genProc = subprocess.Popen(genCmd, stdout=subprocess.PIPE, universal_newlines=True)
     graderProc = subprocess.Popen([CFG_TASKGRADER], stdin=genProc.stdout, stdout=subprocess.PIPE, universal_newlines=True)
     if args.verbose:
         dispProc = subprocess.Popen([CFG_FULLREP], stdin=graderProc.stdout, universal_newlines=True)
@@ -523,13 +542,29 @@ def remotetest(args):
                 pass
 
         # Generate the input JSON
-        genProc = subprocess.Popen([CFG_GENSTD, '-p', args.taskpath, '-r', args.path], stdout=subprocess.PIPE, universal_newlines=True)
+        # Get solution language from correctSolutions if not specified
+        solLang = args.lang
+        if not solLang:
+            taskSettings = getTaskSettings(args)
+            solPath = '$TASK_PATH/%s' % os.path.relpath(args.path, args.taskpath)
+            for cs in taskSettings.get('correctSolutions', []):
+                if cs['path'] == solPath:
+                    solLang = cs['language']
+                    break
+
+        genCmd = [CFG_GENSTD, '-p', args.taskpath, '-r', args.path]
+        if solLang:
+            print("(language: %s)" % solLang)
+            genCmd.extend(['-l', solLang])
+
+        genProc = subprocess.Popen(genCmd, stdout=subprocess.PIPE, universal_newlines=True)
         if args.simple:
             remInput = genProc.stdout
         else:
             # Make it standalone
             stdProc = subprocess.Popen([CFG_MAKESTD], stdin=genProc.stdout, stdout=subprocess.PIPE, universal_newlines=True)
             remInput = stdProc.stdout
+
         # Send to the remoteGrader
         resCmd = [CFG_REMOTE]
         if svnTarget is not None:
@@ -611,6 +646,7 @@ if __name__ == '__main__':
         The 'testsol' action allows to test a solution with the task. It will
         test with default parameters and give you a summary of the results.""")
     testsolParser.add_argument('-f', '--force', help='Force test', action='store_true')
+    testsolParser.add_argument('-l', '--lang', help='Language of the solution', action='store')
     testsolParser.add_argument('-t', '--taskpath', help='Task path', default='.')
     testsolParser.add_argument('-v', '--verbose', help='Be more verbose', action='store_true')
     testsolParser.add_argument('path', help='Path to the solution')
@@ -620,6 +656,7 @@ if __name__ == '__main__':
         uses a remote taskgrader.""")
     remotetestParser.add_argument('-f', '--force', help='Force test', action='store_true')
     remotetestParser.add_argument('-g', '--getjob', help='Try to resume a remotetest sent as jobid ID', action='store', metavar='ID', type=int)
+    remotetestParser.add_argument('-l', '--lang', help='Language of the solution', action='store')
     remotetestParser.add_argument('-s', '--simple', help='Send a simple JSON (do not make a full JSON)', action='store_true')
     remotetestParser.add_argument('-t', '--taskpath', help='Task path', default='.')
     remotetestParser.add_argument('-v', '--verbose', help='Be more verbose', action='store_true')
