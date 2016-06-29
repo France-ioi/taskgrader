@@ -77,9 +77,9 @@ def showEvaluationReport(json):
     if len(json['generations']) > 0:
         print("* Generations")
         for generation in json['generations']:
-            showExecutionReport(generator['generatorExecution'], name="generation '%s'" % generation['id'])
+            showExecutionReport(generation['generatorExecution'], name="generation '%s'" % generation['id'])
             if 'outputGeneratorExecution' in generation:
-                showExecutionReport(generator['outputGeneratorExecution'], name="output generation '%s'" % generation['id'])
+                showExecutionReport(generation['outputGeneratorExecution'], name="output generation '%s'" % generation['id'])
 
     # Sanitizer and checker
     print("* Sanitizer and checker")
