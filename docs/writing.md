@@ -48,6 +48,24 @@ It will send a simple solution with only your solution; the remote server will t
 
 The tool `genJson`, automatically called when using `taskstarter.py test`, prepares the task by writing its parameters into a `defaultParams.json` file. It contains all the required information to evaluate solutions against the task, and can be used by evaluation platforms directly to reference the task. The tool `stdGrade` will use this file to quickly evaluate solutions.
 
+# Examples index
+
+The taskgrader comes with various examples depicting features of the taskgrader. Each of these examples is described in detail in this page.
+
+Name | Description
+---- | -----------
+taskCChecker | Check the output of the solution compilation
+taskGenerator | Generate test cases with a *generator* script
+taskInputs | Have the solution read a specific file then output in another file, instead of stdin/stdout
+taskLibs | Add libraries for usage by the solutions
+taskMinimal | Minimal task with only test cases and expected outputs
+taskRunner | Run a Python function defined by the solution instead of a full program
+taskSets | Separate multiple sets of tests
+taskSolchecker | Read the solution source (to check for length)
+taskTestchecker | Solution is not a program but a set of test cases
+taskTools | Custom sanitizer and checker
+taskTurtle | Check a turtle program and output its display
+
 # Basic examples
 
 Here are some basic examples based around a simple problem: the program is given a number as input, and must output the double of the number. These example tasks can be found in the `examples` folder.
@@ -273,6 +291,17 @@ This is done by using again the `addFiles` key as done in the previous example, 
 This will give the checker access to the compilation output through the files `compilationStdout` and `compilationStderr`.
 
 *This example can be found in the `examples/taskCChecker` folder.*
+
+
+## Specific input/output files examples
+
+In this task, the solution has to read from a file named `input`, and write its answer to the file `output`.
+
+This is done, like previous examples, by using the `addFiles` key, to add for each test a new file `input` containing the new input we want to give to the solution.
+
+In the `taskSettings.json` file, we use the `defaultEvaluationExecutions` to specify each test: set the contents of the `input` file, and specify we want to capture the file `output` (optional, allows to get its contents in the output JSON but unneeded for the checker to have access to this file).
+
+*This example can be found in the `examples/taskInputs` folder.*
 
 
 ## Turtle example: using and saving graphics
