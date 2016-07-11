@@ -1,0 +1,30 @@
+{
+"checker": "tests/gen/checker.py",
+"correctSolutions": [
+    {
+    "path": "$TASK_PATH/tests/gen/sol-ok-py.py",
+    "language": "python3",
+    "grade": 100
+    },
+    {
+    "path": "$TASK_PATH/tests/gen/sol-long-py.py",
+    "language": "python3",
+    "grade": 90
+    },
+    {
+    "path": "$TASK_PATH/tests/gen/sol-bad-py.py",
+    "language": "python3",
+    "grade": 0
+    }],
+"defaultEvaluationSolutions": [{
+    "id": "@solutionId",
+    "compilationDescr": {
+        "language": "python3",
+        "files": [{"name": "runner.py",
+                   "path": "$TASK_PATH/tests/gen/runner.py"}],
+        "dependencies": [{"name": "solution.py",
+                          "path": "@solutionPath",
+                          "content": "@solutionContent"}]
+        },
+    "compilationExecution": "@defaultSolutionCompParams"}]
+}
