@@ -1,0 +1,66 @@
+{
+"checker": "tests/gen/checker.py",
+"correctSolutions": [
+    {
+    "path": "$TASK_PATH/tests/gen/sol-ok-c.c",
+    "language": "c",
+    "grade": 100
+    },
+    {
+    "path": "$TASK_PATH/tests/gen/sol-noout-c.c",
+    "language": "c",
+    "grade": 0
+    },
+    {
+    "path": "$TASK_PATH/tests/gen/sol-bad-c.c",
+    "language": "c",
+    "grade": 0
+    }],
+"defaultEvaluationExecutions": [
+    {"id": "test1",
+    "idSolution": "@solutionId",
+    "filterTests": ["test.in"],
+    "runExecution":  {
+        "memoryLimitKb": 4096,
+        "timeLimitMs": 1000,
+        "getFiles": ["output"],
+        "useCache": false,
+        "stdoutTruncateKb": 10,
+        "stderrTruncateKb": 10,
+        "addFiles": [{
+            "name": "input",
+            "path": "$TASK_PATH/tests/inputs/input1"
+            }]
+    }},
+    {"id": "test2",
+    "idSolution": "@solutionId",
+    "filterTests": ["test.in"],
+    "runExecution":  {
+        "memoryLimitKb": 4096,
+        "timeLimitMs": 1000,
+        "getFiles": ["output"],
+        "useCache": false,
+        "stdoutTruncateKb": 10,
+        "stderrTruncateKb": 10,
+        "addFiles": [{
+            "name": "input",
+            "path": "$TASK_PATH/tests/inputs/input2"
+            }]
+    }},
+    {"id": "test3",
+    "idSolution": "@solutionId",
+    "filterTests": ["test.in"],
+    "runExecution":  {
+        "memoryLimitKb": 4096,
+        "timeLimitMs": 1000,
+        "getFiles": ["output"],
+        "useCache": false,
+        "stdoutTruncateKb": 10,
+        "stderrTruncateKb": 10,
+        "addFiles": [{
+            "name": "input",
+            "path": "$TASK_PATH/tests/inputs/input3"
+            }]
+    }}
+    ]
+}
