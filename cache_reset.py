@@ -19,7 +19,7 @@ if __name__ == '__main__':
     shutil.rmtree(CFG_BUILDSDIR, ignore_errors=True)
     shutil.rmtree(CFG_CACHEDIR, ignore_errors=True)
     # Recreate them
-    os.mkdir(CFG_BUILDSDIR)
-    os.mkdir(CFG_CACHEDIR)
+    os.makedirs(CFG_BUILDSDIR)
+    os.makedirs(CFG_CACHEDIR)
     # Reinitialize the cache database
     schema_db.schemaDb()

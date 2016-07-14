@@ -615,6 +615,7 @@ if __name__ == '__main__':
         solution sometimes getting a grade of 0 for a test and having a final
         average grade of 25. Adding a "correct solution" allows to test
         automatically whether the task grades properly the solutions.""")
+    addsolParser.add_argument('-f', '--force', help='Force addition', action='store_true')
     addsolParser.add_argument('-t', '--taskpath', help='Task path', default='.')
     addsolParser.add_argument('-g', '--grade', help='Expected average grade for the solution', type=int, action='store')
     addsolParser.add_argument('-l', '--lang', help='Language of the solution', required=True, action='store')
@@ -624,6 +625,7 @@ if __name__ == '__main__':
         The 'removesol' action allows to remove a "correct solution" which was
         added with 'addsol' from the task.""")
     removesolParser.add_argument('-a', '--all', help='Remove all correct solutions', dest='removeall', action='store_true')
+    removesolParser.add_argument('-f', '--force', help='Force removal', action='store_true')
     removesolParser.add_argument('-t', '--taskpath', help='Task path', default='.')
     removesolParser.add_argument('path', help='Path to the solution', nargs='?', default='')
 
