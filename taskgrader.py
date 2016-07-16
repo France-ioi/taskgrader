@@ -690,10 +690,14 @@ class LanguageC(Language):
     dependencies = ["gcc"]
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+        # Add non-header dependencies to compilation
+        compFiles = sourceFiles[:]
+        compFiles.extend(filter(lambda d: d[-2:] != '.h', depFiles))
+
         if CFG_STATIC:
-            cmdLine = "%s -static -std=gnu99 -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(sourceFiles))
+            cmdLine = "%s -static -std=gnu99 -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(compFiles))
         else:
-            cmdLine = "%s -std=gnu99 -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(sourceFiles))
+            cmdLine = "%s -std=gnu99 -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(compFiles))
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
 class LanguageCpp(Language):
@@ -710,10 +714,14 @@ class LanguageCpp(Language):
             os.path.join(baseDir, 'libs', filename)]
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+        # Add non-header dependencies to compilation
+        compFiles = sourceFiles[:]
+        compFiles.extend(filter(lambda d: d[-2:] != '.h', depFiles))
+
         if CFG_STATIC:
-            cmdLine = "%s -static -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(sourceFiles))
+            cmdLine = "%s -static -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(compFiles))
         else:
-            cmdLine = "%s -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(sourceFiles))
+            cmdLine = "%s -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(compFiles))
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
 class LanguageCpp11(LanguageCpp):
@@ -721,10 +729,14 @@ class LanguageCpp11(LanguageCpp):
     dependencies = ["g++"]
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+        # Add non-header dependencies to compilation
+        compFiles = sourceFiles[:]
+        compFiles.extend(filter(lambda d: d[-2:] != '.h', depFiles))
+
         if CFG_STATIC:
-            cmdLine = "%s -std=gnu++11 -static -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(sourceFiles))
+            cmdLine = "%s -std=gnu++11 -static -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(compFiles))
         else:
-            cmdLine = "%s -std=gnu++11 -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(sourceFiles))
+            cmdLine = "%s -std=gnu++11 -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(compFiles))
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
 class LanguageOcaml(Language):
@@ -1530,7 +1542,7 @@ def evaluation(evaluationParams):
             # We generate the test cases just by executing the generators
             genReport = {'id': gen['id']}
             genReport['generatorExecution'] = generator.execute(genDir,
-                outputFiles=['*.in', '*.out', '*.h', '*.java', '*.ml', '*.mli', '*.pas', '*.py'])
+                outputFiles=['*.in', '*.out', '*.h', '*.o', '*.java', '*.ml', '*.mli', '*.pas', '*.py'])
             errorSoFar = errorSoFar or isExecError(genReport['generatorExecution'])
             if gen.has_key('idOutputGenerator'):
                 # We also have an output generator
@@ -1542,7 +1554,7 @@ def evaluation(evaluationParams):
             for f in globOfGlobs(genDir, ['*.in', '*.out']):
                 filecopy(f, baseWorkingDir + 'tests/')
             # We copy the generated lib files
-            for f in globOfGlobs(genDir, ['*.h', '*.java', '*.ml', '*.mli', '*.pas', '*.py']):
+            for f in globOfGlobs(genDir, ['*.h', '*.o', '*.java', '*.ml', '*.mli', '*.pas', '*.py']):
                 filecopy(f, baseWorkingDir + 'libs/')
 
     # We add extra tests
