@@ -4,7 +4,7 @@
     
     <url>
      <loc>None/</loc>
-     <lastmod>2016-06-26</lastmod>
+     <lastmod>2016-07-16</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
@@ -13,25 +13,31 @@
         
     <url>
      <loc>None/install/</loc>
-     <lastmod>2016-06-26</lastmod>
+     <lastmod>2016-07-16</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
      <loc>None/basicusage/</loc>
-     <lastmod>2016-06-26</lastmod>
+     <lastmod>2016-07-16</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
      <loc>None/writing/</loc>
-     <lastmod>2016-06-26</lastmod>
+     <lastmod>2016-07-16</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    <url>
+     <loc>None/examples/</loc>
+     <lastmod>2016-07-16</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
      <loc>None/inputjson/</loc>
-     <lastmod>2016-06-26</lastmod>
+     <lastmod>2016-07-16</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
@@ -41,13 +47,13 @@
         
     <url>
      <loc>None/tasksettings/</loc>
-     <lastmod>2016-06-26</lastmod>
+     <lastmod>2016-07-16</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
      <loc>None/defaultparams/</loc>
-     <lastmod>2016-06-26</lastmod>
+     <lastmod>2016-07-16</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
@@ -56,7 +62,7 @@
     
     <url>
      <loc>None/errors/</loc>
-     <lastmod>2016-06-26</lastmod>
+     <lastmod>2016-07-16</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
@@ -64,7 +70,7 @@
     
     <url>
      <loc>None/moreinfo/</loc>
-     <lastmod>2016-06-26</lastmod>
+     <lastmod>2016-07-16</lastmod>
      <changefreq>daily</changefreq>
     </url>
     

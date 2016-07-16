@@ -83,6 +83,12 @@
                         
                             
 <li >
+    <a href="../examples/">Task examples</a>
+</li>
+
+                        
+                            
+<li >
     <a href="../inputjson/">Input JSON</a>
 </li>
 
@@ -218,7 +224,11 @@
 <p>After configuration, you can test that the taskgrader is configured properly and is behaving as expected by running <code>tests/test.py</code>. By default, it will run all tests and give you a summary. Full usage instructions are given by <code>test.py -h</code>.</p>
 <p>If you didn't install dependencies for all languages, some tests will fail.</p>
 <h2 id="usage">Usage</h2>
-<p>Now that the taskgrader is installed, you can use it as described in the <a href="../basicusage/">Basic Usage</a> section.</p></div>
+<p>Now that the taskgrader is installed, you can use it as described in the <a href="../basicusage/">Basic Usage</a> section.</p>
+<p>For convenience, you can add some taskgrader commands by adding the <code>path/</code> subfolder of this repository into your <code>PATH</code> environment variable. You can do so by adding to your shell profile file (for instance <code>~/.bashrc</code> if you use <code>bash</code>):</p>
+<pre><code>export PATH="/your/copy/of/taskgrader/path/:$PATH"
+</code></pre>
+<p>It will allow a few commands to be used directly in your shell, such as <code>taskstarter</code> or <code>taskgrader</code>. Check the <code>path/</code> folder to see the full list of commands.</p></div>
             
         </div>
 

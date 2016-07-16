@@ -83,6 +83,12 @@
                         
                             
 <li >
+    <a href="../examples/">Task examples</a>
+</li>
+
+                        
+                            
+<li >
     <a href="../inputjson/">Input JSON</a>
 </li>
 
@@ -140,7 +146,7 @@
                         </a>
                     </li>
                     <li >
-                        <a rel="prev" href="../inputjson/">
+                        <a rel="prev" href="../examples/">
                             Next <i class="fa fa-arrow-right"></i>
                         </a>
                     </li>
@@ -175,31 +181,7 @@
         
             <li><a href="#using-tasks">Using tasks</a></li>
         
-    
-        <li class="main "><a href="#basic-examples">Basic examples</a></li>
-        
-            <li><a href="#minimal-example-only-test-cases">Minimal example: only test cases</a></li>
-        
-            <li><a href="#adding-correct-solutions-to-our-task">Adding correct solutions to our task</a></li>
-        
-            <li><a href="#tools-example-adding-a-sanitizer-and-a-checker">Tools example: adding a sanitizer and a checker</a></li>
-        
-            <li><a href="#libs-example-adding-libraries">Libs example: adding libraries</a></li>
-        
-            <li><a href="#generator-example-adding-a-generator">Generator example: adding a generator</a></li>
-        
-            <li><a href="#test-sets-example-having-multiple-executions-with-different-test-sets">Test sets example: having multiple executions with different test sets</a></li>
-        
-    
-        <li class="main "><a href="#more-complex-task-writing">More complex task writing</a></li>
-        
-            <li><a href="#runner-example-solution-skeleton">Runner example: solution skeleton</a></li>
-        
-            <li><a href="#solution-checker-example-reading-the-solution-source">Solution checker example: reading the solution source</a></li>
-        
-            <li><a href="#compilation-checker-example-reading-the-compiler-output">Compilation checker example: reading the compiler output</a></li>
-        
-            <li><a href="#turtle-example-using-and-saving-graphics">Turtle example: using and saving graphics</a></li>
+            <li><a href="#examples">Examples</a></li>
         
     
     </ul>
@@ -219,7 +201,7 @@
 <h2 id="first-steps">First steps</h2>
 <p>The script <code>tools/taskstarter/taskstarter.py</code> can assist with writing a task; use <code>taskstarter.py help</code> to see the available commands.</p>
 <p>You might start a new task interactively by executing <code>taskstarter.py init</code>.</p>
-<p>Alternatively, you can also copy one of the example tasks and use it as a base for your task.</p>
+<p>Alternatively, you can also copy one of the <a href="../examples/">example tasks</a> and use it as a base for your task.</p>
 <h2 id="testing-tasks">Testing tasks</h2>
 <p>Tasks can be tested with:</p>
 <ul>
@@ -240,226 +222,8 @@
 <p>It will send a simple solution with only your solution; the remote server will then read the task files locally for the evaluation. It's thus important that the remote server has the most recent files for the evaluation; if the task are locally and remotely on a SVN repository, taskstarter will check the task has been committed and send the corresponding revision number to the remote server for it to make sure it's on the latest version.</p>
 <h2 id="using-tasks">Using tasks</h2>
 <p>The tool <code>genJson</code>, automatically called when using <code>taskstarter.py test</code>, prepares the task by writing its parameters into a <code>defaultParams.json</code> file. It contains all the required information to evaluate solutions against the task, and can be used by evaluation platforms directly to reference the task. The tool <code>stdGrade</code> will use this file to quickly evaluate solutions.</p>
-<h1 id="basic-examples">Basic examples</h1>
-<p>Here are some basic examples based around a simple problem: the program is given a number as input, and must output the double of the number. These example tasks can be found in the <code>examples</code> folder.</p>
-<h2 id="minimal-example-only-test-cases">Minimal example: only test cases</h2>
-<p>A task can be just test cases and their corresponding expected outputs. The task can be built and tested like this:</p>
-<ul>
-<li>We start our task in a folder with <code>taskstarter.py init</code> (answering 'no' to all questions); it will give us a base task structure we can use as reference</li>
-<li>We put the test cases input files <code>test1.in</code> and <code>test2.in</code> in the subfolder <code>tests/files/</code></li>
-<li>We put in the same subfolder <code>test1.out</code> and <code>test2.out</code>, the correct output of these test cases</li>
-<li>We can write a valid solution, for instance <code>sol-ok-c.c</code> in this example</li>
-<li>We can test this solution with <code>taskstarter.py testsol tests/gen/sol-ok-c.c</code>, it will say the solution got a grade of 100 for each test</li>
-</ul>
-<p>When the task is only test cases, the tools will use default programs as sanitizer and checker. The solution will get a perfect grade of 100 if its output is the expected output (<code>test1.out</code> for the test case <code>test1.in</code>, ...), or the minimum grade of 0 if its output is different.</p>
-<p><em>This example can be found in the <code>examples/taskMinimal</code> folder.</em></p>
-<h2 id="adding-correct-solutions-to-our-task">Adding correct solutions to our task</h2>
-<p>Once our task is almost ready, we can add "correct solutions": they are known solutions which have known results, such as always giving a good answer or always giving a bad answer.</p>
-<p>It allows to test against regressions, that is to say that after modifications, that the task still gives the right grade to our known solutions.</p>
-<p>Using again our example task 1, we can add correct solutions like this:</p>
-<pre><code>taskstarter.py addsol -g 100 -l c tests/gen/sol-ok-c.c
-</code></pre>
-<p>It means that each time we'll test the task, the solution <code>sol-ok-c.c</code> will be automatically evaluated against the task, and <code>-g 100</code> means we expect the solution to get a perfect grade of 100 each time (and having a final average grade of 100).</p>
-<p>We can also add an invalid solution, that is to say, a solution who will get the minimum grade of 0 each time. In this example, we have such a solution, <code>sol-bad-c.c</code>. We add it as a "bad solution" like this:</p>
-<pre><code>taskstarter.py addsol -g 0 -l c tests/gen/sol-bad-c.c
-</code></pre>
-<p>which means that we expect it to get a grade of 0 on each test (hence a final expected average grade of 0).</p>
-<p>We can finally test the task by executing, in the task folder,</p>
-<pre><code>taskstarter.py test
-</code></pre>
-<p>in the task folder. It will output:</p>
-<pre><code>Test successful on 2 correctSolutions with up to 2 test cases.
-</code></pre>
-<p>which means the task successfully compiled, that the evaluation of the good solution <code>sol-ok-c.c</code> got a perfect grade of 100 each time, and that the evaluation of the bad solution <code>sol-bad-c.c</code> got a bad grade of 0 each time.</p>
-<h2 id="tools-example-adding-a-sanitizer-and-a-checker">Tools example: adding a sanitizer and a checker</h2>
-<p>It's generally recommended to use a sanitizer and a checker: the sanitizer will ensure only valid input test files are given to solutions, especially in cases where contestants are allowed to use their own test files as examples; the checker can give a more precise grade to solutions, and also handle cases where the solution output is not in the exact format expected.</p>
-<p>We add a sanitizer and a checker to our test like this:</p>
-<ul>
-<li>We use the task made in the last example</li>
-<li>We write a script <code>sanitizer.sh</code> which takes as input the test case, and sets its exit code to 0 if it's valid, 1 if it's not</li>
-<li>We write a script <code>checker.sh</code> which takes three arguments, <code>test.in</code> the test case input, <code>test.solout</code> the solution output, <code>test.out</code> the reference (expected) output; and gives a grade to the solution based on its output</li>
-<li>We add the sanitizer and the checker to the task with <code>taskstarter.py add checker tests/gen/checker.sh</code> and <code>taskstarter.py add sanitizer tests/gen/sanitizer.sh</code></li>
-<li>Finally, we test the task with <code>taskstarter.py test</code>. It will tell us whether our programs were detected, compiled and executed successfully, and whether the "correct solution" we defined passed the test and got the expected grade of 100.</li>
-</ul>
-<p>The sanitizer and the checker can be written in any language supported by the taskgrader.</p>
-<p><em>This example can be found in the <code>examples/taskTools</code> folder.</em></p>
-<h2 id="libs-example-adding-libraries">Libs example: adding libraries</h2>
-<p>This example is a task with libraries intended for usage by solutions. It's pretty simple to add libraries:</p>
-<ul>
-<li>We write a library <code>lib.h</code> intended for usage with solution in the C language</li>
-<li>We put it in <code>tests/files/lib/c/lib.h</code></li>
-<li>Finally, we test the task with <code>taskstarter.py test</code>.</li>
-</ul>
-<p>As long as the libraries are in the right folder (by default, <code>tests/files/lib/[language]/[library.ext]</code>), they will be automatically detected by <code>genJson</code> and added to the default dependencies for that language. All solutions of that language will have the library available for importation without any configuration necessry.</p>
-<p><em>This example can be found in the <code>examples/taskLibs</code> folder.</em></p>
-<h2 id="generator-example-adding-a-generator">Generator example: adding a generator</h2>
-<p>It can be handy to use a generator to generate the test cases and/or libraries for the task, instead of writing them all by hand.</p>
-<p>We add a generator like this:</p>
-<ul>
-<li>We use the task made in the last example</li>
-<li>We write a script <code>gen.sh</code> which generates the files upon execution; it must be a shell script, and it must write the files following the same tree as the <code>files</code> folder</li>
-<li>We add the generator to the task with <code>taskstarter.py add generator tests/gen/gen.sh</code></li>
-<li>Finally, we test the task with <code>taskstarter.py test</code>.</li>
-</ul>
-<p>The generator is handy when a large number of test cases must be generated, and also for complex tasks where the expected output can take a long time to be computed, and thus needs to be precomputed.</p>
-<p>Note that the auto-test with <code>taskstarter.py test</code> will show:</p>
-<pre><code>Test successful on 2 correctSolutions with up to 4 test cases.
-</code></pre>
-<p>which means the taskgrader successfully found all 4 test cases, the 2 test cases given directly in the task folder, and the 2 test cases generated by our script <code>gen.sh</code>.</p>
-<p><em>This example can be found in the <code>examples/taskGenerator</code> folder.</em></p>
-<h2 id="test-sets-example-having-multiple-executions-with-different-test-sets">Test sets example: having multiple executions with different test sets</h2>
-<p>In some tasks, we can have test sets which are testing different aspects of the task. We can set the default to be evaluating each set separately, for instance when we want to have an average grade for each set of tests and not all tests at once.</p>
-<p>It can be done by editing the <code>taskSettings.json</code> file and adding a <code>defaultEvaluationExecutions</code> key describing each test set:</p>
-<pre><code>"defaultEvaluationExecutions": [
-    {"id": "test-positive",
-    "idSolution": "@solutionId",
-    "filterTests": ["testpos1.in", "testpos2.in", "testpos3.in"],
-    "runExecution": "@defaultSolutionExecParams"
-    },
-    {"id": "test-negative",
-    "idSolution": "@solutionId",
-    "filterTests": ["testneg1.in", "testneg2.in"],
-    "runExecution": "@defaultSolutionExecParams"
-    },
-    {"id": "test-all",
-    "idSolution": "@solutionId",
-    "filterTests": ["test*.in"],
-    "runExecution": "@defaultSolutionExecParams"
-    }]
-}
-</code></pre>
-<p>Here we have three test sets, <code>test-positive</code>, <code>test-negative</code> and <code>test-all</code>, the first one using only positive tests, the second one using only negative tests, and the last one using all test cases.</p>
-<p>Note that if the cache is enabled, the solution will not be executed again for the <code>test-all</code> set as all test cases have already been evaluated. Instead, the taskgrader will just fetch back the results from the cache.</p>
-<p><em>This example can be found in the <code>examples/taskSets</code> folder.</em></p>
-<h1 id="more-complex-task-writing">More complex task writing</h1>
-<p>More complex tasks can be written for usage with the taskgrader. The <code>taskstarter</code> tool is meant for simple tasks, you need to edit files manually for these examples. Here is an example, but read the rest of this documentation for more information.</p>
-<h2 id="runner-example-solution-skeleton">Runner example: solution skeleton</h2>
-<p>Sometimes, the "solution" to be evaluated is not the file to be executed, but a library or a test file.</p>
-<p>In this example, we have <code>runner.py</code> calling the function <code>min3nombres</code> from the user-sent python file. The "solution" is hence a library, and the actual script executed is <code>runner.py</code> using this library.</p>
-<p>In order to be able to evaluate solutions against this task, we add, in <code>taskSettings.json</code>, the key <code>defaultEvaluationSolutions</code>. This key will get copied directly to <code>defaultParams.json</code>, where it will indicate the skeleton of what needs to be executed by the taskgrader. Some more information can be found in the <a href="../defaultparams/"><code>defaultParams.json</code> reference</a>. Here this key contains:</p>
-<pre><code>"defaultEvaluationSolutions": [{
-    "id": "@solutionId",
-    "compilationDescr": {
-        "language": "python",
-        "files": [{"name": "runner.py",
-                   "path": "$TASK_PATH/tests/gen/runner.py"}],
-        "dependencies": [{"name": "solution.py",
-                          "path": "@solutionPath",
-                          "content": "@solutionContent"}]
-        },
-    "compilationExecution": "@defaultSolutionCompParams"}]
-</code></pre>
-<p>This example means to use <code>runner.py</code> as script to execute (hence in "files"), and to give the solution as dependency, stored in <code>solution.py</code> (whichever the original solution filename is, it will be renamed to <code>solution.py</code>).</p>
-<p>In this key, we indicate what needs to be executed, and the values <code>'@solutionFilename', '@solutionLanguage', '@solutionDependencies', '@solutionPath', '@solutionContent'</code> will be replaced with the solution's name, language, dependencies, and its path or content. In this example task, <code>runner.py</code> is defined as the main program to execute, and our solution is passed as dependency of this program, and automatically named <code>solution.py</code> to be then imported by <code>runner.py</code>.</p>
-<p>You can test the task by running, from the task folder:</p>
-<ul>
-<li><code>taskstarter.py test</code> for the normal test</li>
-<li><code>taskstarter.py testsol tests/gen/sol-ok-py.py</code> for a good solution</li>
-<li><code>taskstarter.py testsol tests/gen/sol-bad-py.py</code> for a bad solution</li>
-</ul>
-<p>The testing tool <code>stdGrade</code> will automatically understand how to evaluate these solutions.</p>
-<p><em>This example can be found in the <code>examples/taskRunner</code> folder.</em></p>
-<h2 id="solution-checker-example-reading-the-solution-source">Solution checker example: reading the solution source</h2>
-<p>In this task, the checker grades the solution source code.</p>
-<p>For this example, the checker counts the number of characters of the solution (excluding comment lines and whitespaces), and gives a lower grade if the solution source is too long. (Of course it gives a grade of 0 if the solution doesn't output the correct answer.)</p>
-<p>In order to have the checker be able to read the solution source, we use the <code>addFiles</code> key of its <code>runExecution</code> params; this key allows to add any file in the working folder during an execution. Here, it adds to the checker execution an access to the solution source, stored in file <code>solution</code>. The checker can then read this file, along with the test case files, to accordingly grade the solution.</p>
-<p>Here, we modify the key <code>defaultChecker</code> in order to add the file, like this:</p>
-<pre><code>"defaultChecker": {
-    "compilationDescr": {
-        "language": "python2",
-        "files": [{
-            "name": "checker.py",
-            "path": "$TASK_PATH/tests/gen/checker.py"
-            }],
-        "dependencies": []},
-    "compilationExecution": "@defaultToolCompParams",
-    "runExecution": {
-        "memoryLimitKb": 131072,
-        "timeLimitMs": 60000,
-        "useCache": true,
-        "stdoutTruncateKb": -1,
-        "stderrTruncateKb": -1,
-        "addFiles": [{
-            "name": "solution",
-            "path": "@solutionPath",
-            "content": "@solutionContent"
-            }],
-        "getFiles": []}}
-}
-</code></pre>
-<p>You can test the task by running, from the task folder:</p>
-<ul>
-<li><code>taskstarter.py test</code> for the normal test, which will check each solution has the expected grade</li>
-<li><code>taskstarter.py testsol tests/gen/sol-ok-c.c</code> for a good and short solution getting the perfect grade of 100 (right answer, less than 60 characters)</li>
-<li><code>taskstarter.py testsol tests/gen/sol-long-c.c</code> for a solution too long getting a grade of 93 (right answer, more than 60 characters)</li>
-<li><code>taskstarter.py testsol tests/gen/sol-bad-c.c</code> for a bad solution getting a grade of 0 (wrong answer)</li>
-</ul>
-<p><em>This example can be found in the <code>examples/taskSolchecker</code> folder.</em></p>
-<h2 id="compilation-checker-example-reading-the-compiler-output">Compilation checker example: reading the compiler output</h2>
-<p>In this task, the checker reads the compiler output. It then, as an example, displays it on his grading output; a more detailed checker could though read the compiler output to check for specific errors.</p>
-<p>This is done by using again the <code>addFiles</code> key as done in the previous example, and adding the compiler output in the files to give to the checker:</p>
-<pre><code>"addFiles": [
-  {
-    "name": "compilationStdout",
-    "path": "$BUILD_PATH/solutions/solution/stdout"
-  }, {
-    "name": "compilationStderr",
-    "path": "$BUILD_PATH/solutions/solution/stderr"
-  }]
-</code></pre>
-<p>This will give the checker access to the compilation output through the files <code>compilationStdout</code> and <code>compilationStderr</code>.</p>
-<p><em>This example can be found in the <code>examples/taskCChecker</code> folder.</em></p>
-<h2 id="turtle-example-using-and-saving-graphics">Turtle example: using and saving graphics</h2>
-<p>In this task, the solution is a <a href="https://docs.python.org/2/library/turtle.html">turtle</a> script; here, its task is to simply to go to a specified position (but more advanced criterias can be written).</p>
-<p>This task is complex for two reasons:</p>
-<ul>
-<li>the base turtle library needs a graphic window to work (unavailable on an evaluation server), and we still need to "isolate" the solution execution</li>
-<li>we save the resulting image as a PNG file</li>
-</ul>
-<h3 id="requirements">Requirements</h3>
-<p>To work, this task needs:</p>
-<ul>
-<li>Xvfb, "X virtual framebuffer", a X server without display (to make turtle show graphics and then save them)</li>
-<li>PIL, "Python Imaging Library", a library to handle images</li>
-<li>Tkinter, used by the turtle for its graphics</li>
-<li>Ghostscript, for PIL to read the saved output from Tk</li>
-</ul>
-<p>On Debian, they can be installed with the following command:</p>
-<pre><code>apt-get install xvfb python-pil python-tk ghostscript
-</code></pre>
-<p>The task also needs the <code>checker.sh</code> to be whitelisted for use outside of isolate; this is done by adding its path in <code>CFG_NOISOLATE</code> in taskgrader's <code>config.py</code> file, for instance:</p>
-<pre><code>CFG_NOISOLATE = ["/path/to/taskgrader/examples/taskTurtle/tests/gen/checker.sh"]
-</code></pre>
-<p>(It must be an absolute path, as returned by Python's <code>os.path.abspath</code>.)</p>
-<h3 id="how-it-works">How it works</h3>
-<p>This task works by saving all turtle commands executed by the solution, and then replaying them to generate the resulting PNG, and also to evaluate the criteria of task completion.</p>
-<h4 id="runnerpy">runner.py</h4>
-<p>The execution of solutions is wrapped in a <code>runner.py</code> execution.</p>
-<p>The runner of this task defines a class, <code>LoggedTurtle</code>, which logs all the turtle commands executed while inhibiting their graphics. It also modifies the solution source code to change all instances of the normal <code>Turtle</code> class to this <code>LoggedTurtle</code> class; and then executes the solution while logging all commands. It finally prints the full JSON-encoded log, whose entries contain the following elements:</p>
-<ul>
-<li>ID number for the turtle (to allow multiple turtles)</li>
-<li>Component, either 'nav' for the navigator, 'turtle' for other functions</li>
-<li>Name of turtle's function called</li>
-<li>args and kwargs of the call</li>
-</ul>
-<p>See <code>turtleToPng.py</code> or <code>checker.py</code> for examples on how to use this log.</p>
-<h4 id="checkersh">checker.sh</h4>
-<p>This script has two sub-components:</p>
-<ul>
-<li><code>turtleToPng.py</code> is a script generating the base64-encoded PNG image resulting from the execution of the turtle</li>
-<li><code>checker.py</code> is the actual checker, using the turtle log to evaluate the criteria and grade the solution</li>
-</ul>
-<p>As said above, this script must be whitelisted for executiong outside of isolate by the taskgrader. It will allow the script to run Xvfb and <code>turtleToPng.py</code> outside of isolate, as X displays cannot run inside isolate.</p>
-<p>It will then use the taskgrader tool <code>tools/isolate-run.py</code> to run the actual checker <code>checker.py</code> inside isolate.</p>
-<h3 id="usage">Usage</h3>
-<p>As usual, you can test the task by running, from the task folder:</p>
-<ul>
-<li><code>taskstarter.py test</code> for the normal test, which will check each solution has the expected grade</li>
-<li><code>taskstarter.py testsol tests/gen/sol-ok-py.py</code> for a good solution</li>
-<li><code>taskstarter.py testsol tests/gen/sol-bad-py.py</code> for a bad solution</li>
-</ul>
-<p>If you grade a solution against the task, the output JSON will contain a file <code>turtle_png.b64</code>, which is the base64-encoded PNG image resulting from each execution of the solution against a test case. It is in the <code>files</code> key of each <code>checker</code> report (in <code>/executions[idx]/testReports[idx]</code>). The file <code>view.html</code> in the task folder contains an example JavaScript to display it in a browser.</p>
-<p><em>This example can be found in the <code>examples/taskTurtle</code> folder.</em></p></div>
+<h2 id="examples">Examples</h2>
+<p>Check the <a href="../examples/">examples page</a> for a description of the examples in the taskgrader repository. These examples can be easily used as a base for your task.</p></div>
             
         </div>
 
