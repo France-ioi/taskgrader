@@ -10,6 +10,16 @@
 
 import json, os, sys
 
+def summarizeOutput(output):
+    outputLines = output.splitlines()
+    if len(outputLines) > 7:
+        print('\n'.join(outputLines[:3]))
+        print('[... truncated ...]')
+        print('\n'.join(outputLines[-3:]))
+    else:
+        print('\n'.join(outputLines))
+    print('')
+
 if __name__ == '__main__':
     # Read stdin
     inputData = sys.stdin.read()
@@ -22,11 +32,15 @@ if __name__ == '__main__':
             print(inputData)
         sys.exit(1)
 
+    # Summary
+    summary = "Summary:"
+
     # Check how many solutions didn't compile
     lensolnok = len(list(filter(lambda x: x['compilationExecution']['exitCode'] != 0, resultJson['solutions'])))
     if lensolnok > 0:
         lensol = len(resultJson['solutions'])
         print(" * %d / %d solutions didn't compile properly:" % (lensolnok, lensol))
+        summary += " %d failed compilation" % (lensolnok, lensol)
         for execution in resultJson['solutions']:
             if execution['compilationExecution']['exitCode'] != 0:
                 print("-> Solution `%s` failed compilation, output:" % execution['id'])
@@ -36,16 +50,25 @@ if __name__ == '__main__':
     # Show executions information
     for execution in resultJson['executions']:
         print(' * Execution %s:' % execution['name'])
+        suml = []
         for report in execution['testsReports']:
             if 'checker' in report:
                 # Everything was executed
                 print('Solution `%s` executed successfully on test `%s`. Checker report:' % (execution['name'], report['name']))
-                print(report['checker']['stdout']['data'])
+                checkerOut = report['checker']['stdout']['data']
+                summarizeOutput(checkerOut)
+                if checkerOut:
+                    suml.append(checkerOut.splitlines()[0])
             elif 'execution' in report:
                 # Solution error
                 print('Solution `%s` returned an error on test `%s`. Solution report:' % (execution['name'], report['name']))
                 print(json.dumps(report['execution']))
+                suml.append('error')
             else:
                 # Sanitizer error
                 print('Test `%s` rejected by sanitizer. Sanitizer report:' % report['name'])
                 print(json.dumps(report['sanitizer']))
+                suml.append('reject')
+        summary += "\n%s: %s" % (execution['name'], ', '.join(suml))
+
+    print(summary)
