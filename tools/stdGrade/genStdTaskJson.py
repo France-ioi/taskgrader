@@ -27,7 +27,7 @@ def getDefault(defaultParams, field, lang, default):
         return default
 
 
-def genStdTaskJson(taskPath, execPath, execParams, lang=None):
+def genStdTaskJson(taskPath, execPath, cmdExecParams, lang=None):
     """Make a default evaluation JSON, evaluating the solutions in files
     against the task in taskPath, using execParams as constraints for the
     compilation and execution."""
@@ -46,6 +46,13 @@ def genStdTaskJson(taskPath, execPath, execParams, lang=None):
 
     # Do we have the defaultDependencies in the defaultParams?
     dep = getDefault(defaultParams, 'defaultDependencies', solLang, [])
+
+    # Build solution execParams, priority:
+    # config.py < task execParams < command-line execParams
+    execParams = {}
+    execParams.update(CFG_EXECPARAMS)
+    execParams.update(defaultParams.get('defaultSolutionExecParams', {}))
+    execParams.update(cmdExecParams)
 
     # Parameters of the solution
     extraParams = {
@@ -67,16 +74,13 @@ def genStdTaskJson(taskPath, execPath, execParams, lang=None):
 
 
 if __name__ == '__main__':
-    execParams = {}
-    execParams.update(CFG_EXECPARAMS)
-
     # Read command line options
     argParser = argparse.ArgumentParser(description="Make a standard JSON to evaluate the program in FILE against a task with the taskgrader, using default parameters.")
 
     argParser.add_argument('file', metavar='FILE', help='Executable to grade; must accept the task on stdin and output the results on stdout')
     argParser.add_argument('-l', '--lang', help="Sets the language of the solution")
-    argParser.add_argument('-m', '--memory-limit', type=int, help="Sets the memory limit for compilation and execution, in kilobytes", default=execParams['memoryLimitKb'])
-    argParser.add_argument('-t', '--time-limit', type=int, help="Sets the time limit for compilation and execution, in milliseconds", default=execParams['timeLimitMs'])
+    argParser.add_argument('-m', '--memory-limit', type=int, help="Sets the memory limit for compilation and execution, in kilobytes")
+    argParser.add_argument('-t', '--time-limit', type=int, help="Sets the time limit for compilation and execution, in milliseconds")
     argParser.add_argument('-p', '--task-path', help="Sets the task path; defaults to current directory")
     argParser.add_argument('-r', '--real-path', help="Keep given file paths as-is, do not make them absolute", action='store_true')
 
@@ -92,9 +96,12 @@ if __name__ == '__main__':
     if not os.path.isfile(args.file):
         argParser.error("Solution `%s` not found." % args.file)
 
-    # Add command-line given constraints to execParams
-    execParams['memoryLimitKb'] = args.memory_limit
-    execParams['timeLimitMs'] = args.time_limit
+    # Add command-line given constraints
+    cmdExecParams = {}
+    if args.memory_limit:
+        cmdExecParams['memoryLimitKb'] = args.memory_limit
+    if args.time_limit:
+        cmdExecParams['timeLimitMs'] = args.time_limit
 
     # By default, we make the paths given on command-line absolute
     if args.real_path:
@@ -103,4 +110,4 @@ if __name__ == '__main__':
         execPath = os.path.abspath(args.file)
 
     # Make the JSON
-    print json.dumps(genStdTaskJson(args.task_path, execPath, execParams, args.lang))
+    print json.dumps(genStdTaskJson(args.task_path, execPath, cmdExecParams, args.lang))
