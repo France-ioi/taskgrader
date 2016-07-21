@@ -40,7 +40,7 @@ if __name__ == '__main__':
     if lensolnok > 0:
         lensol = len(resultJson['solutions'])
         print(" * %d / %d solutions didn't compile properly:" % (lensolnok, lensol))
-        summary += " %d failed compilation" % (lensolnok, lensol)
+        summary += " %d failed compilation" % lensolnok
         for execution in resultJson['solutions']:
             if execution['compilationExecution']['exitCode'] != 0:
                 print("-> Solution `%s` failed compilation, output:" % execution['id'])
