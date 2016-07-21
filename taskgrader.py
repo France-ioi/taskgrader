@@ -325,7 +325,7 @@ def getFile(fileDescr, destDir, errorFatal=True, language=None, baseDir=None):
     if '/' in filename:
         # Need to make a folder
         try:
-            os.makedirs(destDir + '/'.join(filename.split('/')[:-1]))
+            os.makedirs(os.path.join(destDir, os.path.dirname(filename)))
         except:
             pass
 
@@ -530,18 +530,15 @@ class IsolatedExecution(Execution):
         isolatedCmdLine += ' --stdout=isolated.stdout --stderr=isolated.stderr'
         isolatedCmdLine += ' --run -- ' + cmdLine
 
-        # Clean old stdout/stderr files
-        try:
-            os.unlink(os.path.join(workingDir, 'isolated.stdout'))
-        except:
-            pass
-        try:
-            os.unlink(os.path.join(workingDir, 'isolated.stderr'))
-        except:
-            pass
+        # Clean old isolate files
+        for f in ['isolated.stdout', 'isolated.stderr', 'isolated.meta']:
+            try:
+                os.unlink(os.path.join(workingDir, f))
+            except:
+                pass
+
         # Copy files from working directory to sandbox
-        for f in os.listdir(workingDir):
-            filecopy(os.path.join(workingDir, f), os.path.join(isolateDir, f))
+        dircopy(workingDir, isolateDir)
 
         # Create meta file with right owner/permissions
         open(os.path.join(workingDir, 'isolate.meta'), 'w')
@@ -578,9 +575,7 @@ class IsolatedExecution(Execution):
         waitWithTimeout(rightsProc, 30)
 
         # Copy back the files from sandbox
-        for f in os.listdir(isolateDir):
-            if os.path.isfile(os.path.join(isolateDir, f)) and not os.path.isfile(os.path.join(workingDir, f)):
-                filecopy(os.path.join(isolateDir, f), os.path.join(workingDir, f))
+        dircopy(isolateDir, workingDir, overwrite=False)
         filecopy(os.path.join(isolateDir, 'isolated.stdout'), self.stdoutFile)
 
         # Generate execution report
@@ -1028,7 +1023,9 @@ class Program():
                 if not isExecError(report):
                     # Make the executable u=rwx,g=rx,a=rx
                     os.chmod(self.executablePath, 493)
-                    cachef.addFile(self.executablePath, isExecutable=True)
+                    for f in [self.name + '.exe', 'stdout', 'stderr']:
+                        if os.path.isfile(os.path.join(self.ownDir, f)):
+                            cachef.addFile(os.path.join(self.ownDir, f), isExecutable=True)
                 cachef.save()
         else:
             # We don't use cache at all
@@ -1036,22 +1033,6 @@ class Program():
             report = self._compile()
             if not isExecError(report):
                 os.chmod(self.executablePath, 493)
-
-        # Save (again?) stdout and stderr reports
-        if 'stdout' in report:
-            stdoutData = report['stdout']['data']
-            if type(stdoutData) is unicode:
-                stdoutData = stdoutData.encode("utf-8")
-        else:
-            stdoutData = ''
-        open(os.path.join(self.ownDir, 'stdout'), 'wb').write(stdoutData)
-        if 'stderr' in report:
-            stderrData = report['stderr']['data']
-            if type(stderrData) is unicode:
-                stderrData = stderrData.encode("utf-8")
-        else:
-            stderrData = ''
-        open(os.path.join(self.ownDir, 'stderr'), 'wb').write(stderrData)
 
         self.compiled = not isExecError(report)
         self.triedCompile = True
@@ -1347,14 +1328,33 @@ def symlink(filefrom, fileto, fromlocal=False, tolocal=False):
     os.symlink(filefrom, fileto)
 
 
-def filecopy(filefrom, fileto, fromlocal=False, tolocal=False):
+def filecopy(filefrom, fileto, fromlocal=False, tolocal=False, makedirs=False):
     """Copy a file. *local variables indicate whether the paths must be
     explicitly allowed or not."""
     if fromlocal and not isInRestrict(filefrom):
         raise Exception("Loading file `%s` not allowed." % filefrom)
     if tolocal and not isInRestrict(fileto):
         raise Exception("Loading file `%s` not allowed." % fileto)
+    if makedirs:
+        try:
+            os.makedirs(os.path.dirname(fileto))
+        except:
+            pass
     shutil.copy2(filefrom, fileto)
+
+
+def dircopy(originDir, destDir, overwrite=True):
+    """Copy all files and subdirectories from a folder to another one.
+    If a destination file exists, it will be overwritten if overwrite is True,
+    else the original file will not be copied."""
+    for (dirpath, dirnames, filenames) in os.walk(originDir):
+        dirRelPath = os.path.relpath(originDir, dirpath)
+        try:
+            os.makedirs(os.path.join(destDir, dirRelPath))
+        except:
+            pass
+        for f in filenames:
+            filecopy(os.path.join(originDir, dirRelPath, f), os.path.join(destDir, dirRelPath, f))
 
 
 def isExecError(executionReport, checkContinue=True):
