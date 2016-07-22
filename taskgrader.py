@@ -1354,7 +1354,11 @@ def dircopy(originDir, destDir, overwrite=True):
         except:
             pass
         for f in filenames:
-            filecopy(os.path.join(originDir, dirRelPath, f), os.path.join(destDir, dirRelPath, f))
+            try:
+                filecopy(os.path.join(originDir, dirRelPath, f), os.path.join(destDir, dirRelPath, f))
+            except:
+                # Sometimes "junk" files are written
+                pass
 
 
 def isExecError(executionReport, checkContinue=True):
