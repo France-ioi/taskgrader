@@ -50,13 +50,13 @@ def getTaskSettings(args):
             taskSettings = json.load(open(tspath, 'r'))
         except:
             print("/!\ taskSettings.json does not contain valid JSON data.")
-            if args.force:
+            if 'force' in args and args.force:
                 taskSettings = {}
             else:
                 sys.exit(1)
     else:
         print("/!\ No taskSettings.json file detected, are you in the right folder?")
-        if args.force:
+        if 'force' in args and args.force:
             taskSettings = {}
         else:
             sys.exit(1)
@@ -603,6 +603,7 @@ if __name__ == '__main__':
         The 'add' action allows to specify the paths to each program of the
         task, if different from the default ones. You can setup the path to the
         generator, to the sanitizer, or to the checker with this action.""")
+    addParser.add_argument('-f', '--force', help='Force addition', action='store_true')
     addParser.add_argument('-t', '--taskpath', help='Task path', default='.')
     addParser.add_argument('type', help='Type of the program', choices=['generator', 'sanitizer', 'checker'])
     addParser.add_argument('path', help='Path to the program')

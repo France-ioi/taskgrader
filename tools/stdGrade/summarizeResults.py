@@ -56,7 +56,10 @@ if __name__ == '__main__':
                 # Everything was executed
                 print('Solution `%s` executed successfully on test `%s`. Checker report:' % (execution['name'], report['name']))
                 checkerOut = report['checker']['stdout']['data']
+                checkerErr = report['checker']['stderr']['data']
                 summarizeOutput(checkerOut)
+                if checkerErr:
+                    print(checkerErr)
                 if checkerOut:
                     suml.append(checkerOut.splitlines()[0])
             elif 'execution' in report:

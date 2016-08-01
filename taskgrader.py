@@ -687,7 +687,7 @@ class LanguageC(Language):
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
         # Add non-header dependencies to compilation
         compFiles = sourceFiles[:]
-        compFiles.extend(filter(lambda d: d[-2:] != '.h', depFiles))
+        compFiles.extend(filter(lambda d: d[-2:] not in ['.h', '.hpp'], depFiles))
 
         if CFG_STATIC:
             cmdLine = "%s -static -std=gnu99 -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(compFiles))
@@ -711,7 +711,7 @@ class LanguageCpp(Language):
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
         # Add non-header dependencies to compilation
         compFiles = sourceFiles[:]
-        compFiles.extend(filter(lambda d: d[-2:] != '.h', depFiles))
+        compFiles.extend(filter(lambda d: d[-2:] not in ['.h', '.hpp'], depFiles))
 
         if CFG_STATIC:
             cmdLine = "%s -static -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(compFiles))
@@ -726,7 +726,7 @@ class LanguageCpp11(LanguageCpp):
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
         # Add non-header dependencies to compilation
         compFiles = sourceFiles[:]
-        compFiles.extend(filter(lambda d: d[-2:] != '.h', depFiles))
+        compFiles.extend(filter(lambda d: d[-2:] not in ['.h', '.hpp'], depFiles))
 
         if CFG_STATIC:
             cmdLine = "%s -std=gnu++11 -static -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(compFiles))
@@ -1546,7 +1546,7 @@ def evaluation(evaluationParams):
             # We generate the test cases just by executing the generators
             genReport = {'id': gen['id']}
             genReport['generatorExecution'] = generator.execute(genDir,
-                outputFiles=['*.in', '*.out', '*.h', '*.o', '*.java', '*.ml', '*.mli', '*.pas', '*.py'])
+                outputFiles=['*.in', '*.out', '*.h', '*.hpp', '*.o', '*.java', '*.ml', '*.mli', '*.pas', '*.py'])
             errorSoFar = errorSoFar or isExecError(genReport['generatorExecution'])
             if gen.has_key('idOutputGenerator'):
                 # We also have an output generator
@@ -1558,7 +1558,7 @@ def evaluation(evaluationParams):
             for f in globOfGlobs(genDir, ['*.in', '*.out']):
                 filecopy(f, baseWorkingDir + 'tests/')
             # We copy the generated lib files
-            for f in globOfGlobs(genDir, ['*.h', '*.o', '*.java', '*.ml', '*.mli', '*.pas', '*.py']):
+            for f in globOfGlobs(genDir, ['*.h', '*.hpp', '*.o', '*.java', '*.ml', '*.mli', '*.pas', '*.py']):
                 filecopy(f, baseWorkingDir + 'libs/')
 
     # We add extra tests
