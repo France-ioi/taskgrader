@@ -1,0 +1,9 @@
+{"generator": "tests/gen/gen.sh",
+"sanitizer": "tests/gen/sanitizer.py",
+"checker": "tests/gen/checker.py",
+"correctSolutions": [{
+    "path": "$TASK_PATH/tests/gen/sol-ok-py.py",
+    "language": "python2",
+    "grade": 100
+    }]
+}
