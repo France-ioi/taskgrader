@@ -1,9 +1,21 @@
 {"generator": "tests/gen/gen.sh",
 "sanitizer": "tests/gen/sanitizer.py",
 "checker": "tests/gen/checker.py",
-"correctSolutions": [{
-    "path": "$TASK_PATH/tests/gen/sol-ok-py.py",
+"correctSolutions": [
+    {"path": "$TASK_PATH/tests/gen/sol-ok-py.py",
     "language": "python2",
+    "grade": 100
+    },
+    {"path": "$TASK_PATH/tests/gen/sol-ok-c.c",
+    "language": "c",
+    "grade": 100
+    },
+    {"path": "$TASK_PATH/tests/gen/sol-ok-cpp.cpp",
+    "language": "cpp",
+    "grade": 100
+    },
+    {"path": "$TASK_PATH/tests/gen/sol-ok-java.java",
+    "language": "java",
     "grade": 100
     }]
 }
