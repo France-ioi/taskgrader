@@ -216,19 +216,24 @@
             "title": "Usage"
         }, 
         {
-            "location": "/inputjson/", 
-            "text": "Input JSON\n\n\nThis page describes the \ninput JSON\n, which is the JSON data sent to the taskgrader (on its standard input) to specify the full evaluation process.\n\n\nThis page is currently under writing, but you can check the input JSON format in the file \nschema_input.json\n.\n\n\nSimplified version\n\n\nWriting in progress\n\n\nWith the genJson tool, you can generate for each task a \ndefaultParams.json\n file\n which will contain default values for evaluations against that task. Once a task has its defaultParams generated, you can evaluate a solution with a simple input JSON like this:\n\n\n{\n    \"rootPath\": \"/some/path\",\n    \"taskPath\": \"/path/to/the/task\",\n    \"extraParams\": {\n        \"solutionFilename\": \"solution.c\",\n        \"solutionPath\": \"/home/user/solution.c\",\n        \"solutionLanguage\": \"c\",\n        \"solutionDependencies\": \"@defaultDependencies-c\"\n}}", 
-            "title": "Input JSON"
+            "location": "/conventions/", 
+            "text": "Conventions\n\n\nHere are a few conventions used through the tasks and the taskgrader.\n\n\nTask structure\n\n\nBy default, a task structure is as follows:\n\n\n\n\ntask-root/\n\n\ntests/\n\n\nfiles/\n\n\nlib/\n\n\n[compiled language]/\n\n\nlibrary.h\n\n\n\n\n\n\n[another compiled language]/\n\n\nlibrary.hpp\n\n\n\n\n\n\n\n\n\n\nrun/\n\n\n[interpreted language]/\n\n\nlibrary.py\n\n\n\n\n\n\n\n\n\n\ntest01.in\n\n\ntest01.out\n\n\n[other librairies]\n\n\n[other test files]\n\n\n\n\n\n\ngen/\n\n\ngen.sh\n\n\nsanitizer.cpp\n\n\nchecker.cpp\n\n\nsol-ok-lang.ext\n\n\nsol-bad-lang.ext\n\n\n\n\n\n\n\n\n\n\ntaskSettings.json\n\n\ndefaultParams.json\n (auto-generated, should not be commited to a repository)\n\n\n\n\n\n\n\n\nIf using this structure, most files will be auto-detected by genJson.\n\n\nBuild directory structure\n\n\nWhen performing an evaluation, the taskgrader will store all files from the evaluation (source files, compiled programs, inputs, outputs) in a build folder (default: \ntaskgrader/files/builds/\n). These build folders follow the following structure:\n\n\n\n\n_buildXXXX/\n\n\ngenerators/\n\n\n[generatorId]/: generator compilation folder\n\n\n\n\n\n\ngenerations/\n\n\n[generationId]/: generator execution folder\n\n\n\n\n\n\nchecker/: checker compilation folder\n\n\nsanitizer/: sanitizer compilation folder\n\n\nlibs/: folder with all libraries (generated or given directly by the task)\n\n\nlib1.ext\n\n\n[other libraries]\n\n\n\n\n\n\ntests/: folder with all test cases (generated or given directly by the task)\n\n\ntest01.in\n\n\ntest01.out\n\n\n[other test files]\n\n\n\n\n\n\nsolutions/\n\n\n[solutionId]/: solution compilation folder\n\n\n\n\n\n\nexecutions/\n\n\n[solutionId].[executionId]/: solution execution folder\n\n\nsolution.exe: compiled solution\n\n\nsanitizer.exe: compiled sanitizer\n\n\nchecker.exe: compiled checker\n\n\ntest1.in: test case (input)\n\n\ntest1.out: test case (expected output)\n\n\ntest1.solout: solution answer to the test case\n\n\ntest1.solerr: stderr from the solution on that test case\n\n\ntest1.cout: checker output (if multicheck is active)\n\n\ntest1.cerr: checker stderr (if multicheck is active)\n\n\ntest1.time: checker execution information (if multicheck is active)\n\n\n[other test cases]\n\n\n[other files]\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nA compilation folder is as follows:\n\n\n\n\nfolder/\n\n\nprogram.exe: compiled program\n\n\nstdout: output of the compilation\n\n\nstderr: stderr of the compilation", 
+            "title": "Conventions"
         }, 
         {
-            "location": "/inputjson/#input-json", 
-            "text": "This page describes the  input JSON , which is the JSON data sent to the taskgrader (on its standard input) to specify the full evaluation process.  This page is currently under writing, but you can check the input JSON format in the file  schema_input.json .", 
-            "title": "Input JSON"
+            "location": "/conventions/#conventions", 
+            "text": "Here are a few conventions used through the tasks and the taskgrader.", 
+            "title": "Conventions"
         }, 
         {
-            "location": "/inputjson/#simplified-version", 
-            "text": "Writing in progress  With the genJson tool, you can generate for each task a  defaultParams.json  file  which will contain default values for evaluations against that task. Once a task has its defaultParams generated, you can evaluate a solution with a simple input JSON like this:  {\n    \"rootPath\": \"/some/path\",\n    \"taskPath\": \"/path/to/the/task\",\n    \"extraParams\": {\n        \"solutionFilename\": \"solution.c\",\n        \"solutionPath\": \"/home/user/solution.c\",\n        \"solutionLanguage\": \"c\",\n        \"solutionDependencies\": \"@defaultDependencies-c\"\n}}", 
-            "title": "Simplified version"
+            "location": "/conventions/#task-structure", 
+            "text": "By default, a task structure is as follows:   task-root/  tests/  files/  lib/  [compiled language]/  library.h    [another compiled language]/  library.hpp      run/  [interpreted language]/  library.py      test01.in  test01.out  [other librairies]  [other test files]    gen/  gen.sh  sanitizer.cpp  checker.cpp  sol-ok-lang.ext  sol-bad-lang.ext      taskSettings.json  defaultParams.json  (auto-generated, should not be commited to a repository)     If using this structure, most files will be auto-detected by genJson.", 
+            "title": "Task structure"
+        }, 
+        {
+            "location": "/conventions/#build-directory-structure", 
+            "text": "When performing an evaluation, the taskgrader will store all files from the evaluation (source files, compiled programs, inputs, outputs) in a build folder (default:  taskgrader/files/builds/ ). These build folders follow the following structure:   _buildXXXX/  generators/  [generatorId]/: generator compilation folder    generations/  [generationId]/: generator execution folder    checker/: checker compilation folder  sanitizer/: sanitizer compilation folder  libs/: folder with all libraries (generated or given directly by the task)  lib1.ext  [other libraries]    tests/: folder with all test cases (generated or given directly by the task)  test01.in  test01.out  [other test files]    solutions/  [solutionId]/: solution compilation folder    executions/  [solutionId].[executionId]/: solution execution folder  solution.exe: compiled solution  sanitizer.exe: compiled sanitizer  checker.exe: compiled checker  test1.in: test case (input)  test1.out: test case (expected output)  test1.solout: solution answer to the test case  test1.solerr: stderr from the solution on that test case  test1.cout: checker output (if multicheck is active)  test1.cerr: checker stderr (if multicheck is active)  test1.time: checker execution information (if multicheck is active)  [other test cases]  [other files]         A compilation folder is as follows:   folder/  program.exe: compiled program  stdout: output of the compilation  stderr: stderr of the compilation", 
+            "title": "Build directory structure"
         }, 
         {
             "location": "/tasksettings/", 
@@ -309,6 +314,36 @@
             "location": "/defaultparams/#other-information", 
             "text": "Key name  Type  Description      rootPath  string  Value of the  rootPath  which was used when the defaultParams were generated.    genJsonVersion  string  Version of genJson which generated these defaultParams.", 
             "title": "Other information"
+        }, 
+        {
+            "location": "/inputjson/", 
+            "text": "Input JSON\n\n\nThis page describes the \ninput JSON\n, which is the JSON data sent to the taskgrader (on its standard input) to specify the full evaluation process.\n\n\nThis page is currently under writing, but you can check the input JSON format in the file \nschema_input.json\n.\n\n\nSimplified version\n\n\nWriting in progress\n\n\nWith the genJson tool, you can generate for each task a \ndefaultParams.json\n file\n which will contain default values for evaluations against that task. Once a task has its defaultParams generated, you can evaluate a solution with a simple input JSON like this:\n\n\n{\n    \"rootPath\": \"/some/path\",\n    \"taskPath\": \"/path/to/the/task\",\n    \"extraParams\": {\n        \"solutionFilename\": \"solution.c\",\n        \"solutionPath\": \"/home/user/solution.c\",\n        \"solutionLanguage\": \"c\",\n        \"solutionDependencies\": \"@defaultDependencies-c\"\n}}", 
+            "title": "Input JSON"
+        }, 
+        {
+            "location": "/inputjson/#input-json", 
+            "text": "This page describes the  input JSON , which is the JSON data sent to the taskgrader (on its standard input) to specify the full evaluation process.  This page is currently under writing, but you can check the input JSON format in the file  schema_input.json .", 
+            "title": "Input JSON"
+        }, 
+        {
+            "location": "/inputjson/#simplified-version", 
+            "text": "Writing in progress  With the genJson tool, you can generate for each task a  defaultParams.json  file  which will contain default values for evaluations against that task. Once a task has its defaultParams generated, you can evaluate a solution with a simple input JSON like this:  {\n    \"rootPath\": \"/some/path\",\n    \"taskPath\": \"/path/to/the/task\",\n    \"extraParams\": {\n        \"solutionFilename\": \"solution.c\",\n        \"solutionPath\": \"/home/user/solution.c\",\n        \"solutionLanguage\": \"c\",\n        \"solutionDependencies\": \"@defaultDependencies-c\"\n}}", 
+            "title": "Simplified version"
+        }, 
+        {
+            "location": "/outputjson/", 
+            "text": "Output JSON\n\n\nThis page describes the \noutput JSON\n, which is the JSON data returned by the taskgrader (on its standard output) after a successful evaluation.\n\n\nThis page is currently under writing, but you can check the output JSON format in the file \nschema_output.json\n.\n\n\nExit sig values\n\n\nThese are the values for the field \nexitSig\n in any execution report from the output JSON. If \n 0, means the execution was killed by a signal.\n\n\n\n\n\n\n\n\nValue\n\n\nMeaning\n\n\n\n\n\n\n\n\n\n\n-1\n\n\nExit signal unknown (execution outside isolate for instance)\n\n\n\n\n\n\n0\n\n\nNo exit signal sent to the program, it exited by itself\n\n\n\n\n\n\n6\n\n\nAbort signal\n\n\n\n\n\n\n7\n\n\nBus error\n\n\n\n\n\n\n8\n\n\nFloating point exception\n\n\n\n\n\n\n11\n\n\nSegmentation fault\n\n\n\n\n\n\n137\n\n\nExecution timed out", 
+            "title": "Output JSON"
+        }, 
+        {
+            "location": "/outputjson/#output-json", 
+            "text": "This page describes the  output JSON , which is the JSON data returned by the taskgrader (on its standard output) after a successful evaluation.  This page is currently under writing, but you can check the output JSON format in the file  schema_output.json .", 
+            "title": "Output JSON"
+        }, 
+        {
+            "location": "/outputjson/#exit-sig-values", 
+            "text": "These are the values for the field  exitSig  in any execution report from the output JSON. If   0, means the execution was killed by a signal.     Value  Meaning      -1  Exit signal unknown (execution outside isolate for instance)    0  No exit signal sent to the program, it exited by itself    6  Abort signal    7  Bus error    8  Floating point exception    11  Segmentation fault    137  Execution timed out", 
+            "title": "Exit sig values"
         }, 
         {
             "location": "/errors/", 

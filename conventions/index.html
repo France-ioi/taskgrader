@@ -9,7 +9,7 @@
         
         <link rel="shortcut icon" href="../img/favicon.ico">
 
-	<title>Input JSON - Taskgrader</title>
+	<title>Conventions - Taskgrader</title>
 
         <link href="../css/bootstrap-custom.min.css" rel="stylesheet">
         <link href="../css/font-awesome-4.5.0.css" rel="stylesheet">
@@ -97,8 +97,8 @@
                         <ul class="dropdown-menu">
                         
                             
-<li >
-    <a href="../conventions/">Conventions</a>
+<li class="active">
+    <a href="./">Conventions</a>
 </li>
 
                         
@@ -115,8 +115,8 @@
 
                         
                             
-<li class="active">
-    <a href="./">Input JSON</a>
+<li >
+    <a href="../inputjson/">Input JSON</a>
 </li>
 
                         
@@ -153,12 +153,12 @@
                 </li>
                 
                     <li >
-                        <a rel="next" href="../defaultparams/">
+                        <a rel="next" href="../examples/">
                             <i class="fa fa-arrow-left"></i> Previous
                         </a>
                     </li>
                     <li >
-                        <a rel="prev" href="../outputjson/">
+                        <a rel="prev" href="../tasksettings/">
                             Next <i class="fa fa-arrow-right"></i>
                         </a>
                     </li>
@@ -183,31 +183,124 @@
                 <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
     <ul class="nav bs-sidenav">
     
-        <li class="main active"><a href="#input-json">Input JSON</a></li>
+        <li class="main active"><a href="#conventions">Conventions</a></li>
         
-            <li><a href="#simplified-version">Simplified version</a></li>
+            <li><a href="#task-structure">Task structure</a></li>
+        
+            <li><a href="#build-directory-structure">Build directory structure</a></li>
         
     
     </ul>
 </div></div>
                 <div class="col-md-9" role="main">
 
-<h1 id="input-json">Input JSON</h1>
-<p>This page describes the <em>input JSON</em>, which is the JSON data sent to the taskgrader (on its standard input) to specify the full evaluation process.</p>
-<p>This page is currently under writing, but you can check the input JSON format in the file <code>schema_input.json</code>.</p>
-<h2 id="simplified-version">Simplified version</h2>
-<p><em>Writing in progress</em></p>
-<p>With the genJson tool, you can generate for each task a <a href="../defaultparams/"><code>defaultParams.json</code> file</a> which will contain default values for evaluations against that task. Once a task has its defaultParams generated, you can evaluate a solution with a simple input JSON like this:</p>
-<pre><code>{
-    "rootPath": "/some/path",
-    "taskPath": "/path/to/the/task",
-    "extraParams": {
-        "solutionFilename": "solution.c",
-        "solutionPath": "/home/user/solution.c",
-        "solutionLanguage": "c",
-        "solutionDependencies": "@defaultDependencies-c"
-}}
-</code></pre></div>
+<h1 id="conventions">Conventions</h1>
+<p>Here are a few conventions used through the tasks and the taskgrader.</p>
+<h2 id="task-structure">Task structure</h2>
+<p>By default, a task structure is as follows:</p>
+<ul>
+<li>task-root/<ul>
+<li>tests/<ul>
+<li>files/<ul>
+<li>lib/<ul>
+<li>[compiled language]/<ul>
+<li>library.h</li>
+</ul>
+</li>
+<li>[another compiled language]/<ul>
+<li>library.hpp</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>run/<ul>
+<li>[interpreted language]/<ul>
+<li>library.py</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>test01.in</li>
+<li>test01.out</li>
+<li>[other librairies]</li>
+<li>[other test files]</li>
+</ul>
+</li>
+<li>gen/<ul>
+<li>gen.sh</li>
+<li>sanitizer.cpp</li>
+<li>checker.cpp</li>
+<li>sol-ok-lang.ext</li>
+<li>sol-bad-lang.ext</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="../tasksettings/">taskSettings.json</a></li>
+<li><a href="../defaultparams/">defaultParams.json</a> (auto-generated, should not be commited to a repository)</li>
+</ul>
+</li>
+</ul>
+<p>If using this structure, most files will be auto-detected by genJson.</p>
+<h2 id="build-directory-structure">Build directory structure</h2>
+<p>When performing an evaluation, the taskgrader will store all files from the evaluation (source files, compiled programs, inputs, outputs) in a build folder (default: <code>taskgrader/files/builds/</code>). These build folders follow the following structure:</p>
+<ul>
+<li>_buildXXXX/<ul>
+<li>generators/<ul>
+<li>[generatorId]/: generator compilation folder</li>
+</ul>
+</li>
+<li>generations/<ul>
+<li>[generationId]/: generator execution folder</li>
+</ul>
+</li>
+<li>checker/: checker compilation folder</li>
+<li>sanitizer/: sanitizer compilation folder</li>
+<li>libs/: folder with all libraries (generated or given directly by the task)<ul>
+<li>lib1.ext</li>
+<li>[other libraries]</li>
+</ul>
+</li>
+<li>tests/: folder with all test cases (generated or given directly by the task)<ul>
+<li>test01.in</li>
+<li>test01.out</li>
+<li>[other test files]</li>
+</ul>
+</li>
+<li>solutions/<ul>
+<li>[solutionId]/: solution compilation folder</li>
+</ul>
+</li>
+<li>executions/<ul>
+<li>[solutionId].[executionId]/: solution execution folder<ul>
+<li>solution.exe: compiled solution</li>
+<li>sanitizer.exe: compiled sanitizer</li>
+<li>checker.exe: compiled checker</li>
+<li>test1.in: test case (input)</li>
+<li>test1.out: test case (expected output)</li>
+<li>test1.solout: solution answer to the test case</li>
+<li>test1.solerr: stderr from the solution on that test case</li>
+<li>test1.cout: checker output (if multicheck is active)</li>
+<li>test1.cerr: checker stderr (if multicheck is active)</li>
+<li>test1.time: checker execution information (if multicheck is active)</li>
+<li>[other test cases]</li>
+<li>[other files]</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>A compilation folder is as follows:</p>
+<ul>
+<li>folder/<ul>
+<li>program.exe: compiled program</li>
+<li>stdout: output of the compilation</li>
+<li>stderr: stderr of the compilation</li>
+</ul>
+</li>
+</ul></div>
             
         </div>
 
