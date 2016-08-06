@@ -12,8 +12,24 @@
 import argparse, json, os, subprocess, sys, threading, tempfile, traceback
 import unittest
 
-# Path to the taskgrader executable
-CFG_TASKGRADER = os.path.normpath(os.path.dirname(os.path.abspath(__file__)) + '/../taskgrader.py')
+# Paths to executables
+SELFDIR = os.path.normpath(os.path.dirname(os.path.abspath(__file__)))
+CFG_GENJSON = os.path.normpath(os.path.join(SELFDIR, '../tools/genJson/genJson.py'))
+CFG_TASKGRADER = os.path.normpath(os.path.join(SELFDIR, '../taskgrader.py'))
+
+# Configuration for examples
+CFG_EXAMPLES_IGNORE = ['taskTurtle']
+# gcc and python2.7 are set as default dependencies for all examples
+CFG_EXAMPLES_DEPENDENCIES = {
+    'taskSpecialChars': ['gcc', 'g++', 'gcj', 'python2.7']
+    }
+
+registeredTests = []
+def register_test(cls):
+    """Register a test. Allows later loading in the correct order."""
+    global registeredTests
+    registeredTests.append(cls)
+
 
 def programExists(name):
     """Checks whether a program can be found in PATH."""
@@ -44,6 +60,8 @@ def communicateWithTimeout(subProc, timeout=0, input=None):
     else:
         return subProc.communicate(input=input)
 
+
+### Normal direct unittests
 
 class FullTestBase(unittest.TestCase):
     """A full test is a test sending a full evaluation JSON to the taskgrader,
@@ -125,7 +143,7 @@ class FullTestBase(unittest.TestCase):
             self.details['errorDetails'] = str(self.details)
             self.assertTrue(self.result, msg="%s" % self.details['msg'])
 
-
+@register_test
 class SanitizerCheckerTest(FullTestBase):
     """This test only sends a sanitizer and a checker to compile; the expected
     behavior is to have the taskgrader compile them and then exit successfully
@@ -153,6 +171,7 @@ class SanitizerCheckerTest(FullTestBase):
             self.assertVariableEqual("outputJson['checker']['exitCode']", 0)
             ]
 
+@register_test
 class BadSanitizerTest(FullTestBase):
     """This test sends a bad sanitizer which cannot compile; the taskgrader is
     expected to exit with an error after being unable to compile the
@@ -178,6 +197,7 @@ class BadSanitizerTest(FullTestBase):
             self.assertVariableEqual("proc.returncode", 1),
             ]
 
+@register_test
 class BadCheckerTest(FullTestBase):
     """This test sends a bad checker which cannot compile; the taskgrader is
     expected to exit with an error after being unable to compile the
@@ -203,6 +223,7 @@ class BadCheckerTest(FullTestBase):
             self.assertVariableEqual("proc.returncode", 1)
             ]
 
+@register_test
 class GenerationSingleTest(FullTestBase):
     """This test uses a simple generator, and checks whether it is executed
     successfully."""
@@ -229,6 +250,7 @@ class GenerationSingleTest(FullTestBase):
             self.assertVariableEqual("outputJson['generations'][0]['generatorExecution']['exitCode']", 0)
             ]
 
+@register_test
 class GenerationCasesTest(FullTestBase):
     """This test uses the "testCases" feature: it generates an input test file
     and the expected output with a couple generator + output generator."""
@@ -258,6 +280,7 @@ class GenerationCasesTest(FullTestBase):
             self.assertVariableEqual("outputJson['generations'][0]['generatorExecution']['stdout']['data']", "20"),
             self.assertVariableEqual("outputJson['generations'][0]['outputGeneratorExecution']['stdout']['data']", "40"),
             ]
+
 
 class SolutionSimpleBase(FullTestBase):
     """This test tries a simple solution execution, with one test file, and
@@ -292,18 +315,21 @@ class SolutionSimpleBase(FullTestBase):
             self.assertVariableEqual("outputJson['executions'][0]['testsReports'][0]['checker']['stdout']['data']", "100")
             ]
 
+@register_test
 class SolutionSimpleC(SolutionSimpleBase):
     description = "C test"
     _dependencies = ['gcc']
     _solution = '@testSolutionC'
     _execution = '@testExecutionC'
 
+@register_test
 class SolutionSimpleCpp(SolutionSimpleBase):
     description = "C++ test"
     _dependencies = ['g++']
     _solution = '@testSolutionCpp'
     _execution = '@testExecutionCpp'
 
+@register_test
 class SolutionSimpleJava(SolutionSimpleBase):
     description = "Java test"
     _dependencies = ['gcj']
@@ -317,41 +343,49 @@ class SolutionSimpleJavascool(SolutionSimpleBase):
     _solution = '@testSolutionJavascool'
     _execution = '@testExecutionJavascool'
 
+@register_test
 class SolutionSimpleJs(SolutionSimpleBase):
     description = "Node.js test"
     _dependencies = ['nodejs']
     _solution = '@testSolutionJs'
     _execution = '@testExecutionJs'
 
+@register_test
 class SolutionSimpleOcaml(SolutionSimpleBase):
     description = "OCaml test"
     _dependencies = ['ocamlopt']
     _solution = '@testSolutionOcaml'
     _execution = '@testExecutionOcaml'
 
+@register_test
 class SolutionSimplePascal(SolutionSimpleBase):
     description = "Pascal test"
     _dependencies = ['fpc']
     _solution = '@testSolutionPascal'
     _execution = '@testExecutionPascal'
 
+@register_test
 class SolutionSimplePhp(SolutionSimpleBase):
     description = "PHP test"
     _dependencies = ['php5']
     _solution = '@testSolutionPhp'
     _execution = '@testExecutionPhp'
 
+@register_test
 class SolutionSimplePython(SolutionSimpleBase):
     description = "Python2.7 test"
     _dependencies = ['python2.7']
     _solution = '@testSolutionPython'
     _execution = '@testExecutionPython'
 
+@register_test
 class SolutionSimpleShell(SolutionSimpleBase):
     description = "shell script test"
+    _dependencies = ['bash']
     _solution = '@testSolutionShell'
     _execution = '@testExecutionShell'
 
+@register_test
 class SolutionInvalidTest(FullTestBase):
     """This test tries an invalid solution (giving a wrong result), with one
     test file, and checks the checker output."""
@@ -377,6 +411,7 @@ class SolutionInvalidTest(FullTestBase):
             self.assertVariableEqual("outputJson['executions'][0]['testsReports'][0]['checker']['stdout']['data']", "0")
             ]
 
+@register_test
 class SolutionUncompTest(FullTestBase):
     """This test tries a bad solution which cannot be compiled."""
 
@@ -427,6 +462,7 @@ class SolutionMemoverflowTest(FullTestBase):
             self.assertVariableEqual("outputJson['executions'][0]['testsReports'][0]['execution']['exitSig']", 11)
             ]
 
+@register_test
 class SolutionTimeoutTest(FullTestBase):
     """This test tries a solution using more time than the allowed limit."""
 
@@ -454,6 +490,7 @@ class SolutionTimeoutTest(FullTestBase):
             self.assertVariableEqual("outputJson['executions'][1]['testsReports'][0]['execution']['exitSig']", 137)
             ]
 
+@register_test
 class SolutionChangingTest(FullTestBase):
     """This test tries executing a solution (whose output changes) twice and
     checks whether its result has correctly been cached."""
@@ -496,6 +533,7 @@ class SolutionChangingTest(FullTestBase):
         checks.append(output1 == output2)
         return checks
 
+@register_test
 class TestMultipleTest(FullTestBase):
     """This test tries a simple solution with multiple test files, and checks
     the solution and the checker output."""
@@ -526,6 +564,7 @@ class TestMultipleTest(FullTestBase):
             self.assertVariableEqual("outputJson['executions'][0]['testsReports'][2]['checker']['stdout']['data']", "100")
             ]
 
+@register_test
 class TestRestrictPath(FullTestBase):
     """This test tries to load a file which is not in the paths allowed by
     restrictToPaths."""
@@ -560,6 +599,47 @@ class TestRestrictPath(FullTestBase):
             self.assertVariableEqual("proc.returncode", 1),
             ]
 
+
+### Test examples
+
+class ExampleTestBase(unittest.TestCase):
+    """A class to test one of the examples."""
+
+    _dependencies = ['gcc', 'python2.7']
+    exampleDir = ''
+
+    def shortDescription(self):
+        """Return a short description of the test."""
+        # Overload to have a better control
+        if getattr(self, 'exampleDir', ''):
+            return "%s example test" % getattr(self, 'exampleDir', '')
+        else:
+            return "example test"
+
+    def runTest(self):
+        """Run the test."""
+        if self.__class__ == ExampleTestBase:
+            self.skipTest("Base class")
+
+        for d in self._dependencies:
+            if not programExists(d):
+                self.skipTest("Dependency `%s` missing." % d)
+
+        self.details = {}
+
+        path = os.path.join(SELFDIR, '../examples/', self.exampleDir)
+
+        self.proc = subprocess.Popen([CFG_GENJSON, path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (self.procOut, self.procErr) = communicateWithTimeout(self.proc, 30)
+        self.details = {'stdout': self.procOut,
+                'stderr': self.procErr,
+                'returncode': self.proc.returncode,
+                'errorDetails': self.procErr}
+        self.result = (self.proc.returncode == 0)
+        self.assertEqual(self.proc.returncode, 0, msg="Example %s didn't pass auto-test" % self.exampleDir)
+
+
+### Utility classes
 
 class TaskgraderTestResult(unittest.TextTestResult):
     """A class to display results from the taskgrader test."""
@@ -596,6 +676,36 @@ class TaskgraderTestRunner(unittest.TextTestRunner):
     def __init__(self, **kwargs):
         kwargs['resultclass'] = TaskgraderTestResult
         unittest.TextTestRunner.__init__(self, **kwargs)
+
+
+### Select the tests to perform
+
+def load_tests(loader, tests, pattern):
+    """Customized test selection."""
+    global registeredTests
+    suite = unittest.TestSuite()
+
+    # Dynamically add each example to the tests
+    if programExists('gcc') and programExists('python2.7'):
+        exampleList = os.listdir(os.path.join(SELFDIR, '../examples'))
+        exampleList.sort()
+        for d in exampleList:
+            if d[:4] != 'task' or d in CFG_EXAMPLES_IGNORE:
+                continue
+            clsOpts = {'exampleDir': d}
+            if d in CFG_EXAMPLES_DEPENDENCIES:
+                clsOpts['_dependencies'] = CFG_EXAMPLES_DEPENDENCIES[d]
+
+            className = 'ExampleTask%s' % d[4:]
+            newcls = type(className, (ExampleTestBase,), clsOpts)
+            registeredTests.append(newcls)
+
+    # Add registered tests
+    for cls in registeredTests:
+        tests = loader.loadTestsFromTestCase(cls)
+        suite.addTests(tests)
+
+    return suite
 
 
 if __name__ == '__main__':
