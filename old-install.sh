@@ -3,7 +3,7 @@
 ### Install script for the taskgrader
 # Checks for program dependencies and compiles required programs
 
-# TODO :: rework this script
+echo "/!\\ This is the old installation script. Please use install.py instead."
 
 ### Check for dependencies
 ERROR=0
