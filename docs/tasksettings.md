@@ -72,7 +72,7 @@ Key name | Type | Description
 -------- | ---- | -----------
 `path` | required `string` | Path to the solution
 `language` | optional `string` | Language of the solution
-`grade` | optional `int` | Average grade expected for this solution
+`grade` | optional `int` or `int list` | Average grade expected for this solution; if list, average grade for each subtask
 `nbtests` | optional `int` | Number of test cases this solution is expected to be evaluated against
 
 ## default*

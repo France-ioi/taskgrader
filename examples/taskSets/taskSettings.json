@@ -4,6 +4,10 @@
     "language": "c",
     "grade": 100
     },
+    {"path": "$TASK_PATH/tests/gen/sol-pos-c.c",
+    "language": "c",
+    "grade": [100, 0, 60]
+    },
     {"path": "$TASK_PATH/tests/gen/sol-bad-c.c",
     "language": "c",
     "grade": 0

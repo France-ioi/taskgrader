@@ -506,6 +506,10 @@ def processPath(path, args):
                 continue
 
             nbCsOk += 1
+            # Grades per execution, and all merged
+            execGrades = []
+            allGrades = []
+
             for execution in outJson['executions']:
                 # Totals
                 nbTests += len(execution['testsReports'])
@@ -520,7 +524,7 @@ def processPath(path, args):
                 nbOk = 0
                 nbTotal = len(execution['testsReports'])
                 maxNbTotal = max(maxNbTotal, nbTotal)
-                grades = []
+                curGrades = []
 
                 # Check grade for each test
                 for test in execution['testsReports']:
@@ -542,13 +546,37 @@ def processPath(path, args):
 
                     # Add grade to the list of grades
                     if testGrade is not None:
-                        grades.append(testGrade)
-            if 'grade' in cs and grades:
-                avgGrade = sum(grades)/len(grades)
-                if avgGrade != cs['grade']:
-                    print "/!\ Test failed on %s: average grade %d, expected %d;" % (cs['path'], avgGrade, cs['grade'])
-                    print "grades obtained: %s" % ', '.join(map(str, grades))
-                    curError = True
+                        curGrades.append(testGrade)
+                        allGrades.append(testGrade)
+
+                execGrades.append(curGrades)
+
+            # Check grades
+            if 'grade' in cs and allGrades:
+                if type(cs['grade']) is list:
+                    # correctSolutions gives a grade for each subtask
+                    if len(cs['grade']) != len(execGrades):
+                        print "/!\ On %s: %d expected subtasks, %d subtasks graded" % (cs['path'], len(cs['grade']), len(execGrades))
+                    gradeFails = []
+                    for i in range(min(len(cs['grade']), len(execGrades))):
+                        if not execGrades[i]:
+                            gradeFails.append("subtask #%d: no successful tests" % i)
+                            continue
+                        avgGrade = sum(execGrades[i])/len(execGrades[i])
+                        if avgGrade != cs['grade'][i]:
+                            gradeFails.append("subtask #%d: average grade %d, expected %d" % (i, avgGrade, cs['grade'][i]))
+                    if gradeFails:
+                        print "/!\ Test failed on %s for %d subtasks:" % (cs['path'], len(gradeFails))
+                        print "\n".join(gradeFails)
+                        print "All grades obtained: %s" % ', '.join(map(str, allGrades))
+                        curError = True
+                else:
+                    avgGrade = sum(allGrades)/len(allGrades)
+                    if avgGrade != cs['grade']:
+                        print "/!\ Test failed on %s: average grade %d, expected %d;" % (cs['path'], avgGrade, cs['grade'])
+                        print "grades obtained: %s" % ', '.join(map(str, allGrades))
+                        curError = True
+
             if nbTotal != cs.get('nbtests', nbTotal):
                 print "/!\ Test failed on %s: %d tests done / %d tests expected" % (cs['path'], nbTotal, cs['nbtests'])
                 curError = True
