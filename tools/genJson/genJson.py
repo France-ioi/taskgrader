@@ -106,7 +106,7 @@ def genDefaultParams(taskPath, taskSettings):
             'compilationExecution': '@defaultToolCompParams'}
 
         # Auto-detect generator dependencies
-        (genDir, genFilename) = os.path.split(os.path.join(taskPath, taskSettings['generator']))
+        (genDir, genFilename) = os.path.split(taskSettings['generator'])
 
         genDependencies = []
         genDepPaths = {}
@@ -114,7 +114,7 @@ def genDefaultParams(taskPath, taskSettings):
         # Make a list of basename of all files in the generator folder
         # If we detect 'generator' in one of the files, we'll add all files
         # named 'generator.*' as dependencies
-        for f in getFileList(genDir):
+        for f in getFileList(os.path.join(taskPath, genDir)):
             (filename, ext) = os.path.splitext(os.path.basename(f))
             if genDepPaths.has_key(filename):
                 genDepPaths[filename].append(f)
@@ -155,7 +155,7 @@ def genDefaultParams(taskPath, taskSettings):
         # Extra dependencies to check for and add
         extraGenDeps = globOfGlobs(taskPath, CFG_GEN_EXTRADEPS)
         for f in extraGenDeps:
-            genDependencies.append(getTaskFile(f))
+            genDependencies.append(getTaskFile(os.path.relpath(f, taskPath)))
         defGenerator['compilationDescr']['dependencies'] = genDependencies
         print "Dependencies found for generator: " + ', '.join(map(lambda x: x['name'], genDependencies))
 
