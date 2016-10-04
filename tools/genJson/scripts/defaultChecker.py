@@ -114,9 +114,11 @@ def diff(solPath, outPath, options=None):
         if lastLine[0] == ' ':
             if solPostDiff < 3:
                 solLines.append(readRealLine(solRead, opt))
+            else:
                 truncatedAfter = True
             if expPostDiff < 3:
                 expLines.append(readRealLine(expRead, opt))
+            else:
                 truncatedAfter = True
             if diffLine is not None:
                 solPostDiff += 1
@@ -127,6 +129,7 @@ def diff(solPath, outPath, options=None):
                 continue
             if solPostDiff < 3:
                 solLines.append(readRealLine(solRead, opt))
+            else:
                 truncatedAfter = True
             if diffLine is None:
                 diffLine = curLine
@@ -138,6 +141,7 @@ def diff(solPath, outPath, options=None):
                 continue
             if expPostDiff < 3:
                 expLines.append(readRealLine(expRead, opt))
+            else:
                 truncatedAfter = True
             if diffLine is None:
                 diffLine = curLine
@@ -222,22 +226,35 @@ def diff(solPath, outPath, options=None):
         # We add lines before and/or after as long as we stay within maxChars
         remChars = maxChars - max(len(solDLine), len(expDLine))
         dispStartLine = relLine
-        dispEndLine = relLine
+        dispSolEndLine = relLine
+        dispExpEndLine = relLine
+
+        # Add lines before from both solution and expected output
         while dispStartLine > 0:
             if len(solLines[dispStartLine-1]) > remChars:
                 break
             else:
                 remChars -= len(solLines[dispStartLine-1])
                 dispStartLine -= 1
-        while dispEndLine < min(len(solLines), len(expLines))-1:
-            if len(solLines[dispEndLine+1]) > remChars:
+
+        # Separately add lines from solution and expected output, as it's
+        # possible they don't have the same lines/number of lines
+        while dispSolEndLine < len(solLines)-1:
+            if len(solLines[dispSolEndLine+1]) > remChars:
                 break
             else:
-                remChars -= len(solLines[dispEndLine+1])
-                dispEndLine += 1
+                remChars -= len(solLines[dispSolEndLine+1])
+                dispSolEndLine += 1
 
-        result['displayedSolutionOutput'] = ''.join(solLines[dispStartLine:dispEndLine+1])
-        result['displayedExpectedOutput'] = ''.join(expLines[dispStartLine:dispEndLine+1])
+        while dispExpEndLine < len(expLines)-1:
+            if len(expLines[dispExpEndLine+1]) > remChars:
+                break
+            else:
+                remChars -= len(expLines[dispExpEndLine+1])
+                dispExpEndLine += 1
+
+        result['displayedSolutionOutput'] = ''.join(solLines[dispStartLine:dispSolEndLine+1])
+        result['displayedExpectedOutput'] = ''.join(expLines[dispStartLine:dispExpEndLine+1])
         result['truncatedBefore'] = (dispStartLine + chunkLine > 1)
         result['truncatedAfter'] = truncatedAfter
         result['excerptRow'] = dispStartLine + chunkLine
