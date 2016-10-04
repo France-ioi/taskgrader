@@ -22,6 +22,20 @@ DEFAULT_OPTIONS = {
     }
 
 
+def readRealLine(handle, options):
+    l = "\n"
+    if options['ignoreBlankLines']:
+        if options['ignoreSpaceChange']:
+            while l != '' and l.strip() == '':
+                l = handle.readline()
+        else:
+            while l != '' and len(l) == 1:
+                l = handle.readline()
+    else:
+        l = handle.readline()
+    return l
+
+
 def diff(solPath, outPath, options=None):
     """Generate a diff report of two files.
     The arguments are:
@@ -99,25 +113,31 @@ def diff(solPath, outPath, options=None):
     while lastLine:
         if lastLine[0] == ' ':
             if solPostDiff < 3:
-                solLines.append(solRead.readline())
+                solLines.append(readRealLine(solRead, opt))
                 truncatedAfter = True
             if expPostDiff < 3:
-                expLines.append(expRead.readline())
+                expLines.append(readRealLine(expRead, opt))
                 truncatedAfter = True
             if diffLine is not None:
                 solPostDiff += 1
                 expPostDiff += 1
         elif lastLine[0] == '-':
+            if opt['ignoreBlankLines'] and lastLine[1:].strip() == '':
+                lastLine = do.readline()
+                continue
             if solPostDiff < 3:
-                solLines.append(solRead.readline())
+                solLines.append(readRealLine(solRead, opt))
                 truncatedAfter = True
             if diffLine is None:
                 diffLine = curLine
             if diffLine is not None:
                 solPostDiff += 1
         elif lastLine[0] == '+':
+            if opt['ignoreBlankLines'] and lastLine[1:].strip() == '':
+                lastLine = do.readline()
+                continue
             if expPostDiff < 3:
-                expLines.append(expRead.readline())
+                expLines.append(readRealLine(expRead, opt))
                 truncatedAfter = True
             if diffLine is None:
                 diffLine = curLine
