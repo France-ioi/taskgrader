@@ -73,6 +73,15 @@ def diff(solPath, outPath, options=None):
     # empty, diff will give a line number of 0
     chunkLine = max(int(do.readline().split()[2].split(',')[0]), 1)
 
+    # Start reading the actual files
+    # stderr=PIPE is generally not good, but tail will never fill it
+    solReadProc = Popen(['/usr/bin/env', 'tail', '-q', '-n', '+%d' % chunkLine,
+        solPath], stdout=PIPE, stderr=PIPE)
+    solRead = solReadProc.stdout
+    expReadProc = Popen(['/usr/bin/env', 'tail', '-q', '-n', '+%d' % chunkLine,
+        outPath], stdout=PIPE, stderr=PIPE)
+    expRead = expReadProc.stdout
+
     solLines = []
     expLines = []
 
@@ -90,17 +99,17 @@ def diff(solPath, outPath, options=None):
     while lastLine:
         if lastLine[0] == ' ':
             if solPostDiff < 3:
-                solLines.append(lastLine[1:])
+                solLines.append(solRead.readline())
                 truncatedAfter = True
             if expPostDiff < 3:
-                expLines.append(lastLine[1:])
+                expLines.append(expRead.readline())
                 truncatedAfter = True
             if diffLine is not None:
                 solPostDiff += 1
                 expPostDiff += 1
         elif lastLine[0] == '-':
             if solPostDiff < 3:
-                solLines.append(lastLine[1:])
+                solLines.append(solRead.readline())
                 truncatedAfter = True
             if diffLine is None:
                 diffLine = curLine
@@ -108,7 +117,7 @@ def diff(solPath, outPath, options=None):
                 solPostDiff += 1
         elif lastLine[0] == '+':
             if expPostDiff < 3:
-                expLines.append(lastLine[1:])
+                expLines.append(expRead.readline())
                 truncatedAfter = True
             if diffLine is None:
                 diffLine = curLine
@@ -154,7 +163,7 @@ def diff(solPath, outPath, options=None):
                     expCur += 1
                     continue
         else:
-            if solCur > len(solDLine) or expCur > len(expDLine):
+            if solCur >= len(solDLine) or expCur >= len(expDLine):
                 break
 
         if solDLine[solCur] != expDLine[expCur]:
