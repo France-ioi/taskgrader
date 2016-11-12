@@ -171,6 +171,9 @@ def diff(solPath, outPath, options=None):
     solCur = 0
     expCur = 0
     while True:
+        if solCur >= len(solDLine) or expCur >= len(expDLine):
+            break
+
         if opt['ignoreSpaceChange']:
             # We ignore consecutive whitespaces
             # It's a line so the character before the first one is a newline
@@ -186,9 +189,6 @@ def diff(solPath, outPath, options=None):
                 elif expCur == 0 or expDLine[expCur+1] in whitespace:
                     expCur += 1
                     continue
-        else:
-            if solCur >= len(solDLine) or expCur >= len(expDLine):
-                break
 
         if solDLine[solCur] != expDLine[expCur]:
             break
