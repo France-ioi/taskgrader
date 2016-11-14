@@ -56,10 +56,18 @@ def diff(solPath, outPath, options=None):
     else:
         opt = DEFAULT_OPTIONS
 
-    # Execute diff
+    # Prepare diff
     diffOptions = '-u'
     if opt['ignoreSpaceChange']: diffOptions += 'b'
-    if opt['ignoreBlankLines']: diffOptions += 'B'
+    if opt['ignoreBlankLines']:
+        diffOptions += 'B'
+        # diff -B has an error, and doesn't compare the very last character of
+        # the last line if it's not a newline
+        # We add a space at the end of both files as a workaround
+        open(solPath, 'a').write(' ')
+        open(outPath, 'a').write(' ')
+
+    # Execute diff
     diffProc = Popen(['/usr/bin/env', 'diff', diffOptions,
         solPath, outPath], stdout=PIPE)
 
