@@ -63,9 +63,9 @@ def diff(solPath, outPath, options=None):
         diffOptions += 'B'
         # diff -B has an error, and doesn't compare the very last character of
         # the last line if it's not a newline
-        # We add a space at the end of both files as a workaround
-        open(solPath, 'a').write(' ')
-        open(outPath, 'a').write(' ')
+        # We add a space and a newline at the end of both files as a workaround
+        open(solPath, 'a').write(' \n')
+        open(outPath, 'a').write(' \n')
 
     # Execute diff
     diffProc = Popen(['/usr/bin/env', 'diff', diffOptions,
@@ -277,7 +277,15 @@ if __name__ == '__main__':
         print "Error: invalid number of arguments."
         exit(1) # Exit code of 1 means a checker error
 
-    grade, result = diff(argv[1], argv[3])
+    try:
+        grade, result = diff(argv[1], argv[3])
+    except:
+        print '0'
+        print 'Error during solution check, please contact an administrator.'
+        from traceback import print_exc
+        print_exc()
+        exit(1)
+
     print grade
     if grade != 100:
         print dumps(result)
