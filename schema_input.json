@@ -118,6 +118,12 @@
                         "items": {
                             "type": "string",
                             "pattern": "^[^/]+$"}},
+                    "noFeedbackTests": {
+                        "type": "array",
+                        "description": "List of globs filtering tests (selected with filterTests) whose outputs will be hidden.",
+                        "items": {
+                            "type": "string",
+                            "pattern": "^[^/]+$"}},
                     "runExecution": {"$ref": "#/definitions/executionParams"}},
                 "required": ["id", "idSolution", "filterTests", "runExecution"]}}},
 

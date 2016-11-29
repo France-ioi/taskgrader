@@ -1135,7 +1135,7 @@ def multiChecker(workingDir, checkList, checker, executionParams):
 
     # Add all tests
     cmdLines = {}
-    for (i, tf) in checkList:
+    for (i, tf, noFeedback) in checkList:
         # Make checker command-line
         baseCmdLine = "%(checker)s %(testFile)s.solout %(testFile)s.in %(testFile)s.out"
         baseCmdLine = baseCmdLine % {'testFile': tf,
@@ -1187,7 +1187,7 @@ def multiChecker(workingDir, checkList, checker, executionParams):
     allReports = []
 
     # Make the report for each check
-    for (i, tf) in checkList:
+    for (i, tf, noFeedback) in checkList:
         report = {}
         report.update(baseReport)
         report['commandLine'] = cmdLines[i]
@@ -1215,6 +1215,8 @@ def multiChecker(workingDir, checkList, checker, executionParams):
         report['stderr'] = capture(os.path.join(workingDir, '%s.cerr' % tf),
             name='stderr',
             truncateSize=multiExecParams['stderrTruncateKb'] * 1024)
+
+        report = removeFeedbackReport(report, noFeedback, isChecker=True)
 
         allReports.append((i, report))
 
@@ -1384,6 +1386,37 @@ def capture(path, name='', truncateSize=-1):
     report['data'] = fd.read(tSize)
     report['wasTruncated'] = (len(fd.read(1)) > 0)
     fd.close()
+    return report
+
+
+def removeFeedbackReport(report, noFeedback=False, isChecker=False):
+    """Remove the feedback from an execution report, if the test has hidden
+    results."""
+    if not noFeedback:
+        return report
+
+    report.update({
+        'noFeedback': True,
+        'commandLine': '',
+        'files': []
+        })
+
+    report['stderr'] = {
+        'name': 'stderr',
+        'sizeKb': 0,
+        'data': '',
+        'wasTruncated': False}
+
+    if isChecker:
+        newData = report['stdout']['data'].split('\n')[0]
+    else:
+        newData = ''
+    report['stdout'] = {
+        'name': 'stdout',
+        'sizeKb': len(newData)/1024,
+        'data': newData,
+        'wasTruncated': False}
+
     return report
 
 
@@ -1640,8 +1673,12 @@ def evaluation(evaluationParams):
 
         # Files to test as input
         testFiles = globOfGlobs(os.path.join(baseWorkingDir, 'tests/'), test['filterTests'])
+        noFeedbackTestFiles = globOfGlobs(os.path.join(baseWorkingDir, 'tests/'), test.get('noFeedbackTests', []))
         for tf in testFiles:
             logging.debug("Test file `%s`" % tf)
+
+            noFeedback = tf in noFeedbackTestFiles
+
             # We execute everything for each test file tf
             if '.' in os.path.basename(tf):
                 baseTfName = '.'.join(os.path.basename(tf).split('.')[:-1])
@@ -1650,15 +1687,17 @@ def evaluation(evaluationParams):
 
             subTestReport = {'name': baseTfName}
             # We execute the sanitizer
-            subTestReport['sanitizer'] = sanitizer.execute(testDir, stdinFile=tf)
+            subTestReport['sanitizer'] = removeFeedbackReport(sanitizer.execute(testDir, stdinFile=tf), noFeedback)
             if isExecError(subTestReport['sanitizer']):
                 # Sanitizer found an error, we skip this file
                 mainTestReport['testsReports'].append(subTestReport)
                 continue
+
             # We execute the solution
             filecopy(tf, testDir, fromlocal=True) # Need it for the checker
-            subTestReport['execution'] = solution.execute(testDir,
-                    stdinFile=testDir + baseTfName + '.in', stdoutFile=testDir + baseTfName + '.solout')
+            subTestReport['execution'] = removeFeedbackReport(solution.execute(testDir,
+                    stdinFile=testDir + baseTfName + '.in', stdoutFile=testDir + baseTfName + '.solout'),
+                    noFeedback)
             if isExecError(subTestReport['execution']):
                 # Solution returned an error, no need to check
                 mainTestReport['testsReports'].append(subTestReport)
@@ -1673,13 +1712,14 @@ def evaluation(evaluationParams):
 
             if CFG_MULTICHECK:
                 # We delay the checking to later
-                multiCheckList.append((len(mainTestReport['testsReports']), baseTfName))
+                multiCheckList.append((len(mainTestReport['testsReports']), baseTfName, noFeedback))
             else:
-                subTestReport['checker'] = checker.execute(testDir,
+                subTestReport['checker'] = removeFeedbackReport(checker.execute(testDir,
                     args="%s.solout %s.in %s.out" % tuple([baseTfName]*3),
                     stdinFile=testDir + baseTfName + '.out',
                     stdoutFile=testDir + baseTfName + '.ok',
-                    otherInputs=[testDir + baseTfName + '.in', testDir + baseTfName + '.solout'])
+                    otherInputs=[testDir + baseTfName + '.in', testDir + baseTfName + '.solout']),
+                    noFeedback, isChecker=True)
             mainTestReport['testsReports'].append(subTestReport)
 
         # Execute delayed checks

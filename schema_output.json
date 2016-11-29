@@ -29,6 +29,7 @@
                 "continueOnError": {"type": "boolean", "description": "Whether the evaluation was set to continue even if this execution failed."},
                 "stdout": {"$ref": "#/definitions/captureReport", "description": "Standard output of the execution."},
                 "stderr": {"$ref": "#/definitions/captureReport", "description": "Standard error output of the execution."},
+                "noFeedback": {"type": "boolean", "description": "Whether the results of this execution are hidden."},
                 "files": {"type": "array", "description": "Files captured from the execution.", "items": {"$ref": "#/definitions/captureReport"}}},
             "required": ["timeLimitMs", "memoryLimitKb", "commandLine", "timeTakenMs", "realTimeTakenMs", "wasKilled", "wasCached", "exitCode"]},
 

@@ -26,7 +26,8 @@ def showExecutionReport(originalReport, name='program'):
         "continueOnError": False,
         "stdout": {'data': ''},
         "stderr": {'data': ''},
-        "files": []
+        "files": [],
+        "noFeedback": False
         }
 
     report.update(originalReport)
@@ -45,7 +46,7 @@ def showExecutionReport(originalReport, name='program'):
     # Execution information
     print("Execution %s: %s" % (name, success))
     print("""Cmd: %(commandLine)s
-cached: %(wasCached)s / exit code %(exitCode)d, sig %(exitSig)d, continueOnError: %(continueOnError)s
+Exit code %(exitCode)d, sig %(exitSig)d / cached: %(wasCached)s continueOnError: %(continueOnError)s, noFeedback: %(noFeedback)s
 Time: %(timeTakenMs)gms (real %(realTimeTakenMs)gms, limit %(timeLimitMs)gms) / memory: %(memoryUsedKb)gKb (limit %(memoryLimitKb)gKb)""" % report)
 
     # Stdout / stderr

@@ -388,9 +388,11 @@ def genDefaultParams(taskPath, taskSettings):
             'id': '@solutionExecId',
             'idSolution': '@solutionId',
             'filterTests': '@solutionFilterTests',
+            'noFeedbackTests': '@defaultNoFeedbackTests',
             'runExecution': '@defaultSolutionExecParams'
             }],
 
+        'defaultNoFeedbackTests': ['*.nofeedback.in'],
         'defaultSolutionCompParams': CFG_TESTSOLPARAMS,
         'defaultSolutionExecParams': CFG_TESTSOLPARAMS,
 
