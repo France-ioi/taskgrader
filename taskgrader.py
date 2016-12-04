@@ -507,7 +507,7 @@ class IsolatedExecution(Execution):
         # Build isolate command line
         isolatedCmdLine  = CFG_ISOLATEBIN
         isolatedCmdLine += ' --processes'
-        isolatedCmdLine += ' --env=HOME --env=PATH'
+        isolatedCmdLine += ' --env=HOME --env=PATH --env=LANG --env=LC_ALL'
         isolatedCmdLine += ' --meta=%s' % os.path.join(workingDir, 'isolate.meta')
         # Add access to some folders
         for folder in CFG_ISOLATE_AVAILABLE:
