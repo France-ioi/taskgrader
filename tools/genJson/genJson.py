@@ -212,11 +212,11 @@ def genDefaultParams(taskPath, taskSettings):
         # Extra tests
         if os.path.isdir(os.path.join(extraDir, 'all/')) and os.path.isdir(os.path.join(extraDir, 'python/')):
             # We have specific tests for python
-            for f in globOfGlobs(extraDir, ['all/*.in', 'all/*.out']):
+            for f in globOfGlobs(extraDir, ['all/*.in', 'all/*.out', 'all/*.params']):
                 if not isIgnored(os.path.basename(f), taskSettings.get('ignoreTests', [])):
                     defExtraTests.append({'name': 'all-' + os.path.basename(f),
                                           'path': os.path.join('$TASK_PATH', os.path.relpath(f, taskPath))})
-            for f in globOfGlobs(taskPath, ['files/*.in', 'files/*.out']):
+            for f in globOfGlobs(taskPath, ['files/*.in', 'files/*.out', 'files/*.params']):
                 if not isIgnored(os.path.basename(f), taskSettings.get('ignoreTests', [])):
                     defExtraTests.append({'name': 'py-' + os.path.basename(f),
                                           'path': '$TASK_PATH/' + os.path.relpath(f, taskPath)})
@@ -224,7 +224,7 @@ def genDefaultParams(taskPath, taskSettings):
             defFilterTestsPy = ['py-*.in']
         else:
             # Tests are the same for all languages
-            for f in globOfGlobs(extraDir, ['*.in', '*.out']):
+            for f in globOfGlobs(extraDir, ['*.in', '*.out', '*.params']):
                 if not isIgnored(os.path.basename(f), taskSettings.get('ignoreTests', [])):
                     defExtraTests.append(getTaskFile(os.path.relpath(f, taskPath)))
 

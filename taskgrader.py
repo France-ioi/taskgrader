@@ -1075,6 +1075,10 @@ class Program():
 
         logging.info("Executing Program `%s`, args `%s`, in dir `%s`" % (self.name, args, workingDir))
 
+        if self.executionParams.get('executionArgs', False):
+            args = self.executionParams['executionArgs']
+            logging.info("Loaded arguments `%s` from executionParams." % args)
+
         if self.executionParams['useCache']:
             # Check cache
             inputFiles = []
@@ -1579,16 +1583,16 @@ def evaluation(evaluationParams):
             # We generate the test cases just by executing the generators
             genReport = {'id': gen['id']}
             genReport['generatorExecution'] = generator.execute(genDir,
-                outputFiles=['*.in', '*.out', '*.h', '*.hpp', '*.o', '*.java', '*.ml', '*.mli', '*.pas', '*.py'])
+                outputFiles=['*.in', '*.out', '*.params', '*.h', '*.hpp', '*.o', '*.java', '*.ml', '*.mli', '*.pas', '*.py'])
             errorSoFar = errorSoFar or isExecError(genReport['generatorExecution'])
             if gen.has_key('idOutputGenerator'):
                 # We also have an output generator
-                genReport['outputGeneratorExecution'] = outputGenerator.execute(genDir, outputFiles=['*.out'])
+                genReport['outputGeneratorExecution'] = outputGenerator.execute(genDir, outputFiles=['*.out', '*.params'])
                 errorSoFar = errorSoFar or isExecError(genReport['outputGeneratorExecution'])
             report['generations'].append(genReport)
 
             # We copy the generated test files
-            for f in globOfGlobs(genDir, ['*.in', '*.out']):
+            for f in globOfGlobs(genDir, ['*.in', '*.out', '*.params']):
                 filecopy(f, baseWorkingDir + 'tests/')
             # We copy the generated lib files
             for f in globOfGlobs(genDir, ['*.h', '*.hpp', '*.o', '*.java', '*.ml', '*.mli', '*.pas', '*.py']):
@@ -1693,11 +1697,35 @@ def evaluation(evaluationParams):
                 mainTestReport['testsReports'].append(subTestReport)
                 continue
 
+            # Check if there are test case parameters
+            testHasParams = False
+            if os.path.isfile(tf[:-3] + '.params'):
+                filecopy(tf[:-3] + '.params', testDir, fromlocal=True)
+                try:
+                    # Try to load parameters
+                    testParams = json.load(open(tf[:-3] + '.params', 'r'))
+                    newParams = {}
+                    newParams.update(test['runExecution'])
+                    newParams.update(testParams)
+                    testHasParams = True
+                    solution.prepareExecution(newParams)
+                except:
+                    logging.warning("Test parameters file `%s` invalid." % (tf[:-3] + '.params'))
+                    if testHasParams:
+                        # If True there, means that we tried to prepare the
+                        # execution with newParams and it failed
+                        solution.prepareExecution(test['runExecution'])
+
             # We execute the solution
             filecopy(tf, testDir, fromlocal=True) # Need it for the checker
             subTestReport['execution'] = removeFeedbackReport(solution.execute(testDir,
                     stdinFile=testDir + baseTfName + '.in', stdoutFile=testDir + baseTfName + '.solout'),
                     noFeedback)
+
+            if testHasParams:
+                # Reset to the default execution params
+                solution.prepareExecution(test['runExecution'])
+
             if isExecError(subTestReport['execution']):
                 # Solution returned an error, no need to check
                 mainTestReport['testsReports'].append(subTestReport)
