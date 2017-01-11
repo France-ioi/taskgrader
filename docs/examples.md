@@ -4,6 +4,7 @@ The taskgrader comes with various examples depicting features of the taskgrader.
 
 Name | Description
 ---- | -----------
+taskArguments | Pass different command-line arguments to the solution on each test
 taskCChecker | Check the output of the solution compilation
 taskGenerator | Generate test cases with a *generator* script
 taskInputs | Have the solution read a specific file then output in another file, instead of stdin/stdout
@@ -159,6 +160,15 @@ Note that if the cache is enabled, the solution will not be executed again for t
 # More complex task writing
 
 More complex tasks can be written for usage with the taskgrader. The `taskstarter` tool is meant for simple tasks, you need to edit files manually for these examples. Here is an example, but read the rest of this documentation for more information.
+
+## Parameters example: specifying parameters for each test (taskArguments)
+
+By default, one specifies the execution parameters for all tests in the same test set. To specify different execution parameters for a specific test, you can add a `.params` file along your test file.
+
+This file must have the same name as your `.in` test file, and the `.params` extension. It must contain JSON data corresponding to executionParams keys; this JSON data will be merged with default executionParams for this test. You don't need to specify all keys, only the ones different from the default executionParams.
+
+*This example can be found in the `examples/taskArguments` folder.*
+
 
 ## Runner example: solution skeleton (taskRunner)
 
