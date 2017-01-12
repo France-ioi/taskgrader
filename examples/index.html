@@ -205,6 +205,8 @@
     
         <li class="main "><a href="#more-complex-task-writing">More complex task writing</a></li>
         
+            <li><a href="#parameters-example-specifying-parameters-for-each-test-taskarguments">Parameters example: specifying parameters for each test (taskArguments)</a></li>
+        
             <li><a href="#runner-example-solution-skeleton-taskrunner">Runner example: solution skeleton (taskRunner)</a></li>
         
             <li><a href="#another-runner-example-counting-the-number-of-mathematical-operations">Another runner example: counting the number of mathematical operations</a></li>
@@ -232,6 +234,10 @@
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>taskArguments</td>
+<td>Pass different command-line arguments to the solution on each test</td>
+</tr>
 <tr>
 <td>taskCChecker</td>
 <td>Check the output of the solution compilation</td>
@@ -382,6 +388,10 @@
 <p><em>This example can be found in the <code>examples/taskSets</code> folder.</em></p>
 <h1 id="more-complex-task-writing">More complex task writing</h1>
 <p>More complex tasks can be written for usage with the taskgrader. The <code>taskstarter</code> tool is meant for simple tasks, you need to edit files manually for these examples. Here is an example, but read the rest of this documentation for more information.</p>
+<h2 id="parameters-example-specifying-parameters-for-each-test-taskarguments">Parameters example: specifying parameters for each test (taskArguments)</h2>
+<p>By default, one specifies the execution parameters for all tests in the same test set. To specify different execution parameters for a specific test, you can add a <code>.params</code> file along your test file.</p>
+<p>This file must have the same name as your <code>.in</code> test file, and the <code>.params</code> extension. It must contain JSON data corresponding to executionParams keys; this JSON data will be merged with default executionParams for this test. You don't need to specify all keys, only the ones different from the default executionParams.</p>
+<p><em>This example can be found in the <code>examples/taskArguments</code> folder.</em></p>
 <h2 id="runner-example-solution-skeleton-taskrunner">Runner example: solution skeleton (taskRunner)</h2>
 <p>Sometimes, the "solution" to be evaluated is not the file to be executed, but a library or a test file.</p>
 <p>In this example, we have <code>runner.py</code> calling the function <code>min3nombres</code> from the user-sent python file. The "solution" is hence a library, and the actual script executed is <code>runner.py</code> using this library.</p>
