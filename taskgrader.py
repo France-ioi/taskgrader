@@ -1617,15 +1617,19 @@ def evaluation(evaluationParams):
     os.mkdir(baseWorkingDir + "sanitizer/")
     sanitizer = Program(evaluationParams['sanitizer']['compilationDescr'], evaluationParams['sanitizer']['compilationExecution'], baseWorkingDir + "sanitizer/", baseWorkingDir, cache, 'sanitizer')
     report['sanitizer'] = sanitizer.compile()
-    sanitizer.prepareExecution(evaluationParams['sanitizer']['runExecution'])
-    errorSoFar = errorSoFar or isExecError(report['sanitizer'])
+    if isExecError(report['sanitizer']):
+        errorSoFar = True
+    else:
+        sanitizer.prepareExecution(evaluationParams['sanitizer']['runExecution'])
 
     # *** Checker
     os.mkdir(baseWorkingDir + "checker/")
     checker = Program(evaluationParams['checker']['compilationDescr'], evaluationParams['checker']['compilationExecution'], baseWorkingDir + "checker/", baseWorkingDir, cache, 'checker')
     report['checker'] = checker.compile()
-    checker.prepareExecution(evaluationParams['checker']['runExecution'])
-    errorSoFar = errorSoFar or isExecError(report['checker'])
+    if isExecError(report['checker']):
+        errorSoFar = True
+    else:
+        checker.prepareExecution(evaluationParams['checker']['runExecution'])
 
     # Did we encounter an error so far?
     if errorSoFar:
