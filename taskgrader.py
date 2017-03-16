@@ -1387,7 +1387,7 @@ def capture(path, name='', truncateSize=-1):
         tSize = CFG_MAX_GETFILE
     else:
         tSize = min(truncateSize, CFG_MAX_GETFILE)
-    report['data'] = fd.read(tSize)
+    report['data'] = fd.read(tSize).decode('utf-8', errors='replace').encode('utf-8')
     report['wasTruncated'] = (len(fd.read(1)) > 0)
     fd.close()
     return report

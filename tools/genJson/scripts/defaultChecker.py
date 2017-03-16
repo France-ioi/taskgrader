@@ -22,6 +22,11 @@ DEFAULT_OPTIONS = {
     }
 
 
+def utf8safe(s):
+    """Remove characters invalid in UTF-8."""
+    return s.decode('utf-8', errors='replace').encode('utf-8')
+
+
 def readRealLine(handle, options):
     l = "\n"
     if options['ignoreBlankLines']:
@@ -223,8 +228,8 @@ def diff(solPath, outPath, options=None):
         else:
             colStart = solCur - maxChars/2
             colEnd = solCur + maxChars/2
-        result['displayedSolutionOutput'] = solDLine[colStart:colEnd]
-        result['displayedExpectedOutput'] = expDLine[colStart:colEnd]
+        result['displayedSolutionOutput'] = utf8safe(solDLine[colStart:colEnd])
+        result['displayedExpectedOutput'] = utf8safe(expDLine[colStart:colEnd])
         result['truncatedBefore'] = (diffLine > 1)
         result['truncatedAfter'] = True
         result['excerptRow'] = diffLine
@@ -261,8 +266,8 @@ def diff(solPath, outPath, options=None):
                 remChars -= len(expLines[dispExpEndLine+1])
                 dispExpEndLine += 1
 
-        result['displayedSolutionOutput'] = ''.join(solLines[dispStartLine:dispSolEndLine+1])
-        result['displayedExpectedOutput'] = ''.join(expLines[dispStartLine:dispExpEndLine+1])
+        result['displayedSolutionOutput'] = utf8safe(''.join(solLines[dispStartLine:dispSolEndLine+1]))
+        result['displayedExpectedOutput'] = utf8safe(''.join(expLines[dispStartLine:dispExpEndLine+1]))
         result['truncatedBefore'] = (dispStartLine + chunkLine > 1)
         result['truncatedAfter'] = truncatedAfter
         result['excerptRow'] = dispStartLine + chunkLine
