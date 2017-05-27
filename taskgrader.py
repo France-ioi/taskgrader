@@ -434,7 +434,7 @@ class Execution():
         proc = subprocess.Popen(shlex.split(cmdLine), stdin=stdinHandle, stdout=open(self.stdoutFile, 'w'),
                 stderr=open(stderrFile, 'w'), cwd=workingDir)
         # We allow a wall time of 3 times the timeLimit
-        waitWithTimeout(proc, (1+int(self.executionParams['timeLimitMs']/1000))*3)
+        waitWithTimeout(proc, (1+int(self.executionParams['timeLimitMs']/1000))*CFG_WALLTIME_FACTOR)
 
         # Make execution report
         report = {}
@@ -516,7 +516,7 @@ class IsolatedExecution(Execution):
         isolatedCmdLine += ' --box-id=%d' % boxId
         if self.executionParams['timeLimitMs'] > 0:
             isolatedCmdLine += ' --time=' + str(self.realTimeLimit / 1000.)
-            isolatedCmdLine += ' --wall-time=' + str(3 * self.realTimeLimit / 1000.)
+            isolatedCmdLine += ' --wall-time=' + str(CFG_WALLTIME_FACTOR * self.realTimeLimit / 1000.)
         if self.executionParams['memoryLimitKb'] > 0:
             if CFG_CONTROLGROUPS:
                 isolatedCmdLine += ' --cg-mem=' + str(self.realMemoryLimitKb)

@@ -93,6 +93,10 @@ CFG_MAX_TIMELIMIT = 60000       # in milliseconds
 CFG_MAX_MEMORYLIMIT = 1024*1024 # in kilobytes
 CFG_MAX_GETFILE = 1024*1024     # in bytes
 
+# Wall time factor: if the cpu time limit is x, the wall time limit will be
+# CFG_WALLTIME_FACTOR * x
+CFG_WALLTIME_FACTOR = 3
+
 # Time and memory parameter transformations for some languages
 # For memory, we only transform the limit
 # Example: CFG_TRANSFORM_MEM={'c': lambda x: 4096+x}
