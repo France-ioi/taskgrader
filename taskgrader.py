@@ -758,7 +758,7 @@ class LanguageJava(Language):
     dependencies = ["gcj"]
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
-        cmdLine = "%s --encoding=utf8 --main=Main -o %s.exe %s" % (self.deppaths[0], name, ' '.join(sourceFiles))
+        cmdLine = "%s --encoding=utf8 --main=Main -o %s.exe %s %s" % (self.deppaths[0], name, ' '.join(depFiles), ' '.join(sourceFiles))
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
 class LanguageJavascool(LanguageJava):
