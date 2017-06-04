@@ -34,6 +34,7 @@ CFG_RESET_SCRIPT = os.path.join(CFG_BINDIR, 'cache_reset.py')
 CFG_ISOLATEBIN = os.path.join(CFG_BINDIR, 'isolate-bin')
 CFG_RIGHTSBIN = os.path.join(CFG_BINDIR, 'box-rights')
 CFG_JAVASCOOLBIN = os.path.join(CFG_BINDIR, 'jvs2java')
+CFG_PYFRENCHERRORS = os.path.join(CFG_BINDIR, 'pyFrenchErrors/pyfe')
 
 # jsonschema-related variables
 CFG_JSONSCHEMA = os.path.join(CFG_BINDIR, 'jsonschema')

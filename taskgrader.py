@@ -11,8 +11,8 @@
 
 
 import argparse, cPickle, fcntl, glob, hashlib, json, logging, os, platform
-import random, shlex, shutil, sqlite3, stat, sys, subprocess, threading, time
-import traceback
+import random, shlex, shutil, sqlite3, stat, sys, subprocess, tempfile
+import threading, time, traceback
 
 
 # Load configuration; default values will be overwritten by user-defined ones
@@ -381,7 +381,7 @@ class Execution():
         logging.debug("New Execution initialized for executable `%s`, cmd `%s`" % (executablePath, cmd))
 
 
-    def _prepareExecute(self, workingDir, stdinFile=None, stdoutFile=None):
+    def _prepareExecute(self, workingDir, stdinFile=None, stdoutFile=None, stderrFile=None):
         """Prepares the execution in workingDir, checks stdinFile and
         stdoutFile paths."""
 
@@ -410,11 +410,19 @@ class Execution():
 
         # Make stdoutFile path
         if stdoutFile == None:
-            self.stdoutFile = workingDir + 'stdout'
+            self.stdoutFile = os.path.join(workingDir, 'stdout')
         elif not isInRestrict(stdoutFile):
             raise Exception("Writing to file `%s` not allowed." % stdoutFile)
         else:
             self.stdoutFile = stdoutFile
+
+        # Make stderrFile path
+        if stderrFile == None:
+            self.stderrFile = os.path.join(workingDir, 'stderr')
+        elif not isInRestrict(stderrFile):
+            raise Exception("Writing to file `%s` not allowed." % stderrFile)
+        else:
+            self.stderrFile = stderrFile
 
         # Add files from executionParams/addFiles
         for fileDescr in self.executionParams.get('addFiles', []):
@@ -429,10 +437,8 @@ class Execution():
         # Open stdin file
         stdinHandle = (open(self.stdinFile, 'rb') if self.stdinFile else None)
 
-        stderrFile = os.path.join(workingDir, 'stderr')
-
         proc = subprocess.Popen(shlex.split(cmdLine), stdin=stdinHandle, stdout=open(self.stdoutFile, 'w'),
-                stderr=open(stderrFile, 'w'), cwd=workingDir)
+                stderr=open(self.stderrFile, 'w'), cwd=workingDir)
         # We allow a wall time of 3 times the timeLimit
         waitWithTimeout(proc, (1+int(self.executionParams['timeLimitMs']/1000))*CFG_WALLTIME_FACTOR)
 
@@ -450,7 +456,7 @@ class Execution():
 
         report['stdout'] = capture(self.stdoutFile, name='stdout',
                 truncateSize=self.executionParams['stdoutTruncateKb'] * 1024)
-        report['stderr'] = capture(stderrFile, name='stderr',
+        report['stderr'] = capture(self.stderrFile, name='stderr',
                 truncateSize=self.executionParams['stderrTruncateKb'] * 1024)
 
         filesReports = []
@@ -461,13 +467,13 @@ class Execution():
         return report
 
 
-    def execute(self, workingDir, args=None, stdinFile=None, stdoutFile=None):
+    def execute(self, workingDir, args=None, stdinFile=None, stdoutFile=None, stderrFile=None):
         """Execute the program in workingDir, with command-line arguments args,
         and standard input and output redirected from stdinFile and to
         stdoutFile."""
         logging.info("Executing executable `%s`, cmd `%s`, args `%s` in dir `%s`" % (self.executablePath, self.cmd, args, workingDir))
         self.workingDir = workingDir
-        self._prepareExecute(workingDir, stdinFile, stdoutFile)
+        self._prepareExecute(workingDir, stdinFile, stdoutFile, stderrFile)
         return self._doExecute(workingDir, args)
 
 
@@ -577,6 +583,7 @@ class IsolatedExecution(Execution):
         # Copy back the files from sandbox
         dircopy(isolateDir, workingDir, overwrite=False)
         filecopy(os.path.join(isolateDir, 'isolated.stdout'), self.stdoutFile)
+        filecopy(os.path.join(isolateDir, 'isolated.stderr'), self.stderrFile)
 
         # Generate execution report
         if isolateMeta.has_key('time'):
@@ -933,6 +940,9 @@ class Program():
         self.triedCompile = False
         self.execution = None
 
+        self.sourceFiles = None
+        self.depFiles = None
+
         # Check whether execution should be isolated
         self.isolate = True
         for f in compilationDescr['files']:
@@ -975,6 +985,20 @@ class Program():
         with that name in buildDir, with the language-specific function."""
         return getFile(fileDescr, self.ownDir, errorFatal=True, language=self.language, baseDir=self.baseDir)
 
+    def populateSources(self):
+        """Fetch source files and dependencies into the workingDir."""
+
+        if self.sourceFiles is not None and self.depFiles is not None:
+            return
+
+        compilationDescr = self.compilationDescr
+
+        # We fetch source files into the workingDir
+        self.sourceFiles = map(self._getFile, compilationDescr['files'])
+
+        # We fetch dependencies into the workingDir
+        self.depFiles = map(self._getFile, compilationDescr['dependencies'])
+
     def _compile(self):
         """Effectively compile a program, not using cache (probably because
         there's no cached version).
@@ -982,17 +1006,10 @@ class Program():
         executionParams as parameters for the compiler execution.
         The resulting file will by named '[name].exe'."""
 
-        compilationDescr = self.compilationDescr
-        compilationParams = self.compilationParams
-
-        # We fetch source files into the workingDir
-        sourceFiles = map(self._getFile, compilationDescr['files'])
-
-        # We fetch dependencies into the workingDir
-        depFiles = map(self._getFile, compilationDescr['dependencies'])
+        self.populateSources()
 
         # We call the language-specific compilation process
-        report = self.language.compile(self.compilationParams, self.ownDir, sourceFiles, depFiles, self.name)
+        report = self.language.compile(self.compilationParams, self.ownDir, self.sourceFiles, self.depFiles, self.name)
 
         if isExecError(report, checkContinue=False) and self.compilationParams.get('continueOnError', False):
             # Compilation didn't succeed but the continueOnError flag is set
@@ -1059,7 +1076,7 @@ class Program():
             self.execution = Execution(self.executablePath, executionParams, './%s' % os.path.basename(self.executablePath), language=self.compilationDescr['language'])
         self.executionParams = executionParams
 
-    def execute(self, workingDir, args=None, stdinFile=None, stdoutFile=None, otherInputs=[], outputFiles=[]):
+    def execute(self, workingDir, args=None, stdinFile=None, stdoutFile=None, stderrFile=None, otherInputs=[], outputFiles=[]):
         """Execute the Program in workingDir, with command-line arguments args.
         otherInputs represent the files the Program execution will depend on,
         to differentiate executions in the cache; outputFiles represents the
@@ -1095,18 +1112,20 @@ class Program():
             else:
                 logging.debug("No version in cache")
                 # It is not cached, we execute the program
-                report = self.execution.execute(workingDir, args, stdinFile, stdoutFile)
+                report = self.execution.execute(workingDir, args, stdinFile, stdoutFile, stderrFile)
                 # Save the report and output files
                 cachef.addReport(report)
                 if stdoutFile:
                     cachef.addFile(stdoutFile)
+                if stderrFile:
+                    cachef.addFile(stderrFile)
                 for f in globOfGlobs(workingDir, outputFiles):
                     cachef.addFile(f)
                 cachef.save()
         else:
             # We don't use cache at all
             logging.debug("Not using cache")
-            report = self.execution.execute(workingDir, args, stdinFile, stdoutFile)
+            report = self.execution.execute(workingDir, args, stdinFile, stdoutFile, stderrFile)
 
         if isExecError(report):
             logging.info("Execution failed.")
@@ -1220,7 +1239,7 @@ def multiChecker(workingDir, checkList, checker, executionParams):
             name='stderr',
             truncateSize=multiExecParams['stderrTruncateKb'] * 1024)
 
-        report = removeFeedbackReport(report, noFeedback, isChecker=True)
+        report = transformReport(report, {'noFeedback': noFeedback}, 'checker', 'execution')
 
         allReports.append((i, report))
 
@@ -1424,6 +1443,53 @@ def removeFeedbackReport(report, noFeedback=False, isChecker=False):
     return report
 
 
+def pyFrenchErrors(report, paths):
+    """Transform a Python report with pyFrenchErrors."""
+    if paths is False:
+        return report
+
+    if report['stderr']['data'].strip() == '':
+        return report
+
+    if not os.path.isfile(CFG_PYFRENCHERRORS):
+        logging.error('PyFrenchErrors is not installed, unable to translate report!')
+        return report
+
+    cmdLine = [CFG_PYFRENCHERRORS, paths['solution'], paths['stderr']]
+    proc = subprocess.Popen(cmdLine, stdin=None, stdout=open(paths['output'], 'w'),
+            stderr=subprocess.PIPE, cwd=os.path.dirname(CFG_PYFRENCHERRORS))
+    procOut, procErr = proc.communicate()
+
+    if procErr != '':
+        logging.error('pyFrenchErrors stderr: `%s`' % procErr)
+
+    pyfeOut = open(paths['output'], 'r').read().decode('utf-8', errors='replace')
+    newErr = u"""%s
+
+Message d'erreur Python complet :
+%s""" % (pyfeOut, report['stderr']['data'])
+
+    report['stderr']['data'] = newErr.encode('utf-8')
+    report['stderr']['sizeKb'] = len(newErr)/1024
+
+    return report
+
+
+def transformReport(report, transformations, programType='', execType=''):
+    """Transform a report according to some rules.
+    For now, transformations can be "noFeedback" and "pyFrenchErrors".
+    transformations must be a dict where keys are transformations types and
+    values are options for that transformation."""
+
+    for transType in transformations.keys():
+        if transType == 'noFeedback':
+            report = removeFeedbackReport(report, transformations['noFeedback'], programType == 'checker')
+        elif transType == 'pyFrenchErrors':
+            report = pyFrenchErrors(report, transformations['pyFrenchErrors'])
+
+    return report
+
+
 def evaluation(evaluationParams):
     """Full evaluation process."""
 
@@ -1523,6 +1589,8 @@ def evaluation(evaluationParams):
     errorSoFar = False
 
     logging.info("Evaluation taking place in dir `%s`" % baseWorkingDir)
+
+    pyfeEnabled = True # TODO (temporary)
 
     # *** Generators
     os.mkdir(baseWorkingDir + "generators/")
@@ -1695,7 +1763,7 @@ def evaluation(evaluationParams):
 
             subTestReport = {'name': baseTfName}
             # We execute the sanitizer
-            subTestReport['sanitizer'] = removeFeedbackReport(sanitizer.execute(testDir, stdinFile=tf), noFeedback)
+            subTestReport['sanitizer'] = transformReport(sanitizer.execute(testDir, stdinFile=tf), {'noFeedback': noFeedback}, 'sanitizer', 'execution')
             if isExecError(subTestReport['sanitizer']):
                 # Sanitizer found an error, we skip this file
                 mainTestReport['testsReports'].append(subTestReport)
@@ -1720,11 +1788,24 @@ def evaluation(evaluationParams):
                         # execution with newParams and it failed
                         solution.prepareExecution(test['runExecution'])
 
+            # Set up pyFrenchErrors options
+            if pyfeEnabled and solution.language.lang in ['py2', 'py3']:
+                solution.populateSources()
+                pyfeOpts = {
+                    'solution': solution.sourceFiles[0],
+                    'stderr': testDir + baseTfName + '.solerr',
+                    'output': testDir + baseTfName + '.pyfe'}
+            else:
+                pyfeOpts = False
+
             # We execute the solution
             filecopy(tf, testDir, fromlocal=True) # Need it for the checker
-            subTestReport['execution'] = removeFeedbackReport(solution.execute(testDir,
-                    stdinFile=testDir + baseTfName + '.in', stdoutFile=testDir + baseTfName + '.solout'),
-                    noFeedback)
+            subTestReport['execution'] = transformReport(
+                solution.execute(testDir,
+                    stdinFile=testDir + baseTfName + '.in',
+                    stdoutFile=testDir + baseTfName + '.solout',
+                    stderrFile=testDir + baseTfName + '.solerr'),
+                {'noFeedback': noFeedback, 'pyFrenchErrors': pyfeOpts}, 'solution', 'execution')
 
             if testHasParams:
                 # Reset to the default execution params
@@ -1746,12 +1827,12 @@ def evaluation(evaluationParams):
                 # We delay the checking to later
                 multiCheckList.append((len(mainTestReport['testsReports']), baseTfName, noFeedback))
             else:
-                subTestReport['checker'] = removeFeedbackReport(checker.execute(testDir,
+                subTestReport['checker'] = transformReport(checker.execute(testDir,
                     args="%s.solout %s.in %s.out" % tuple([baseTfName]*3),
                     stdinFile=testDir + baseTfName + '.out',
                     stdoutFile=testDir + baseTfName + '.ok',
                     otherInputs=[testDir + baseTfName + '.in', testDir + baseTfName + '.solout']),
-                    noFeedback, isChecker=True)
+                    {'noFeedback': noFeedback}, 'checker', 'execution')
             mainTestReport['testsReports'].append(subTestReport)
 
         # Execute delayed checks
