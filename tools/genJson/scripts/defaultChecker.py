@@ -62,7 +62,11 @@ def diff(solPath, outPath, options=None):
         opt = DEFAULT_OPTIONS
 
     # Prepare diff
-    diffOptions = '-u'
+    # Options:
+    # -u for unified (expected display)
+    # -a to always treat as text (avoid special messages when the output
+    # doesn't resemble text)
+    diffOptions = '-ua'
     if opt['ignoreSpaceChange']: diffOptions += 'b'
     if opt['ignoreBlankLines']:
         diffOptions += 'B'
