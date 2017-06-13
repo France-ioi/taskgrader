@@ -1463,11 +1463,11 @@ def pyFrenchErrors(report, paths):
     if procErr != '':
         logging.error('pyFrenchErrors stderr: `%s`' % procErr)
 
-    pyfeOut = open(paths['output'], 'r').read()
+    pyfeOut = open(paths['output'], 'r').read().decode('utf-8', errors='replace')
 
-    report['stderr']['data'] = pyfeOut + """
+    report['stderr']['data'] = pyfeOut + u"""
 Message d'erreur Python complet:
-""".encode('utf-8') + report['stderr']['data']
+""" + report['stderr']['data']
 
     report['stderr']['sizeKb'] = len(report['stderr']['data'])/1024
 
