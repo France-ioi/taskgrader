@@ -15,6 +15,13 @@ SELFDIR = os.path.normpath(os.path.dirname(os.path.abspath(__file__)))
 # genJson version (grabbed from git log)
 VERSION = ''
 
+def copyFile(origin, dest):
+    try:
+        os.makedirs(os.path.dirname(dest))
+    except:
+        pass
+    return shutil.copy(origin, dest)
+
 def getFileList(path):
     """Makes a list of sub-paths of files found in path."""
     l = []
@@ -169,7 +176,7 @@ def genDefaultParams(taskPath, taskSettings):
         os.mkdir(os.path.join(tmpDir, 'gen'))
         for dep in genDependencies:
             path = dep['path'].replace('$TASK_PATH', taskPath).replace('$ROOT_PATH', CFG_ROOTDIR)
-            shutil.copy(path, os.path.join(tmpDir, 'gen', dep['name']))
+            copyFile(path, os.path.join(tmpDir, 'gen', dep['name']))
         proc = subprocess.Popen(['/bin/sh', os.path.join(tmpDir, 'gen', genFilename)], cwd=tmpDir + '/gen/', stdout=devnull, stderr=devnull)
         for i in range(CFG_EXEC_TIMEOUT): # Timeout after 60 seconds
             if not (proc.poll() is None):
@@ -284,12 +291,12 @@ def genDefaultParams(taskPath, taskSettings):
             # We test whether the sanitizer is C++11 or C++
             tmpDir = tempfile.mkdtemp()
             sanFilename = os.path.basename(taskSettings['sanitizer'])
-            shutil.copy(os.path.join(taskPath, taskSettings['sanitizer']), os.path.join(tmpDir, sanFilename))
+            copyFile(os.path.join(taskPath, taskSettings['sanitizer']), os.path.join(tmpDir, sanFilename))
             for dep in taskSettings.get('sanitizerDeps', []):
                 path = dep['path'].replace('$TASK_PATH', taskPath).replace('$ROOT_PATH', CFG_ROOTDIR)
-                shutil.copy(path, os.path.join(tmpDir, dep['name']))
+                copyFile(path, os.path.join(tmpDir, dep['name']))
                 try:
-                    shutil.copy(f, tmpDir)
+                    copyFile(f, tmpDir)
                 except:
                     pass
             proc = subprocess.Popen(['/usr/bin/g++', '-std=gnu++11', os.path.join(tmpDir, sanFilename)],
