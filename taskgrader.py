@@ -1463,11 +1463,7 @@ def pyFrenchErrors(report, paths):
     if procErr != '':
         logging.error('pyFrenchErrors stderr: `%s`' % procErr)
 
-    pyfeOut = open(paths['output'], 'r').read().decode('utf-8', errors='replace')
-
-    report['stderr']['data'] = pyfeOut + u"""
-Message d'erreur Python complet:
-""" + report['stderr']['data']
+    report['stderr']['data'] = open(paths['output'], 'rb').read().decode('utf-8', errors='replace').encode('utf-8')
 
     report['stderr']['sizeKb'] = len(report['stderr']['data'])/1024
 
@@ -1791,7 +1787,7 @@ def evaluation(evaluationParams):
             if pyfeEnabled and solution.language.lang in ['py2', 'py3']:
                 solution.populateSources()
                 pyfeOpts = {
-                    'solution': solution.sourceFiles[0],
+                    'solution': os.path.join(solution.ownDir, solution.sourceFiles[0]),
                     'stderr': testDir + baseTfName + '.solerr',
                     'output': testDir + baseTfName + '.pyfe'}
             else:
