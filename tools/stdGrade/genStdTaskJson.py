@@ -57,6 +57,7 @@ def genStdTaskJson(taskPath, execPath, cmdExecParams, lang=None):
     # Parameters of the solution
     extraParams = {
         'solutionLanguage': solLang,
+        'solutionFilterTests': '@defaultFilterTests-' + solLang,
         'solutionFilename': os.path.basename(execPath),
         'solutionPath': os.path.join('$TASK_PATH', os.path.relpath(execPath, taskPath)),
         'solutionDependencies': dep,
