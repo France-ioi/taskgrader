@@ -223,7 +223,7 @@ def genDefaultParams(taskPath, taskSettings):
                 if not isIgnored(os.path.basename(f), taskSettings.get('ignoreTests', [])):
                     defExtraTests.append({'name': 'all-' + os.path.basename(f),
                                           'path': os.path.join('$TASK_PATH', os.path.relpath(f, taskPath))})
-            for f in globOfGlobs(taskPath, ['python/*.in', 'python/*.out', 'python/*.params']):
+            for f in globOfGlobs(extraDir, ['python/*.in', 'python/*.out', 'python/*.params']):
                 if not isIgnored(os.path.basename(f), taskSettings.get('ignoreTests', [])):
                     defExtraTests.append({'name': 'py-' + os.path.basename(f),
                                           'path': '$TASK_PATH/' + os.path.relpath(f, taskPath)})
