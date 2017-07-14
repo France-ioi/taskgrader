@@ -1464,7 +1464,6 @@ def pyFrenchErrors(report, paths):
         logging.error('pyFrenchErrors stderr: `%s`' % procErr)
 
     report['stderr']['data'] = open(paths['output'], 'rb').read().decode('utf-8', errors='replace').encode('utf-8')
-
     report['stderr']['sizeKb'] = len(report['stderr']['data'])/1024
 
     return report
@@ -1585,7 +1584,15 @@ def evaluation(evaluationParams):
 
     logging.info("Evaluation taking place in dir `%s`" % baseWorkingDir)
 
-    pyfeEnabled = True # TODO (temporary)
+    # Handle options
+    evaluationOptions = {
+        'pyFrenchErrors': True,
+        'onlyOneCheckerMessage': True
+        }
+    if 'options' in evaluationParams:
+        evaluationOptions.update(evaluationParams['options'])
+    elif 'defaultEvaluationOptions' in varData:
+        evaluationOptions.update(varData['defaultEvaluationOptions'])
 
     # *** Generators
     os.mkdir(baseWorkingDir + "generators/")
@@ -1721,6 +1728,7 @@ def evaluation(evaluationParams):
     # *** Executions
     os.mkdir(baseWorkingDir + "executions/")
     report['executions'] = []
+
     for test in evaluationParams['executions']:
         logging.info("Starting evaluation execution")
         if test['idSolution'] in solutionsWithErrors:
@@ -1784,7 +1792,7 @@ def evaluation(evaluationParams):
                         solution.prepareExecution(test['runExecution'])
 
             # Set up pyFrenchErrors options
-            if pyfeEnabled and solution.language.lang in ['py2', 'py3']:
+            if evaluationOptions['pyFrenchErrors'] and solution.language.lang in ['py2', 'py3']:
                 solution.populateSources()
                 pyfeOpts = {
                     'solution': os.path.join(solution.ownDir, solution.sourceFiles[0]),
@@ -1835,6 +1843,21 @@ def evaluation(evaluationParams):
             multiCheckReports = multiChecker(testDir, multiCheckList, checker, evaluationParams['checker']['runExecution'])
             for (i, checkReport) in multiCheckReports:
                 mainTestReport['testsReports'][i]['checker'] = checkReport
+
+        # Show only one checker message
+        if evaluationOptions['onlyOneCheckerMessage']:
+            checkerMessageShown = False
+            for tr in mainTestReport['testsReports']:
+                # Remove feedback only if grade is not 100
+                if ('checker' not in tr
+                        or ('noFeedback' in tr['checker'] and tr['checker']['noFeedback'])
+                        or tr['checker']['stdout']['data'].split('\n')[0] == '100'):
+                    continue
+                if checkerMessageShown:
+                    tr['checker'] = transformReport(tr['checker'],
+                        {'noFeedback': True}, 'checker', 'execution')
+                else:
+                    checkerMessageShown = True
 
         report['executions'].append(mainTestReport)
 

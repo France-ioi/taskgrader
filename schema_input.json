@@ -49,6 +49,9 @@
         "extraParams": {"description": "Extra variables which can be used in the JSON. Either a path to a JSON or directly some JSON object.",
             "oneOf": [{"type": "string"}, {"type": "object"}]},
 
+        "options": {"description": "Global options for the evaluation.",
+            "type": "object"},
+
         "rootPath": {"type": "string",
             "decription": "Path to the files used. Can be referred to as $ROOT_PATH in paths."},
 
