@@ -696,10 +696,17 @@ class LanguageC(Language):
         compFiles = sourceFiles[:]
         compFiles.extend(filter(lambda d: d[-2:] not in ['.h', '.hpp'], depFiles))
 
-        if CFG_STATIC:
-            cmdLine = "%s -static -std=gnu99 -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(compFiles))
+        execArgs = compilationParams.get('executionArgs', '')
+
+        if 'forceStatic' in compilationParams:
+            compStatic = compilationParams['forceStatic']
         else:
-            cmdLine = "%s -std=gnu99 -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(compFiles))
+            compStatic = CFG_STATIC
+
+        if compStatic:
+            cmdLine = "%s -static -std=gnu99 -O2 -Wall %s -o %s.exe %s -lm" % (self.deppaths[0], execArgs, name, ' '.join(compFiles))
+        else:
+            cmdLine = "%s -std=gnu99 -O2 -Wall %s -o %s.exe %s -lm" % (self.deppaths[0], execArgs, name, ' '.join(compFiles))
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
 class LanguageCpp(Language):
@@ -720,10 +727,17 @@ class LanguageCpp(Language):
         compFiles = sourceFiles[:]
         compFiles.extend(filter(lambda d: d[-2:] not in ['.h', '.hpp'], depFiles))
 
-        if CFG_STATIC:
-            cmdLine = "%s -static -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(compFiles))
+        execArgs = compilationParams.get('executionArgs', '')
+
+        if 'forceStatic' in compilationParams:
+            compStatic = compilationParams['forceStatic']
         else:
-            cmdLine = "%s -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(compFiles))
+            compStatic = CFG_STATIC
+
+        if compStatic:
+            cmdLine = "%s -static -O2 -Wall %s -o %s.exe %s -lm" % (self.deppaths[0], execArgs, name, ' '.join(compFiles))
+        else:
+            cmdLine = "%s -O2 -Wall %s -o %s.exe %s -lm" % (self.deppaths[0], execArgs, name, ' '.join(compFiles))
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
 class LanguageCpp11(LanguageCpp):
@@ -735,10 +749,17 @@ class LanguageCpp11(LanguageCpp):
         compFiles = sourceFiles[:]
         compFiles.extend(filter(lambda d: d[-2:] not in ['.h', '.hpp'], depFiles))
 
-        if CFG_STATIC:
-            cmdLine = "%s -std=gnu++11 -static -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(compFiles))
+        execArgs = compilationParams.get('executionArgs', '')
+
+        if 'forceStatic' in compilationParams:
+            compStatic = compilationParams['forceStatic']
         else:
-            cmdLine = "%s -std=gnu++11 -O2 -Wall -o %s.exe %s -lm" % (self.deppaths[0], name, ' '.join(compFiles))
+            compStatic = CFG_STATIC
+
+        if compStatic:
+            cmdLine = "%s -std=gnu++11 -static -O2 -Wall %s -o %s.exe %s -lm" % (self.deppaths[0], execArgs, name, ' '.join(compFiles))
+        else:
+            cmdLine = "%s -std=gnu++11 -O2 -Wall %s -o %s.exe %s -lm" % (self.deppaths[0], execArgs, name, ' '.join(compFiles))
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
 class LanguageOcaml(Language):
