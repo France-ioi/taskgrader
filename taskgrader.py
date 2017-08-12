@@ -707,6 +707,10 @@ class LanguageC(Language):
             cmdLine = "%s -static -std=gnu99 -O2 -Wall %s -o %s.exe %s -lm" % (self.deppaths[0], execArgs, name, ' '.join(compFiles))
         else:
             cmdLine = "%s -std=gnu99 -O2 -Wall %s -o %s.exe %s -lm" % (self.deppaths[0], execArgs, name, ' '.join(compFiles))
+
+        if 'commandLine' in compilationParams:
+            cmdLine = compilationParams['commandLine'] % (self.deppaths[0], name, ' '.join(compFiles))
+
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
 class LanguageCpp(Language):
@@ -738,6 +742,10 @@ class LanguageCpp(Language):
             cmdLine = "%s -static -O2 -Wall %s -o %s.exe %s -lm" % (self.deppaths[0], execArgs, name, ' '.join(compFiles))
         else:
             cmdLine = "%s -O2 -Wall %s -o %s.exe %s -lm" % (self.deppaths[0], execArgs, name, ' '.join(compFiles))
+
+        if 'commandLine' in compilationParams:
+            cmdLine = compilationParams['commandLine'] % (self.deppaths[0], name, ' '.join(compFiles))
+
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
 class LanguageCpp11(LanguageCpp):
@@ -760,6 +768,10 @@ class LanguageCpp11(LanguageCpp):
             cmdLine = "%s -std=gnu++11 -static -O2 -Wall %s -o %s.exe %s -lm" % (self.deppaths[0], execArgs, name, ' '.join(compFiles))
         else:
             cmdLine = "%s -std=gnu++11 -O2 -Wall %s -o %s.exe %s -lm" % (self.deppaths[0], execArgs, name, ' '.join(compFiles))
+
+        if 'commandLine' in compilationParams:
+            cmdLine = compilationParams['commandLine'] % (self.deppaths[0], name, ' '.join(compFiles))
+
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
 class LanguageOcaml(Language):
