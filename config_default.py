@@ -35,6 +35,7 @@ CFG_ISOLATEBIN = os.path.join(CFG_BINDIR, 'isolate-bin')
 CFG_RIGHTSBIN = os.path.join(CFG_BINDIR, 'box-rights')
 CFG_JAVASCOOLBIN = os.path.join(CFG_BINDIR, 'jvs2java')
 CFG_PYFRENCHERRORS = os.path.join(CFG_BINDIR, 'pyFrenchErrors/pyfe')
+CFG_CPLEX = None # Binary for IBM CPLEX optimization engine
 
 # jsonschema-related variables
 CFG_JSONSCHEMA = os.path.join(CFG_BINDIR, 'jsonschema')

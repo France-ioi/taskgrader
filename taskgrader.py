@@ -651,6 +651,8 @@ class Language():
     # that this full path is then used by code, so always add additional
     # dependencies at the end of the list.
     dependencies = []
+    # Can programs in this language be isolated?
+    isolationPossible = True
 
     def __init__(self):
         """Class initialization: check the required dependencies are present."""
@@ -686,6 +688,7 @@ class Language():
         """Compile an executable in ownDir, from source files sourceFiles,
         dependencies depFiles."""
         raise Exception("Can't compile files from language %s." % self.lang)
+
 
 class LanguageC(Language):
     lang = 'c'
@@ -815,6 +818,7 @@ class LanguageJavascool(LanguageJava):
 class LanguageScript(Language):
     lang = 'default-script'
     dependencies = ["openssl"]
+    singleShebang = True # Should we execute directly the file if unique?
 
     def _scriptLines(self, sourceFiles, depFiles):
         """Returns the commands to execute the program when there are multiple
@@ -828,7 +832,7 @@ class LanguageScript(Language):
         return "#!/bin/sh"
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
-        if len(sourceFiles) == 1 and len(depFiles) == 0:
+        if self.singleShebang and len(sourceFiles) == 1 and len(depFiles) == 0:
             # Only one file, the executable is the script itself
             execPath = os.path.join(ownDir, name + '.exe')
             execFile = open(execPath, 'w')
@@ -876,6 +880,22 @@ class LanguageScript(Language):
                 'exitCode': 0}
 
         return report
+
+class LanguageCplex(LanguageScript):
+    lang = 'cplex'
+    dependencies = ["openssl"]
+    isolationPossible = False # Can't be isolated
+    singleShebang = False # Don't generate a script if unique
+
+    def _scriptLines(self, sourceFiles, depFiles):
+        lines = [
+            "export LD_LIBRARY_PATH=\"%s\"\n" % os.path.dirname(CFG_CPLEX),
+            "/bin/cat > data.dat\n"]
+        lines.extend(map(lambda x: "%s %s data.dat" % (CFG_CPLEX, x), sourceFiles))
+        return lines
+
+    def _singleScriptShebang(self):
+        return "#!/bin/sh"
 
 class LanguageShell(LanguageScript):
     lang = 'sh'
@@ -990,6 +1010,7 @@ class Program():
             'c': LanguageC,
             'cpp': LanguageCpp,
             'cpp11': LanguageCpp11,
+            'cplex': LanguageCplex,
             'ml': LanguageOcaml,
             'ocaml': LanguageOcaml,
             'java': LanguageJava,
@@ -1010,6 +1031,8 @@ class Program():
             self.language = CFG_LANGUAGES[compilationDescr['language']]()
         else:
             raise UnsupportedLanguage("Taskgrader not configured to use language '%s'." % compilationDescr['language'])
+
+        self.isolate = self.isolate and self.language.isolationPossible
 
 
     def _getFile(self, fileDescr):
