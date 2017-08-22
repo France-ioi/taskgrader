@@ -351,7 +351,7 @@ class Execution():
     executions of the program in different folders and with different
     arguments."""
 
-    def __init__(self, executablePath, executionParams, cmd, language=''):
+    def __init__(self, executablePath, executionParams, cmd, evaluationContext, language=''):
         # Check time and memory limits
         if executionParams['timeLimitMs'] > CFG_MAX_TIMELIMIT:
             raise Exception("Time limit (%d) for command %s too high." % (executionParams['timeLimitMs'], cmdLine))
@@ -361,6 +361,7 @@ class Execution():
         self.executablePath = executablePath
         self.executionParams = executionParams
         self.cmd = cmd
+        self.evaluationContext = evaluationContext
         self.language = language
 
         # Transformation of time and memory limits for the language
@@ -428,6 +429,10 @@ class Execution():
         for fileDescr in self.executionParams.get('addFiles', []):
             getFile(fileDescr, workingDir, errorFatal=False)
 
+        # Set up the environment variables
+        self.env = os.environ.copy()
+        self.env['TASKGRADER_LOCALE'] = self.evaluationContext['options']['locale']
+
 
     def _doExecute(self, workingDir, args=None):
         """Executes the command in workingDir with args."""
@@ -438,7 +443,7 @@ class Execution():
         stdinHandle = (open(self.stdinFile, 'rb') if self.stdinFile else None)
 
         proc = subprocess.Popen(shlex.split(cmdLine), stdin=stdinHandle, stdout=open(self.stdoutFile, 'w'),
-                stderr=open(self.stderrFile, 'w'), cwd=workingDir)
+                stderr=open(self.stderrFile, 'w'), cwd=workingDir, env=self.env)
         # We allow a wall time of 3 times the timeLimit
         waitWithTimeout(proc, (1+int(self.executionParams['timeLimitMs']/1000))*CFG_WALLTIME_FACTOR)
 
@@ -513,7 +518,7 @@ class IsolatedExecution(Execution):
         # Build isolate command line
         isolatedCmdLine  = CFG_ISOLATEBIN
         isolatedCmdLine += ' --processes'
-        isolatedCmdLine += ' --env=HOME --env=PATH --env=LANG --env=LC_ALL'
+        isolatedCmdLine += ' --env=HOME --env=PATH --env=LANG --env=LC_ALL --env=TASKGRADER_LOCALE'
         isolatedCmdLine += ' --meta=%s' % os.path.join(workingDir, 'isolate.meta')
         # Add access to some folders
         for folder in CFG_ISOLATE_AVAILABLE:
@@ -552,7 +557,7 @@ class IsolatedExecution(Execution):
         logging.debug("Executing isolate: `%s`" % isolatedCmdLine)
 
         # Execute the isolated program
-        proc = subprocess.Popen(shlex.split(isolatedCmdLine), cwd=workingDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen(shlex.split(isolatedCmdLine), cwd=workingDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=self.env)
         (procOut, procErr) = communicateWithTimeout(proc, int(10 + 3 * self.realTimeLimit / 1000.))
 
         # Get metadata from isolate execution
@@ -684,7 +689,7 @@ class Language():
             else:
                 return None
 
-    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, evaluationContext, name='executable'):
         """Compile an executable in ownDir, from source files sourceFiles,
         dependencies depFiles."""
         raise Exception("Can't compile files from language %s." % self.lang)
@@ -694,7 +699,7 @@ class LanguageC(Language):
     lang = 'c'
     dependencies = ["gcc"]
 
-    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, evaluationContext, name='executable'):
         # Add non-header dependencies to compilation
         compFiles = sourceFiles[:]
         compFiles.extend(filter(lambda d: d[-2:] not in ['.h', '.hpp'], depFiles))
@@ -729,7 +734,7 @@ class LanguageCpp(Language):
             # We search for [name] in the libs directory
             os.path.join(baseDir, 'libs', filename)]
 
-    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, evaluationContext, name='executable'):
         # Add non-header dependencies to compilation
         compFiles = sourceFiles[:]
         compFiles.extend(filter(lambda d: d[-2:] not in ['.h', '.hpp'], depFiles))
@@ -755,7 +760,7 @@ class LanguageCpp11(LanguageCpp):
     lang = 'cpp11'
     dependencies = ["g++"]
 
-    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, evaluationContext, name='executable'):
         # Add non-header dependencies to compilation
         compFiles = sourceFiles[:]
         compFiles.extend(filter(lambda d: d[-2:] not in ['.h', '.hpp'], depFiles))
@@ -781,7 +786,7 @@ class LanguageOcaml(Language):
     lang = 'ocaml'
     dependencies = ["ocamlopt"]
 
-    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, evaluationContext, name='executable'):
         if CFG_STATIC:
             cmdLine = "%s -ccopt -static -o %s.exe %s" % (self.deppaths[0], name, ' '.join(sourceFiles))
         else:
@@ -792,7 +797,7 @@ class LanguagePascal(Language):
     lang = 'pascal'
     dependencies = ["fpc"]
 
-    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, evaluationContext, name='executable'):
         cmdLine = "%s -o%s.exe %s" % (self.deppaths[0], name, ' '.join(sourceFiles))
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
@@ -800,7 +805,7 @@ class LanguageJava(Language):
     lang = 'java'
     dependencies = ["gcj"]
 
-    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, evaluationContext, name='executable'):
         cmdLine = "%s --encoding=utf8 --main=Main -o %s.exe %s %s" % (self.deppaths[0], name, ' '.join(depFiles), ' '.join(sourceFiles))
         return Execution(None, compilationParams, cmdLine).execute(ownDir)
 
@@ -808,7 +813,7 @@ class LanguageJavascool(LanguageJava):
     lang = 'javascool'
     dependencies = ["gcj", CFG_JAVASCOOLBIN]
 
-    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, evaluationContext, name='executable'):
         # Javascool needs to be transformed before being executed
         cmdLine = "%s %s source.java %s" % (CFG_JAVASCOOLBIN, sourceFiles[0], ' '.join(depFiles))
         Execution(None, compilationParams, cmdLine).execute(ownDir)
@@ -831,7 +836,7 @@ class LanguageScript(Language):
         there is only one sourceFile and no depFile."""
         return "#!/bin/sh"
 
-    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, name='executable'):
+    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, evaluationContext, name='executable'):
         if self.singleShebang and len(sourceFiles) == 1 and len(depFiles) == 0:
             # Only one file, the executable is the script itself
             execPath = os.path.join(ownDir, name + '.exe')
@@ -975,7 +980,7 @@ class LanguagePython3(LanguageScript):
 class Program():
     """Represents a program, from compilation to execution."""
 
-    def __init__(self, compilationDescr, compilationParams, ownDir, baseDir, cache, name='executable'):
+    def __init__(self, compilationDescr, compilationParams, ownDir, baseDir, evaluationContext, name='executable'):
         """Create a new Program described by compilationDescr, to be compiled
         in ownDir, with a build based in baseDir and with the cache database
         being cache."""
@@ -984,10 +989,11 @@ class Program():
         self.compilationParams = compilationParams
         self.ownDir = ownDir
         self.baseDir = baseDir
+        self.evaluationContext = evaluationContext
         self.name = name
         self.executablePath = os.path.join(self.ownDir, self.name + '.exe')
 
-        self.cacheHandle = cache.getHandle(compilationDescr['files'] + compilationDescr['dependencies'])
+        self.cacheHandle = evaluationContext['cache'].getHandle(compilationDescr['files'] + compilationDescr['dependencies'])
 
         self.compiled = False
         self.triedCompile = False
@@ -1065,7 +1071,7 @@ class Program():
         self.populateSources()
 
         # We call the language-specific compilation process
-        report = self.language.compile(self.compilationParams, self.ownDir, self.sourceFiles, self.depFiles, self.name)
+        report = self.language.compile(self.compilationParams, self.ownDir, self.sourceFiles, self.depFiles, self.evaluationContext, self.name)
 
         if isExecError(report, checkContinue=False) and self.compilationParams.get('continueOnError', False):
             # Compilation didn't succeed but the continueOnError flag is set
@@ -1127,9 +1133,13 @@ class Program():
                 raise Exception("Program has not yet been compiled, execution impossible.")
 
         if self.isolate:
-            self.execution = IsolatedExecution(self.executablePath, executionParams, './%s' % os.path.basename(self.executablePath), language=self.compilationDescr['language'])
+            self.execution = IsolatedExecution(self.executablePath, executionParams,
+                './%s' % os.path.basename(self.executablePath),
+                self.evaluationContext, language=self.compilationDescr['language'])
         else:
-            self.execution = Execution(self.executablePath, executionParams, './%s' % os.path.basename(self.executablePath), language=self.compilationDescr['language'])
+            self.execution = Execution(self.executablePath, executionParams,
+                './%s' % os.path.basename(self.executablePath),
+                self.evaluationContext, language=self.compilationDescr['language'])
         self.executionParams = executionParams
 
     def execute(self, workingDir, args=None, stdinFile=None, stdoutFile=None, stderrFile=None, otherInputs=[], outputFiles=[]):
@@ -1191,7 +1201,7 @@ class Program():
         return report
 
 
-def multiChecker(workingDir, checkList, checker, executionParams):
+def multiChecker(workingDir, checkList, checker, executionParams, evaluationContext):
     """Do multiple checks in the same isolated execution."""
     if len(checkList) == 0:
         return []
@@ -1243,9 +1253,9 @@ def multiChecker(workingDir, checkList, checker, executionParams):
 
     # Execute the script
     if checker.isolate:
-        report = IsolatedExecution(checker.executablePath, multiExecParams, './multichecker.sh').execute(workingDir)
+        report = IsolatedExecution(checker.executablePath, multiExecParams, './multichecker.sh', evaluationContext).execute(workingDir)
     else:
-        report = Execution(checker.executablePath, multiExecParams, './multichecker.sh').execute(workingDir)
+        report = Execution(checker.executablePath, multiExecParams, './multichecker.sh', evaluationContext).execute(workingDir)
 
     # Build reports
     # Many elements aren't present in the reports from a multi-check
@@ -1642,6 +1652,7 @@ def evaluation(evaluationParams):
 
     # Handle options
     evaluationOptions = {
+        'locale': 'en',
         'pyFrenchErrors': True,
         'onlyOneCheckerMessage': True
         }
@@ -1649,6 +1660,13 @@ def evaluation(evaluationParams):
         evaluationOptions.update(evaluationParams['options'])
     elif 'defaultEvaluationOptions' in varData:
         evaluationOptions.update(varData['defaultEvaluationOptions'])
+
+    # Create evaluationContext object
+    # allows to pass different evaluation objects around
+    evaluationContext = {
+        'options': evaluationOptions,
+        'cache': cache
+        }
 
     # *** Generators
     os.mkdir(baseWorkingDir + "generators/")
@@ -1659,7 +1677,7 @@ def evaluation(evaluationParams):
         genDir = "%sgenerators/%s/" % (baseWorkingDir, gen['id'])
         os.mkdir(genDir)
         # We compile the generator
-        generator = Program(gen['compilationDescr'], gen['compilationExecution'], genDir, baseWorkingDir, cache, 'generator')
+        generator = Program(gen['compilationDescr'], gen['compilationExecution'], genDir, baseWorkingDir, evaluationContext, 'generator')
         genReport = generator.compile()
         errorSoFar = errorSoFar or isExecError(genReport)
         report['generators'].append({'id': gen['id'], 'compilationExecution': genReport})
@@ -1741,7 +1759,7 @@ def evaluation(evaluationParams):
 
     # *** Sanitizer
     os.mkdir(baseWorkingDir + "sanitizer/")
-    sanitizer = Program(evaluationParams['sanitizer']['compilationDescr'], evaluationParams['sanitizer']['compilationExecution'], baseWorkingDir + "sanitizer/", baseWorkingDir, cache, 'sanitizer')
+    sanitizer = Program(evaluationParams['sanitizer']['compilationDescr'], evaluationParams['sanitizer']['compilationExecution'], baseWorkingDir + "sanitizer/", baseWorkingDir, evaluationContext, 'sanitizer')
     report['sanitizer'] = sanitizer.compile()
     if isExecError(report['sanitizer']):
         errorSoFar = True
@@ -1750,7 +1768,7 @@ def evaluation(evaluationParams):
 
     # *** Checker
     os.mkdir(baseWorkingDir + "checker/")
-    checker = Program(evaluationParams['checker']['compilationDescr'], evaluationParams['checker']['compilationExecution'], baseWorkingDir + "checker/", baseWorkingDir, cache, 'checker')
+    checker = Program(evaluationParams['checker']['compilationDescr'], evaluationParams['checker']['compilationExecution'], baseWorkingDir + "checker/", baseWorkingDir, evaluationContext, 'checker')
     report['checker'] = checker.compile()
     if isExecError(report['checker']):
         errorSoFar = True
@@ -1773,7 +1791,7 @@ def evaluation(evaluationParams):
         os.mkdir(solDir)
         # We only compile the solution
         solution = Program(sol['compilationDescr'], sol['compilationExecution'],
-               solDir, baseWorkingDir, cache, 'solution')
+               solDir, baseWorkingDir, evaluationContext, 'solution')
         solReport = solution.compile()
         report['solutions'].append({'id': sol['id'], 'compilationExecution': solReport})
         solutions[sol['id']] = solution
@@ -1896,7 +1914,7 @@ def evaluation(evaluationParams):
 
         # Execute delayed checks
         if CFG_MULTICHECK:
-            multiCheckReports = multiChecker(testDir, multiCheckList, checker, evaluationParams['checker']['runExecution'])
+            multiCheckReports = multiChecker(testDir, multiCheckList, checker, evaluationParams['checker']['runExecution'], evaluationContext)
             for (i, checkReport) in multiCheckReports:
                 mainTestReport['testsReports'][i]['checker'] = checkReport
 
