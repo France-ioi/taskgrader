@@ -34,6 +34,7 @@ CFG_LANGUAGES_OLD_NEW = {
     'pascal': 'pascal',
     'pas': 'pascal',
     'py': 'python',
+    'py3': 'python3',
     'python': 'python',
     'sh': 'shell',
     'javascool': 'javascool'

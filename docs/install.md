@@ -45,6 +45,12 @@ Download and install Cygwin from [its website](https://cygwin.com/install.html).
 
 You can then follow the next steps normally.
 
+### On Mac OS X
+
+The taskgrader works on Mac OS X normally.
+
+On Mac OS X, `python` is an alias for `python3` instead of `python2` as on many systems; so take care to execute the taskgrader and tools with the `python2` command.
+
 ## Installation
 
 Execute `install.sh` in the taskgrader directory to install, as the user who will be running the taskgrader. It will help you install everything.
