@@ -864,6 +864,13 @@ class LanguageScript(Language):
             sharFile = open(sharPath, 'w')
             sharFile.write("#!/bin/sh\n")
             for f in (sourceFiles + depFiles):
+                # Make dirs for the file
+                fileDirs = f.split('/')
+                depth = 1
+                while depth < len(fileDirs):
+                    sharFile.write("/bin/mkdir %s 2> /dev/null\n" % '/'.join(fileDirs[0:depth]))
+                    depth += 1
+
                 # Encode each file in base64, use openssl to extract them
                 sharFile.write("%s base64 -d -out \"%s\" 2> /dev/null <<EOF\n" % (self.deppaths[0], f))
                 sharFile.write(open(os.path.join(ownDir, f), 'r').read().encode("base64"))
