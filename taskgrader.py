@@ -719,7 +719,7 @@ class LanguageC(Language):
         if 'commandLine' in compilationParams:
             cmdLine = compilationParams['commandLine'] % (self.deppaths[0], name, ' '.join(compFiles))
 
-        return Execution(None, compilationParams, cmdLine).execute(ownDir)
+        return Execution(None, compilationParams, cmdLine, evaluationContext).execute(ownDir)
 
 class LanguageCpp(Language):
     lang = 'cpp'
@@ -754,7 +754,7 @@ class LanguageCpp(Language):
         if 'commandLine' in compilationParams:
             cmdLine = compilationParams['commandLine'] % (self.deppaths[0], name, ' '.join(compFiles))
 
-        return Execution(None, compilationParams, cmdLine).execute(ownDir)
+        return Execution(None, compilationParams, cmdLine, evaluationContext).execute(ownDir)
 
 class LanguageCpp11(LanguageCpp):
     lang = 'cpp11'
@@ -780,7 +780,7 @@ class LanguageCpp11(LanguageCpp):
         if 'commandLine' in compilationParams:
             cmdLine = compilationParams['commandLine'] % (self.deppaths[0], name, ' '.join(compFiles))
 
-        return Execution(None, compilationParams, cmdLine).execute(ownDir)
+        return Execution(None, compilationParams, cmdLine, evaluationContext).execute(ownDir)
 
 class LanguageOcaml(Language):
     lang = 'ocaml'
@@ -791,7 +791,7 @@ class LanguageOcaml(Language):
             cmdLine = "%s -ccopt -static -o %s.exe %s" % (self.deppaths[0], name, ' '.join(sourceFiles))
         else:
             cmdLine = "%s -o %s.exe %s" % (self.deppaths[0], name, ' '.join(sourceFiles))
-        return Execution(None, compilationParams, cmdLine).execute(ownDir)
+        return Execution(None, compilationParams, cmdLine, evaluationContext).execute(ownDir)
 
 class LanguagePascal(Language):
     lang = 'pascal'
@@ -799,7 +799,7 @@ class LanguagePascal(Language):
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, evaluationContext, name='executable'):
         cmdLine = "%s -o%s.exe %s" % (self.deppaths[0], name, ' '.join(sourceFiles))
-        return Execution(None, compilationParams, cmdLine).execute(ownDir)
+        return Execution(None, compilationParams, cmdLine, evaluationContext).execute(ownDir)
 
 class LanguageJava(Language):
     lang = 'java'
@@ -807,7 +807,7 @@ class LanguageJava(Language):
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, evaluationContext, name='executable'):
         cmdLine = "%s --encoding=utf8 --main=Main -o %s.exe %s %s" % (self.deppaths[0], name, ' '.join(depFiles), ' '.join(sourceFiles))
-        return Execution(None, compilationParams, cmdLine).execute(ownDir)
+        return Execution(None, compilationParams, cmdLine, evaluationContext).execute(ownDir)
 
 class LanguageJavascool(LanguageJava):
     lang = 'javascool'
@@ -816,9 +816,9 @@ class LanguageJavascool(LanguageJava):
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, evaluationContext, name='executable'):
         # Javascool needs to be transformed before being executed
         cmdLine = "%s %s source.java %s" % (CFG_JAVASCOOLBIN, sourceFiles[0], ' '.join(depFiles))
-        Execution(None, compilationParams, cmdLine).execute(ownDir)
+        Execution(None, compilationParams, cmdLine, evaluationContext).execute(ownDir)
         cmdLine = "%s --encoding=utf8 --main=Main -o %s.exe source.java" % (self.deppaths[0], name)
-        return Execution(None, compilationParams, cmdLine).execute(ownDir)
+        return Execution(None, compilationParams, cmdLine, evaluationContext).execute(ownDir)
 
 class LanguageScript(Language):
     lang = 'default-script'
