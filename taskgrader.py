@@ -1663,10 +1663,10 @@ def evaluation(evaluationParams):
         'pyFrenchErrors': True,
         'onlyOneCheckerMessage': True
         }
+    if 'defaultEvaluationOptions' in varData:
+        evaluationOptions.update(varData['defaultEvaluationOptions'])
     if 'options' in evaluationParams:
         evaluationOptions.update(evaluationParams['options'])
-    elif 'defaultEvaluationOptions' in varData:
-        evaluationOptions.update(varData['defaultEvaluationOptions'])
 
     # Create evaluationContext object
     # allows to pass different evaluation objects around
