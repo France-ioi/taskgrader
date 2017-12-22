@@ -6,7 +6,8 @@
 # http://opensource.org/licenses/MIT
 
 
-import argparse, fnmatch, glob, json, os, re, shutil, sys, subprocess, tempfile, time
+import argparse, fnmatch, glob, json, os, re, shutil, signal, sys, subprocess
+import tempfile, time
 from config_default import *
 from config import *
 
@@ -177,7 +178,7 @@ def genDefaultParams(taskPath, taskSettings):
         for dep in genDependencies:
             path = dep['path'].replace('$TASK_PATH', taskPath).replace('$ROOT_PATH', CFG_ROOTDIR)
             copyFile(path, os.path.join(tmpDir, 'gen', dep['name']))
-        proc = subprocess.Popen(['/bin/sh', os.path.join(tmpDir, 'gen', genFilename)], cwd=tmpDir + '/gen/', stdout=devnull, stderr=devnull)
+        proc = subprocess.Popen(['/bin/sh', os.path.join(tmpDir, 'gen', genFilename)], cwd=tmpDir + '/gen/', stdout=devnull, stderr=devnull, preexec_fn=os.setsid)
         for i in range(CFG_EXEC_TIMEOUT): # Timeout after 60 seconds
             if not (proc.poll() is None):
                 break
@@ -202,7 +203,14 @@ def genDefaultParams(taskPath, taskSettings):
             shutil.rmtree(tmpDir)
         else:
             # We got a timeout while executing the generator
-            proc.kill()
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            except:
+                pass
+            try:
+                proc.kill()
+            except:
+                pass
             raise Exception("Generator didn't end in %d seconds (change CFG_EXEC_TIMEOUT if required).\nGeneration was taking place in `%s`." % (CFG_EXEC_TIMEOUT, tmpDir))
 
     else:
