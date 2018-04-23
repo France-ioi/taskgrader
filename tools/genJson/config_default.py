@@ -22,7 +22,7 @@ CFG_IGNORE_PATHS = ['.git', '.svn']
 CFG_EXEC_TIMEOUT = 60
 
 # Languages to generate defaultParams for
-CFG_LANGUAGES = ['c', 'cpp', 'cplex', 'java', 'javascool', 'ocaml', 'pascal', 'python', 'sh', 'shell']
+CFG_LANGUAGES = ['c', 'cpp', 'cplex', 'java', 'java8', 'javascool', 'ocaml', 'pascal', 'python', 'sh', 'shell']
 # Old FranceIOI language to new language mapping
 CFG_LANGUAGES_OLD_NEW = {
     'c': 'c',

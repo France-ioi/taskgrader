@@ -801,7 +801,7 @@ class LanguagePascal(Language):
         cmdLine = "%s -o%s.exe %s" % (self.deppaths[0], name, ' '.join(sourceFiles))
         return Execution(None, compilationParams, cmdLine, evaluationContext).execute(ownDir)
 
-class LanguageJava(Language):
+class LanguageJavaGcj(Language):
     lang = 'java'
     dependencies = ["gcj"]
 
@@ -809,7 +809,7 @@ class LanguageJava(Language):
         cmdLine = "%s --encoding=utf8 --main=Main -o %s.exe %s %s" % (self.deppaths[0], name, ' '.join(depFiles), ' '.join(sourceFiles))
         return Execution(None, compilationParams, cmdLine, evaluationContext).execute(ownDir)
 
-class LanguageJavascool(LanguageJava):
+class LanguageJavascool(LanguageJavaGcj):
     lang = 'javascool'
     dependencies = ["gcj", CFG_JAVASCOOLBIN]
 
@@ -892,6 +892,19 @@ class LanguageScript(Language):
                 'exitCode': 0}
 
         return report
+
+class LanguageJavaJdk(LanguageScript):
+    lang = 'java8'
+    dependencies = ["openssl", "javac", "java"]
+    singleShebang = False
+
+    def _scriptLines(self, sourceFiles, depFiles):
+        if not len(sourceFiles): return []
+        return [
+            "mv %s Main.java\n" % sourceFiles[0],
+            "%s Main.java %s\n" % (self.deppaths[1], ' '.join(depFiles)),
+            "%s Main\n" % self.deppaths[2]
+            ]
 
 class LanguageCplex(LanguageScript):
     lang = 'cplex'
@@ -1026,7 +1039,8 @@ class Program():
             'cplex': LanguageCplex,
             'ml': LanguageOcaml,
             'ocaml': LanguageOcaml,
-            'java': LanguageJava,
+            'java': LanguageJavaGcj,
+            'java8': LanguageJavaJdk,
             'javascool': LanguageJavascool,
             'js': LanguageNodejs,
             'sh': LanguageShell,
