@@ -228,6 +228,9 @@
 <p>Download and install Cygwin from <a href="https://cygwin.com/install.html">its website</a>. Install the following dependencies (you can reexecute Cygwin's setup.exe anytime to install more dependencies):
 <code>git python python3 gcc gcc-g++</code>.</p>
 <p>You can then follow the next steps normally.</p>
+<h3 id="on-mac-os-x">On Mac OS X</h3>
+<p>The taskgrader works on Mac OS X normally.</p>
+<p>On Mac OS X, <code>python</code> is an alias for <code>python3</code> instead of <code>python2</code> as on many systems; so take care to execute the taskgrader and tools with the <code>python2</code> command.</p>
 <h2 id="installation">Installation</h2>
 <p>Execute <code>install.sh</code> in the taskgrader directory to install, as the user who will be running the taskgrader. It will help you install everything.</p>
 <p>The installation of 'isolate' needs root access, and ability to have files owned by root with setuid on the current directory (doesn't work with remote folders such as NFS). If you cannot, you won't be able to use 'isolate', but the taskgrader will still work.</p>
