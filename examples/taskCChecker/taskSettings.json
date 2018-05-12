@@ -38,18 +38,7 @@
             "path": "$BUILD_PATH/solutions/solution/stderr"
             }],
         "getFiles": []}},
-"defaultEvaluationSolutions": [{
-    "id": "solution",
-    "compilationDescr": {
-        "language": "@solutionLanguage",
-        "files": [{"name": "@solutionFilename",
-                   "path": "@solutionPath",
-                   "content": "@solutionContent"}],
-        "dependencies": "@solutionDependencies"
-        },
-    "compilationExecution": "@defaultSolutionCompParams"
-    }],
-"defaultSolutionCompParams": {
+"defaultSolutionCompParamsTask": {
     "memoryLimitKb": 16000,
     "timeLimitMs": 1000,
     "continueOnError": true,
@@ -58,7 +47,7 @@
     "stdoutTruncateKb": -1,
     "stderrTruncateKb": -1
     },
-"defaultSolutionExecParams": {
+"defaultSolutionExecParamsTask": {
     "memoryLimitKb": 16000,
     "timeLimitMs": 1000,
     "continueOnError": true,

@@ -62,7 +62,7 @@ This key is a list of glob-style filenames to ignore while scanning for test cas
 
 ## correctSolutions
 
-* Name: `ignoreTests`
+* Name: `correctSolutions`
 * Type: `list of objects`
 * Example: `[{"path": "$TASK_PATH/tests/gen/sol-ok-c.c", "language": "c", "grade": 100}]`
 
