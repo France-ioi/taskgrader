@@ -397,17 +397,19 @@ def genDefaultParams(taskPath, taskSettings):
                            'content': '@solutionContent'}],
                 'dependencies': '@solutionDependencies'
                 },
-            'compilationExecution': '@defaultSolutionCompParams'
+            'compilationExecution': '@defaultSolutionCompParamsTask'
             }],
         'defaultEvaluationExecutions': [{
             'id': '@solutionExecId',
             'idSolution': '@solutionId',
             'filterTests': '@solutionFilterTests',
             'noFeedbackTests': '@defaultNoFeedbackTests',
-            'runExecution': '@defaultSolutionExecParams'
+            'runExecution': '@defaultSolutionExecParamsTask'
             }],
 
         'defaultNoFeedbackTests': ['*.nofeedback.in'],
+        'defaultSolutionCompParamsTask': '@defaultSolutionCompParams',
+        'defaultSolutionExecParamsTask': '@defaultSolutionExecParams',
         'defaultSolutionCompParams': CFG_TESTSOLPARAMS,
         'defaultSolutionExecParams': CFG_TESTSOLPARAMS,
 
