@@ -1306,11 +1306,13 @@ def multiChecker(workingDir, checkList, checker, executionParams, evaluationCont
             # Fetch time statistics
             timeFile = open(os.path.join(workingDir, '%s.time' % tf), 'r')
             timeStats = timeFile.read().strip().split()[-3:]
-            report.update({
-                'exitCode': int(timeStats[0]),
-                'memoryUsedKb': int(timeStats[1]),
-                'timeTakenMs': int(float(timeStats[2])*1000),
-                'realTimeTakenMs': int(float(timeStats[2])*1000)})
+            if len(timeStats) >= 3:
+                # Only update if it has been executed successfully
+                report.update({
+                    'exitCode': int(timeStats[0]),
+                    'memoryUsedKb': int(timeStats[1]),
+                    'timeTakenMs': int(float(timeStats[2])*1000),
+                    'realTimeTakenMs': int(float(timeStats[2])*1000)})
         else:
             exitFile = open(os.path.join(workingDir, '%s.code' % tf), 'r')
             report.update({
