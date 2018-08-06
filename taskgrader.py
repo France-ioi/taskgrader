@@ -1677,7 +1677,8 @@ def evaluation(evaluationParams):
     evaluationOptions = {
         'locale': 'en',
         'pyFrenchErrors': True,
-        'onlyOneCheckerMessage': True
+        'onlyOneCheckerMessage': True,
+        'multiCheck': CFG_MULTICHECK
         }
     if 'defaultEvaluationOptions' in varData:
         evaluationOptions.update(varData['defaultEvaluationOptions'])
@@ -1844,7 +1845,7 @@ def evaluation(evaluationParams):
         solution.prepareExecution(test['runExecution'])
 
         # List of delayed checks
-        if CFG_MULTICHECK:
+        if evaluationOptions['multiCheck']:
             multiCheckList = []
 
         # Files to test as input
@@ -1923,7 +1924,7 @@ def evaluation(evaluationParams):
                 # We write a dummy .out file, the checker probably doesn't need it
                 open(testDir + baseTfName + '.out', 'w')
 
-            if CFG_MULTICHECK:
+            if evaluationOptions['multiCheck']:
                 # We delay the checking to later
                 multiCheckList.append((len(mainTestReport['testsReports']), baseTfName, noFeedback))
             else:
@@ -1936,7 +1937,7 @@ def evaluation(evaluationParams):
             mainTestReport['testsReports'].append(subTestReport)
 
         # Execute delayed checks
-        if CFG_MULTICHECK:
+        if evaluationOptions['multiCheck']:
             multiCheckReports = multiChecker(testDir, multiCheckList, checker, evaluationParams['checker']['runExecution'], evaluationContext)
             for (i, checkReport) in multiCheckReports:
                 mainTestReport['testsReports'][i]['checker'] = checkReport
