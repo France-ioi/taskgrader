@@ -245,7 +245,9 @@ def genDefaultParams(taskPath, taskSettings):
 
         # Auto-detected dependencies
         for f in glob.glob(os.path.join(extraDir, 'lib/*/*')):
-            lang = CFG_LANGUAGES_OLD_NEW[f.split('/')[-2]]
+            lang = f.split('/')[-2]
+            if lang in CFG_LANGUAGES_OLD_NEW:
+                lang = CFG_LANGUAGES_OLD_NEW[lang]
             defDependencies[lang].append(getTaskFile(os.path.relpath(f, taskPath)))
         for f in glob.glob(os.path.join(extraDir, 'run/*')):
             defDependencies['python'].append(getTaskFile(os.path.relpath(f, taskPath)))
