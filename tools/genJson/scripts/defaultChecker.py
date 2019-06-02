@@ -18,7 +18,8 @@ from sys import argv, exit
 DEFAULT_OPTIONS = {
     'ignoreSpaceChange': True,
     'ignoreBlankLines': True,
-    'maxChars': 500
+    'maxChars': 500,
+    'diffContext': 3
     }
 
 
@@ -66,7 +67,7 @@ def diff(solPath, outPath, options=None):
     # -u for unified (expected display)
     # -a to always treat as text (avoid special messages when the output
     # doesn't resemble text)
-    diffOptions = '-ua'
+    diffOptions = '-a'
     if opt['ignoreSpaceChange']: diffOptions += 'b'
     if opt['ignoreBlankLines']:
         diffOptions += 'B'
@@ -77,7 +78,7 @@ def diff(solPath, outPath, options=None):
         open(outPath, 'a').write(' \n')
 
     # Execute diff
-    diffProc = Popen(['/usr/bin/env', 'diff', diffOptions,
+    diffProc = Popen(['/usr/bin/env', 'diff', diffOptions, '-U', '%d' % opt['diffContext'],
         solPath, outPath], stdout=PIPE)
 
     # Ignore first two lines
@@ -129,11 +130,11 @@ def diff(solPath, outPath, options=None):
     expPostDiff = 0
     while lastLine:
         if lastLine[0] == ' ':
-            if solPostDiff < 3:
+            if solPostDiff < opt['diffContext']:
                 solLines.append(readRealLine(solRead, opt))
             else:
                 truncatedAfter = True
-            if expPostDiff < 3:
+            if expPostDiff < opt['diffContext']:
                 expLines.append(readRealLine(expRead, opt))
             else:
                 truncatedAfter = True
@@ -144,7 +145,7 @@ def diff(solPath, outPath, options=None):
             if opt['ignoreBlankLines'] and lastLine[1:].strip() == '':
                 lastLine = do.readline()
                 continue
-            if solPostDiff < 3:
+            if solPostDiff < opt['diffContext']:
                 solLines.append(readRealLine(solRead, opt))
             else:
                 truncatedAfter = True
@@ -156,7 +157,7 @@ def diff(solPath, outPath, options=None):
             if opt['ignoreBlankLines'] and lastLine[1:].strip() == '':
                 lastLine = do.readline()
                 continue
-            if expPostDiff < 3:
+            if expPostDiff < opt['diffContext']:
                 expLines.append(readRealLine(expRead, opt))
             else:
                 truncatedAfter = True
@@ -169,7 +170,7 @@ def diff(solPath, outPath, options=None):
         lastLine = do.readline()
 
         # We read max 3 lines after the first difference
-        if diffLine is not None and solPostDiff > 3 and expPostDiff > 3:
+        if diffLine is not None and solPostDiff > opt['diffContext'] and expPostDiff > opt.diffContext:
             truncatedAfter = truncatedAfter or (lastLine != '') and (lastLine != '\ No newline at end of file\n')
             break
 
