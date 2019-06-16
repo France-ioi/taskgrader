@@ -170,7 +170,7 @@ def diff(solPath, outPath, options=None):
         lastLine = do.readline()
 
         # We read max 3 lines after the first difference
-        if diffLine is not None and solPostDiff > opt['diffContext'] and expPostDiff > opt.diffContext:
+        if diffLine is not None and solPostDiff > opt['diffContext'] and expPostDiff > opt['diffContext']:
             truncatedAfter = truncatedAfter or (lastLine != '') and (lastLine != '\ No newline at end of file\n')
             break
 
