@@ -460,12 +460,12 @@ class Execution():
             })
 
         report['stdout'] = capture(self.stdoutFile, name='stdout',
-                truncateSize=self.executionParams['stdoutTruncateKb'] * 1024)
+                truncateSize=self.executionParams.get('stdoutTruncateKb', -1) * 1024)
         report['stderr'] = capture(self.stderrFile, name='stderr',
-                truncateSize=self.executionParams['stderrTruncateKb'] * 1024)
+                truncateSize=self.executionParams.get('stderrTruncateKb', -1) * 1024)
 
         filesReports = []
-        for f in globOfGlobs(workingDir, self.executionParams['getFiles']):
+        for f in globOfGlobs(workingDir, self.executionParams.get('getFiles', [])):
             filesReports.append(capture(f, name=os.path.basename(f)))
         report['files'] = filesReports
 
@@ -617,9 +617,9 @@ class IsolatedExecution(Execution):
             report['exitSig'] = 0
 
         report['stdout'] = capture(os.path.join(workingDir, 'isolated.stdout'), name='stdout',
-                truncateSize=self.executionParams['stdoutTruncateKb'] * 1024)
+                truncateSize=self.executionParams.get('stdoutTruncateKb', -1) * 1024)
         report['stderr'] = capture(os.path.join(workingDir, 'isolated.stderr'), name='stderr',
-                truncateSize=self.executionParams['stderrTruncateKb'] * 1024)
+                truncateSize=self.executionParams.get('stderrTruncateKb', -1) * 1024)
 
         # Cleanup sandbox
         cleanProc = subprocess.Popen([CFG_ISOLATEBIN, '--cleanup'] + isolateCommonOpts, cwd=workingDir)
@@ -1013,7 +1013,7 @@ class Program():
         self.name = name
         self.executablePath = os.path.join(self.ownDir, self.name + '.exe')
 
-        self.cacheHandle = evaluationContext['cache'].getHandle(compilationDescr['files'] + compilationDescr['dependencies'])
+        self.cacheHandle = evaluationContext['cache'].getHandle(compilationDescr['files'] + compilationDescr.get('dependencies', []))
 
         self.compiled = False
         self.triedCompile = False
@@ -1024,7 +1024,7 @@ class Program():
 
         # Check whether execution should be isolated
         self.isolate = True
-        for f in compilationDescr['files']:
+        for f in compilationDescr['files'] + compilationDescr.get('dependencies', []):
             if 'path' in f and f['path'] != '':
                 fPath = os.path.abspath(f['path'])
                 if fPath in CFG_NOISOLATE:
@@ -1080,7 +1080,7 @@ class Program():
         self.sourceFiles = map(self._getFile, compilationDescr['files'])
 
         # We fetch dependencies into the workingDir
-        self.depFiles = map(self._getFile, compilationDescr['dependencies'])
+        self.depFiles = map(self._getFile, compilationDescr.get('dependencies', []))
 
     def _compile(self):
         """Effectively compile a program, not using cache (probably because
@@ -1108,7 +1108,7 @@ class Program():
 
         logging.info("Compiling Program `%s`" % self.name)
 
-        if self.compilationParams['useCache']:
+        if self.compilationParams.get('useCache', True):
             cachef = self.cacheHandle.getCacheFolder('compilation-%s-%s' % (self.compilationDescr['language'], self.name), execParams=self.compilationParams)
             # Check cache
             if cachef.isCached:
@@ -1183,7 +1183,7 @@ class Program():
             args = self.executionParams['executionArgs']
             logging.info("Loaded arguments `%s` from executionParams." % args)
 
-        if self.executionParams['useCache']:
+        if self.executionParams.get('useCache', True):
             # Check cache
             inputFiles = []
             inputFiles.extend(otherInputs)
@@ -1290,7 +1290,7 @@ def multiChecker(workingDir, checkList, checker, executionParams, evaluationCont
         'exitSig': -1}
 
     filesReports = []
-    for f in globOfGlobs(workingDir, executionParams['getFiles']):
+    for f in globOfGlobs(workingDir, executionParams.get('getFiles', [])):
         filesReports.append(capture(f, name=os.path.basename(f)))
     baseReport['files'] = filesReports
 
@@ -1323,10 +1323,10 @@ def multiChecker(workingDir, checkList, checker, executionParams, evaluationCont
 
         report['stdout'] = capture(os.path.join(workingDir, '%s.cout' % tf),
             name='stdout',
-            truncateSize=multiExecParams['stdoutTruncateKb'] * 1024)
+            truncateSize=multiExecParams.get('stdoutTruncateKb', -1) * 1024)
         report['stderr'] = capture(os.path.join(workingDir, '%s.cerr' % tf),
             name='stderr',
-            truncateSize=multiExecParams['stderrTruncateKb'] * 1024)
+            truncateSize=multiExecParams.get('stderrTruncateKb', -1) * 1024)
 
         report = transformReport(report, {'noFeedback': noFeedback}, 'checker', 'execution')
 

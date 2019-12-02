@@ -16,7 +16,7 @@
                 "language": {"type": "string", "description": "Language of the program. Possible values: 'c', 'cpp', 'cpp11', 'ml', 'ocaml', 'java', 'javascool', 'js', 'sh', 'shell', 'pascal', 'php'', 'py', 'py2', 'py3', 'python', 'python2', 'python3'."},
                 "files": {"type": "array", "description": "List of source files.", "items": {"$ref": "#/definitions/fileDescr"}},
                 "dependencies": {"type": "array", "description": "List of dependencies.", "items": {"$ref": "#/definitions/fileDescr"}}},
-            "required": ["language", "files", "dependencies"]},
+            "required": ["language", "files"]},
 
         "executionParams": {"type": "object",
             "description": "Parameters of an execution.",
@@ -31,7 +31,7 @@
                 "stderrTruncateKb": {"type": "integer", "description": "Size in kilobytes to capture from stderr, -1 means no limit."},
                 "addFiles": {"type": "array", "description": "Files to add to the execution folder.", "items": {"$ref": "#/definitions/fileDescr"}},
                 "getFiles": {"type": "array", "description": "Files to capture in the report.", "items": {"$ref": "#/definitions/filename"}}},
-            "required": ["timeLimitMs", "memoryLimitKb", "useCache", "stdoutTruncateKb", "stderrTruncateKb", "getFiles"]},
+            "required": ["timeLimitMs", "memoryLimitKb"]},
 
         "compileAndRunParams": {"type": "object",
             "description": "Parameters for a compilation and an execution.",

@@ -12,11 +12,7 @@
   "sanitizer": {
     "runExecution": {
       "memoryLimitKb": 131072,
-      "stderrTruncateKb": -1,
-      "getFiles": [],
-      "useCache": true,
-      "timeLimitMs": 60000,
-      "stdoutTruncateKb": -1
+      "timeLimitMs": 60000
     },
     "compilationDescr": {
       "files": [
@@ -25,7 +21,6 @@
           "name": "sanitizer.sh"
         }
       ],
-      "dependencies": [],
       "language": "sh"
     },
     "compilationExecution": {
@@ -53,7 +48,6 @@
           "name": "checker.sh"
         }
       ],
-      "dependencies": [],
       "language": "sh"
     },
     "compilationExecution": {
