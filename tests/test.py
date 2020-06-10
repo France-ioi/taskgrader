@@ -316,6 +316,13 @@ class SolutionSimpleBase(FullTestBase):
             ]
 
 @register_test
+class SolutionSimpleAda(SolutionSimpleBase):
+    description = "Ada test"
+    _dependencies = ['gnatmake']
+    _solution = '@testSolutionAda'
+    _execution = '@testExecutionAda'
+
+@register_test
 class SolutionSimpleC(SolutionSimpleBase):
     description = "C test"
     _dependencies = ['gcc']

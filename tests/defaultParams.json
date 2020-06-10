@@ -134,6 +134,16 @@
     "compilationExecution": "@testExecParams",
     "runExecution": "@testExecParams"},
 
+"testSolutionAda": {
+    "id": "tSolutionAda",
+    "compilationDescr": {
+        "language": "ada",
+        "files": [{
+            "name": "sol-ok-ada.adb",
+            "path": "$TASK_PATH/sol-ok-ada.adb"}],
+        "dependencies": []},
+    "compilationExecution": "@testExecParams"},
+
 "testSolutionC": {
     "id": "tSolutionC",
     "compilationDescr": {
@@ -293,6 +303,12 @@
             "path": "$TASK_PATH/sol-changing.py"}],
         "dependencies": []},
     "compilationExecution": "@testExecParams"},
+
+"testExecutionAda": {
+    "id": "tExecutionAda",
+    "idSolution": "tSolutionAda",
+    "filterTests": ["*.in"],
+    "runExecution": "@testExecParams"},
 
 "testExecutionC": {
     "id": "tExecutionC",

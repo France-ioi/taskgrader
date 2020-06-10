@@ -22,9 +22,10 @@ CFG_IGNORE_PATHS = ['.git', '.svn']
 CFG_EXEC_TIMEOUT = 60
 
 # Languages to generate defaultParams for
-CFG_LANGUAGES = ['c', 'cpp', 'cpp11', 'cplex', 'java', 'java8', 'javascool', 'ocaml', 'pascal', 'python', 'sh', 'shell']
+CFG_LANGUAGES = ['ada', 'c', 'cpp', 'cpp11', 'cplex', 'java', 'java8', 'javascool', 'ocaml', 'pascal', 'python', 'sh', 'shell']
 # Old FranceIOI language to new language mapping
 CFG_LANGUAGES_OLD_NEW = {
+    'ada': 'ada',
     'c': 'c',
     'cpp': 'cpp',
     'cpp11': 'cpp11',
@@ -42,6 +43,7 @@ CFG_LANGUAGES_OLD_NEW = {
     }
 # File extension -> language autodetection
 CFG_LANGEXTS = {
+    '.adb': 'ada',
     '.c': 'c',
     '.cpp': 'cpp',
     '.mod': 'cplex',

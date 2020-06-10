@@ -18,6 +18,7 @@ CFG_EXECPARAMS = {
 
 # Languages supported, file extension -> language
 CFG_LANGEXTS = {
+    '.adb': 'ada',
     '.c': 'c',
     '.cpp': 'cpp',
     '.py': 'python',

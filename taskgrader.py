@@ -695,6 +695,23 @@ class Language():
         raise Exception("Can't compile files from language %s." % self.lang)
 
 
+class LanguageAda(Language):
+    lang = 'ada'
+    dependencies = ["gnatmake"]
+
+    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, evaluationContext, name='executable'):
+        cmdLine = "%s -q -o %s.exe %s" % (self.deppaths[0], name, sourceFiles[0])
+        ex = Execution(None, compilationParams, cmdLine, evaluationContext).execute(ownDir)
+
+        # Remove file name warning from stderr
+        stderrLines = []
+        for l in ex['stderr']['data'].splitlines():
+            if "warning: file name does not match unit name" not in l:
+                stderrLines.append(l)
+        ex['stderr']['data'] = ''.join(stderrLines)
+
+        return ex
+
 class LanguageC(Language):
     lang = 'c'
     dependencies = ["gcc"]
@@ -1033,6 +1050,7 @@ class Program():
 
         # TODO :: move languages into libraries
         CFG_LANGUAGES = {
+            'ada': LanguageAda,
             'c': LanguageC,
             'cpp': LanguageCpp,
             'cpp11': LanguageCpp11,
