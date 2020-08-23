@@ -1562,15 +1562,44 @@ def pyFrenchErrors(report, paths):
         logging.error('PyFrenchErrors is not installed, unable to translate report!')
         return report
 
-    cmdLine = [CFG_PYFRENCHERRORS, paths['solution'], paths['stderr']]
+    # If the first line of the original solution wasn't a shebang, then
+    # taskgrader will have added one. We add an empty line so that error
+    # message lines are correct again.
+    solData = None
+    solFile = open(paths['solution'], 'r+')
+    if solFile.read(2) != '#!':
+        solFile.seek(0)
+        solData = solFile.read()
+        solFile.seek(0)
+        solFile.write('\n' + solData)
+        solFile.close()
+
+    # Call pyFrenchErrors
+    cmdLine = [CFG_PYFRENCHERRORS, paths['solution'], paths['stderr'], paths['outputJson']]
     proc = subprocess.Popen(cmdLine, stdin=None, stdout=open(paths['output'], 'w'),
             stderr=subprocess.PIPE, cwd=os.path.dirname(CFG_PYFRENCHERRORS))
     procOut, procErr = proc.communicate()
 
+    if solData is not None:
+        solFile = open(paths['solution'], 'w')
+        solFile.write(solData)
+        solFile.close()
+
     if procErr != '':
         logging.error('pyFrenchErrors stderr: `%s`' % procErr)
 
-    report['stderr']['data'] = open(paths['output'], 'rb').read().decode('utf-8', errors='replace').encode('utf-8')
+    # Check whether there were block ids found
+    useOutputJson = False
+    outputJson = open(paths['outputJson'], 'rb').read().decode('utf-8', errors='replace').encode('utf-8')
+    try:
+        useOutputJson = len(json.loads(outputJson)['blockIds']) > 0
+    except:
+        pass
+
+    if useOutputJson:
+        report['stderr']['data'] = outputJson
+    else:
+        report['stderr']['data'] = open(paths['output'], 'rb').read().decode('utf-8', errors='replace').encode('utf-8')
     report['stderr']['sizeKb'] = len(report['stderr']['data'])/1024
 
     return report
@@ -1913,7 +1942,8 @@ def evaluation(evaluationParams):
                 pyfeOpts = {
                     'solution': os.path.join(solution.ownDir, solution.sourceFiles[0]),
                     'stderr': testDir + baseTfName + '.solerr',
-                    'output': testDir + baseTfName + '.pyfe'}
+                    'output': testDir + baseTfName + '.pyfe',
+                    'outputJson': testDir + baseTfName + '.pyfejson'}
             else:
                 pyfeOpts = False
 
