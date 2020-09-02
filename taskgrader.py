@@ -705,7 +705,7 @@ class LanguageAda(Language):
 
         # Remove file name warning from stderr
         stderrLines = []
-        for l in ex['stderr']['data'].splitlines():
+        for l in ex['stderr']['data'].splitlines(True):
             if "warning: file name does not match unit name" not in l:
                 stderrLines.append(l)
         ex['stderr']['data'] = ''.join(stderrLines)
