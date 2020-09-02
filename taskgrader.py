@@ -700,7 +700,7 @@ class LanguageAda(Language):
     dependencies = ["gnatmake"]
 
     def compile(self, compilationParams, ownDir, sourceFiles, depFiles, evaluationContext, name='executable'):
-        cmdLine = "%s -q -o %s.exe %s" % (self.deppaths[0], name, sourceFiles[0])
+        cmdLine = "%s -q -gnata -gnatwa -o %s.exe %s" % (self.deppaths[0], name, sourceFiles[0])
         ex = Execution(None, compilationParams, cmdLine, evaluationContext).execute(ownDir)
 
         # Remove file name warning from stderr
@@ -709,6 +709,8 @@ class LanguageAda(Language):
             if "warning: file name does not match unit name" not in l:
                 stderrLines.append(l)
         ex['stderr']['data'] = ''.join(stderrLines)
+        # Replace source filename with 'source.adb'
+        ex['stderr']['data'] = ex['stderr']['data'].replace(os.path.basename(sourceFiles[0]), 'source.adb')
 
         return ex
 
