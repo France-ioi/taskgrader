@@ -709,8 +709,6 @@ class LanguageAda(Language):
             if "warning: file name does not match unit name" not in l:
                 stderrLines.append(l)
         ex['stderr']['data'] = ''.join(stderrLines)
-        # Replace source filename with 'source.adb'
-        ex['stderr']['data'] = ex['stderr']['data'].replace(os.path.basename(sourceFiles[0]), 'source.adb')
 
         return ex
 
