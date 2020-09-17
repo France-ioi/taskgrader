@@ -1965,23 +1965,52 @@ def evaluation(evaluationParams):
                 mainTestReport['testsReports'].append(subTestReport)
                 continue
 
-            # We execute the checker
+            # Check answer
             if os.path.isfile(tf[:-3] + '.out'):
                 filecopy(tf[:-3] + '.out', testDir, fromlocal=True)
             else:
                 # We write a dummy .out file, the checker probably doesn't need it
                 open(testDir + baseTfName + '.out', 'w')
 
-            if evaluationOptions['multiCheck']:
-                # We delay the checking to later
-                multiCheckList.append((len(mainTestReport['testsReports']), baseTfName, noFeedback))
+            # Check output size
+            if os.stat(testDir + baseTfName + '.solout').st_size > 5 * (os.stat(testDir + baseTfName + '.out').st_size + 10):
+                # Output is way larger than expected, we don't check
+                subTestReport['checker'] = {
+                    'commandLine': '',
+                    'timeLimitMs': 0,
+                    'memoryLimitKb': 0,
+                    'realMemoryLimitKb': 0,
+                    'realTimeLimitMs': 0,
+                    'memoryUsedKb': 0,
+                    'timeTakenMs': 0,
+                    'realTimeTakenMs': 0,
+                    'wasCached': False,
+                    'wasKilled': False,
+                    'exitCode': 0,
+                    'stdout': {
+                        'name': 'stdout',
+                        'sizeKb': 1,
+                        'data': "0\nOutput is much larger than expected answer and wasn't checked.\nThis means your program prints too much data, and can happen for instance if you wrote a printing statement in an infinite loop.\n",
+                        'wasTruncated': False},
+                    'stderr': {
+                        'name': 'stderr',
+                        'sizeKb': 0,
+                        'data': '',
+                        'wasTruncated': False}
+                    }
             else:
-                subTestReport['checker'] = transformReport(checker.execute(testDir,
-                    args="%s.solout %s.in %s.out" % tuple([baseTfName]*3),
-                    stdinFile=testDir + baseTfName + '.out',
-                    stdoutFile=testDir + baseTfName + '.ok',
-                    otherInputs=[testDir + baseTfName + '.in', testDir + baseTfName + '.solout']),
-                    {'noFeedback': noFeedback}, 'checker', 'execution')
+                # We execute the checker
+                if evaluationOptions['multiCheck']:
+                    # We delay the checking to later
+                    multiCheckList.append((len(mainTestReport['testsReports']), baseTfName, noFeedback))
+                else:
+                    subTestReport['checker'] = transformReport(checker.execute(testDir,
+                        args="%s.solout %s.in %s.out" % tuple([baseTfName]*3),
+                        stdinFile=testDir + baseTfName + '.out',
+                        stdoutFile=testDir + baseTfName + '.ok',
+                        otherInputs=[testDir + baseTfName + '.in', testDir + baseTfName + '.solout']),
+                        {'noFeedback': noFeedback}, 'checker', 'execution')
+
             mainTestReport['testsReports'].append(subTestReport)
 
         # Execute delayed checks
