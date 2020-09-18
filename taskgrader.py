@@ -1725,7 +1725,8 @@ def evaluation(evaluationParams):
         'locale': 'en',
         'pyFrenchErrors': True,
         'onlyOneCheckerMessage': True,
-        'multiCheck': CFG_MULTICHECK
+        'multiCheck': CFG_MULTICHECK,
+        'outputSizeLimit': True
         }
     if 'defaultEvaluationOptions' in varData:
         evaluationOptions.update(varData['defaultEvaluationOptions'])
@@ -1973,7 +1974,7 @@ def evaluation(evaluationParams):
                 open(testDir + baseTfName + '.out', 'w')
 
             # Check output size
-            if os.stat(testDir + baseTfName + '.solout').st_size > 5 * (os.stat(testDir + baseTfName + '.out').st_size + 10):
+            if evaluationOptions['outputSizeLimit'] and os.stat(testDir + baseTfName + '.solout').st_size > 5 * (os.stat(testDir + baseTfName + '.out').st_size + 10) + 1024 * 1024:
                 # Output is way larger than expected, we don't check
                 subTestReport['checker'] = {
                     'commandLine': '',
