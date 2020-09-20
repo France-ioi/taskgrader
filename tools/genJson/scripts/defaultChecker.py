@@ -103,14 +103,17 @@ def diff(solPath, outPath, options=None):
 
     # The chunk line is always the same for the two files, but if one file is
     # empty, diff will give a line number of 0
-    chunkLine = max(int(do.readline().split()[2].split(',')[0]), 1)
+    chunkSplit = do.readline().split()
+    chunkLineSol = max(-int(chunkSplit[1].split(',')[0]), 1)
+    chunkLineExp = max(int(chunkSplit[2].split(',')[0]), 1)
+    chunkLine = chunkLineExp
 
     # Start reading the actual files
     # stderr=PIPE is generally not good, but tail will never fill it
-    solReadProc = Popen(['/usr/bin/env', 'tail', '-q', '-n', '+%d' % chunkLine,
+    solReadProc = Popen(['/usr/bin/env', 'tail', '-q', '-n', '+%d' % chunkLineSol,
         solPath], stdout=PIPE, stderr=PIPE)
     solRead = solReadProc.stdout
-    expReadProc = Popen(['/usr/bin/env', 'tail', '-q', '-n', '+%d' % chunkLine,
+    expReadProc = Popen(['/usr/bin/env', 'tail', '-q', '-n', '+%d' % chunkLineExp,
         outPath], stdout=PIPE, stderr=PIPE)
     expRead = expReadProc.stdout
 
