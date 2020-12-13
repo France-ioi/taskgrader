@@ -729,9 +729,9 @@ class LanguageC(Language):
             compStatic = CFG_STATIC
 
         if compStatic:
-            cmdLine = "%s -static -std=gnu99 -O2 -Wall %s -o %s.exe %s -lm" % (self.deppaths[0], execArgs, name, ' '.join(compFiles))
+            cmdLine = "%s -static -std=gnu99 -O2 -Wall -Werror=uninitialized %s -o %s.exe %s -lm" % (self.deppaths[0], execArgs, name, ' '.join(compFiles))
         else:
-            cmdLine = "%s -std=gnu99 -O2 -Wall %s -o %s.exe %s -lm" % (self.deppaths[0], execArgs, name, ' '.join(compFiles))
+            cmdLine = "%s -std=gnu99 -O2 -Wall -Werror=uninitialized %s -o %s.exe %s -lm" % (self.deppaths[0], execArgs, name, ' '.join(compFiles))
 
         if 'commandLine' in compilationParams:
             cmdLine = compilationParams['commandLine'] % (self.deppaths[0], name, ' '.join(compFiles))
