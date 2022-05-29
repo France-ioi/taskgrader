@@ -527,7 +527,11 @@ class IsolatedExecution(Execution):
         isolatedCmdLine += ' --box-id=%d' % boxId
         if self.executionParams['timeLimitMs'] > 0:
             isolatedCmdLine += ' --time=' + str(self.realTimeLimit / 1000.)
-            isolatedCmdLine += ' --wall-time=' + str(CFG_WALLTIME_FACTOR * self.realTimeLimit / 1000.)
+            wallTime = CFG_WALLTIME_FACTOR * self.realTimeLimit / 1000.
+            if self.language[:4] == 'java':
+                # Add one second for Java to initialize
+                wallTime += 1
+            isolatedCmdLine += ' --wall-time=' + str(wallTime)
         if self.executionParams['memoryLimitKb'] > 0:
             if CFG_CONTROLGROUPS:
                 isolatedCmdLine += ' --cg-mem=' + str(self.realMemoryLimitKb)
