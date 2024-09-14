@@ -1523,7 +1523,7 @@ def capture(path, name='', truncateSize=-1):
     return report
 
 
-def removeFeedbackReport(report, noFeedback=False, isChecker=False):
+def removeFeedbackReport(report, noFeedback=False, isChecker=False, keepStderr=False):
     """Remove the feedback from an execution report, if the test has hidden
     results."""
     if not noFeedback:
@@ -1535,11 +1535,12 @@ def removeFeedbackReport(report, noFeedback=False, isChecker=False):
         'files': []
         })
 
-    report['stderr'] = {
-        'name': 'stderr',
-        'sizeKb': 0,
-        'data': '',
-        'wasTruncated': False}
+    if not keepStderr:
+        report['stderr'] = {
+            'name': 'stderr',
+            'sizeKb': 0,
+            'data': '',
+            'wasTruncated': False}
 
     if isChecker:
         newData = report['stdout']['data'].split('\n')[0]
@@ -1615,11 +1616,10 @@ def transformReport(report, transformations, programType='', execType=''):
     transformations must be a dict where keys are transformations types and
     values are options for that transformation."""
 
-    for transType in transformations.keys():
-        if transType == 'noFeedback':
-            report = removeFeedbackReport(report, transformations['noFeedback'], programType == 'checker')
-        elif transType == 'pyFrenchErrors':
-            report = pyFrenchErrors(report, transformations['pyFrenchErrors'])
+    if 'pyFrenchErrors' in transformations:
+        report = pyFrenchErrors(report, transformations['pyFrenchErrors'])
+    if 'noFeedback' in transformations:
+        report = removeFeedbackReport(report, transformations['noFeedback'], programType == 'checker', 'pyFrenchErrors' in transformations)
 
     return report
 
