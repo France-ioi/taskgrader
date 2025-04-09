@@ -951,7 +951,7 @@ class LanguageOutput(LanguageScript):
     def _scriptLines(self, sourceFiles, depFiles):
         if len(sourceFiles) == 0:
             return []
-        return ["cat %s | openssl base64 -d 2> /dev/null | gunzip" % sourceFiles[0]]
+        return ["( cat %s ; echo ) | openssl base64 -d 2> /dev/null | gunzip" % sourceFiles[0]]
 
 class LanguageShell(LanguageScript):
     lang = 'sh'
