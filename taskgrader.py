@@ -943,6 +943,16 @@ class LanguageCplex(LanguageScript):
     def _singleScriptShebang(self):
         return "#!/bin/sh"
 
+class LanguageOutput(LanguageScript):
+    lang = 'output'
+    dependencies = ["openssl", "gzip"]
+    singleShebang = False
+
+    def _scriptLines(self, sourceFiles, depFiles):
+        if len(sourceFiles) == 0:
+            return []
+        return ["cat %s | openssl base64 -d 2> /dev/null | gunzip" % sourceFiles[0]]
+
 class LanguageShell(LanguageScript):
     lang = 'sh'
     dependencies = ["openssl"]
@@ -1061,6 +1071,7 @@ class Program():
             'cplex': LanguageCplex,
             'ml': LanguageOcaml,
             'ocaml': LanguageOcaml,
+            'output': LanguageOutput,
             'java': LanguageJavaGcj,
             'java8': LanguageJavaJdk,
             'javascool': LanguageJavascool,
