@@ -661,6 +661,15 @@ def processPath(path, args):
         print "/!\ Please use a correctSolution for an actual test; these results aren't"
         print "accurate and may not indicate any actual success or failure of the test."
         print ''
+
+        if 'generations' in outJson and outJson['generations']:
+            generation = outJson['generations'][0]
+            if 'generatorExecution' in generation and 'stderr' in generation['generatorExecution'] and generation['generatorExecution']['stderr'] and generation['generatorExecution']['stderr']['data']:
+                print ''
+                print "/!\ Generator has produced an error:"
+                print generation['generatorExecution']['stderr']['data']
+                print ''
+
         try:
             execution = outJson['executions'][0]
         except:
