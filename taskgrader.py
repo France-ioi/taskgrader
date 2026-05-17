@@ -649,7 +649,7 @@ def which(name):
     return False
 
 
-class Language():
+class Language(object):
     """Represents a language, gives functions for aspects specific to each
     language."""
 
@@ -914,7 +914,7 @@ class LanguageScript(Language):
 
         return report
 
-class LanguageJavaJdk(LanguageScript):
+class LanguageJavaJdkOld(LanguageScript):
     lang = 'java8'
     dependencies = ["openssl", "javac", "java"]
     singleShebang = False
@@ -924,6 +924,31 @@ class LanguageJavaJdk(LanguageScript):
         return [
             "mv %s Main.java\n" % sourceFiles[0],
             "%s Main.java %s\n" % (self.deppaths[1], ' '.join(depFiles)),
+            "%s Main\n" % self.deppaths[2]
+            ]
+
+class LanguageJavaJdk(LanguageScript):
+    lang = 'java8'
+    dependencies = ["openssl", "javac", "java"]
+    singleShebang = False
+
+    def compile(self, compilationParams, ownDir, sourceFiles, depFiles, evaluationContext, name='executable'):
+        # compile with javac then create a script out of all the files in the compilation folder
+        cmdLine = "mv %s Main.java" % sourceFiles[0]
+        Execution(None, compilationParams, cmdLine, evaluationContext).execute(ownDir)
+        # needs -d . or it compiles into the symlinked folder
+        cmdLine = "%s -d . Main.java %s" % (self.deppaths[1], ' '.join(depFiles))
+        Execution(None, compilationParams, cmdLine, evaluationContext).execute(ownDir)
+
+        sourceFiles = []
+        for root, dirs, files in os.walk(ownDir):
+            for f in files:
+                sourceFiles.append(os.path.relpath(os.path.join(root, f), ownDir))
+        return super(LanguageJavaJdk, self).compile(compilationParams, ownDir, sourceFiles, [], evaluationContext, name)
+
+    def _scriptLines(self, sourceFiles, depFiles):
+        if not len(sourceFiles): return []
+        return [
             "%s Main\n" % self.deppaths[2]
             ]
 
