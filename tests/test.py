@@ -16,6 +16,10 @@ import unittest
 SELFDIR = os.path.normpath(os.path.dirname(os.path.abspath(__file__)))
 CFG_GENJSON = os.path.normpath(os.path.join(SELFDIR, '../tools/genJson/genJson.py'))
 CFG_TASKGRADER = os.path.normpath(os.path.join(SELFDIR, '../taskgrader.py'))
+CFG_PYFRENCHERRORS = os.path.normpath(os.path.join(SELFDIR, '../pyFrenchErrors/pyfe'))
+
+# French wrapper inserted by pyFrenchErrors when translating Python stderr
+PYFE_FRENCH_MARKER = u"Une erreur s'est produite à la ligne"
 
 # Configuration for examples
 CFG_EXAMPLES_IGNORE = ['taskTurtle']
@@ -29,6 +33,7 @@ def register_test(cls):
     """Register a test. Allows later loading in the correct order."""
     global registeredTests
     registeredTests.append(cls)
+    return cls
 
 
 def programExists(name):
@@ -391,6 +396,127 @@ class SolutionSimpleShell(SolutionSimpleBase):
     _dependencies = ['bash']
     _solution = '@testSolutionShell'
     _execution = '@testExecutionShell'
+
+
+class PyFrenchErrorsLocaleBase(FullTestBase):
+    """Base for locale / pyFrenchErrors integration tests.
+
+    Runs a crashing Python solution and inspects execution stderr for the
+    French pyfe wrapper. Subclasses set `_options` (or None to omit options).
+    """
+
+    _options = None
+    _requirePyfe = False
+
+    def _pickPython(self):
+        """Return (binary, language) for an available Python interpreter."""
+        if programExists('python3'):
+            return ('python3', 'python3')
+        if programExists('python2.7'):
+            return ('python2.7', 'python2')
+        return (None, None)
+
+    def _executionStderr(self):
+        try:
+            data = self.outputJson['executions'][0]['testsReports'][0]['execution']['stderr']['data']
+        except Exception:
+            return None
+        # json.loads returns unicode in Python 2; normalize for comparisons
+        if isinstance(data, str):
+            data = data.decode('utf-8', 'replace')
+        return data
+
+    def assertStderrContains(self, needle):
+        data = self._executionStderr()
+        if data is None:
+            self.details['bad'].append('execution stderr missing (expected to contain `%s`)' % needle)
+            return False
+        if isinstance(needle, str):
+            needle = needle.decode('utf-8')
+        if needle in data:
+            self.details['good'].append('stderr contains `%s`' % needle)
+            return True
+        self.details['bad'].append('stderr does not contain `%s` (got: `%s`)' % (needle, data[:500]))
+        return False
+
+    def assertStderrNotContains(self, needle):
+        data = self._executionStderr()
+        if data is None:
+            self.details['bad'].append('execution stderr missing (expected without `%s`)' % needle)
+            return False
+        if isinstance(needle, str):
+            needle = needle.decode('utf-8')
+        if needle not in data:
+            self.details['good'].append('stderr does not contain `%s`' % needle)
+            return True
+        self.details['bad'].append('stderr unexpectedly contains `%s`' % needle)
+        return False
+
+    def makeInputJson(self):
+        pyBin, pyLang = self._pickPython()
+        if not pyBin:
+            self.skipTest("No python3/python2.7 available.")
+        if self._requirePyfe and not (os.path.isfile(CFG_PYFRENCHERRORS)
+                                      and os.access(CFG_PYFRENCHERRORS, os.X_OK)):
+            self.skipTest("pyFrenchErrors (pyfe) is not installed.")
+
+        data = {
+            'rootPath': os.path.dirname(os.path.abspath(__file__)),
+            'taskPath': '$ROOT_PATH',
+            'generators': [],
+            'generations': [],
+            'extraTests': ['@testExtraSimple1'],
+            'sanitizer': '@testSanitizer',
+            'checker': '@testChecker',
+            'solutions': [{
+                'id': 'tSolutionCrashPy',
+                'compilationDescr': {
+                    'language': pyLang,
+                    'files': [{
+                        'name': 'sol-crash.py',
+                        'content': 'prints(1)\n'}],
+                    'dependencies': []},
+                'compilationExecution': '@testExecParams'}],
+            'executions': [{
+                'id': 'tExecutionCrashPy',
+                'idSolution': 'tSolutionCrashPy',
+                'filterTests': ['*.in'],
+                'runExecution': '@testExecParams'}]
+            }
+        if self._options is not None:
+            data['options'] = self._options
+        return data
+
+
+@register_test
+class PyFrenchErrorsLocaleEnDisablesTest(PyFrenchErrorsLocaleBase):
+    """Explicit non-French locale disables pyfe (raw Python stderr)."""
+
+    description = "pyFrenchErrors off when locale=en"
+    _options = {'locale': 'en'}
+
+    def makeChecks(self):
+        return [
+            self.assertVariableEqual("proc.returncode", 0),
+            self.assertStderrContains("NameError"),
+            self.assertStderrNotContains(PYFE_FRENCH_MARKER),
+            ]
+
+
+@register_test
+class PyFrenchErrorsLocaleOmittedKeepsTest(PyFrenchErrorsLocaleBase):
+    """Omitting locale keeps pyfe on for existing clients (French wrapper)."""
+
+    description = "pyFrenchErrors on when locale omitted"
+    _options = None
+    _requirePyfe = True
+
+    def makeChecks(self):
+        return [
+            self.assertVariableEqual("proc.returncode", 0),
+            self.assertStderrContains(PYFE_FRENCH_MARKER),
+            ]
+
 
 @register_test
 class SolutionInvalidTest(FullTestBase):
