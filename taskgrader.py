@@ -1591,6 +1591,14 @@ def removeFeedbackReport(report, noFeedback=False, isChecker=False, keepStderr=F
     return report
 
 
+def isFrenchLocale(locale):
+    """Return True if locale is French (fr, fr_FR, fr-FR, ...)."""
+    if not locale:
+        return False
+    lang = str(locale).replace('-', '_').split('_')[0].lower()
+    return lang == 'fr'
+
+
 def pyFrenchErrors(report, paths):
     """Transform a Python report with pyFrenchErrors."""
     if paths is False:
@@ -1768,10 +1776,20 @@ def evaluation(evaluationParams):
         'multiCheck': CFG_MULTICHECK,
         'outputSizeLimit': True
         }
-    if 'defaultEvaluationOptions' in varData:
-        evaluationOptions.update(varData['defaultEvaluationOptions'])
-    if 'options' in evaluationParams:
-        evaluationOptions.update(evaluationParams['options'])
+    defaultEvalOpts = varData.get('defaultEvaluationOptions', {})
+    inputOpts = evaluationParams.get('options', {})
+    evaluationOptions.update(defaultEvalOpts)
+    evaluationOptions.update(inputOpts)
+    # Disable pyFrenchErrors only when a non-French locale was explicitly given
+    # and pyFrenchErrors: true was not. If locale is omitted, keep pyfe on so
+    # existing clients that never send locale still get French beginner messages.
+    localeGiven = 'locale' in defaultEvalOpts or 'locale' in inputOpts
+    pyfeExplicitlyTrue = (
+        defaultEvalOpts.get('pyFrenchErrors') is True or
+        inputOpts.get('pyFrenchErrors') is True)
+    if (localeGiven and not isFrenchLocale(evaluationOptions.get('locale'))
+            and not pyfeExplicitlyTrue):
+        evaluationOptions['pyFrenchErrors'] = False
 
     # Create evaluationContext object
     # allows to pass different evaluation objects around
