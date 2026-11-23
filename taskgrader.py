@@ -1017,6 +1017,7 @@ class LanguagePhp(LanguageScript):
 class LanguagePython2(LanguageScript):
     lang = 'py2'
     dependencies = ["openssl", "python2.7"]
+    singleShebang = False
 
     def _getPossiblePaths(self, baseDir, filename):
         return [
@@ -1036,6 +1037,7 @@ class LanguagePython2(LanguageScript):
 class LanguagePython3(LanguageScript):
     lang = 'py3'
     dependencies = ["openssl", "python3"]
+    singleShebang = False
 
     def _getPossiblePaths(self, baseDir, filename):
         return [
@@ -1611,12 +1613,21 @@ def pyFrenchErrors(report, paths):
         logging.error('PyFrenchErrors is not installed, unable to translate report!')
         return report
 
-    # If the first line of the original solution wasn't a shebang, then
-    # taskgrader will have added one. We add an empty line so that error
-    # message lines are correct again.
+    # Executables built by older versions of taskgrader (possibly still in
+    # cache) are the source with a shebang prepended: if the first line of the
+    # original solution wasn't a shebang, error message lines are shifted by
+    # one. In that case we add an empty line so that they match again.
+    # Current executables are self-extracting /bin/sh scripts running the
+    # original source file, so lines are already correct.
+    shebangPrepended = True
+    if paths.get('executable'):
+        try:
+            shebangPrepended = (open(paths['executable'], 'r').readline().strip() != '#!/bin/sh')
+        except:
+            pass
     solData = None
     solFile = open(paths['solution'], 'r+')
-    if solFile.read(2) != '#!':
+    if shebangPrepended and solFile.read(2) != '#!':
         solFile.seek(0)
         solData = solFile.read()
         solFile.seek(0)
@@ -2000,6 +2011,7 @@ def evaluation(evaluationParams):
                 solution.populateSources()
                 pyfeOpts = {
                     'solution': os.path.join(solution.ownDir, solution.sourceFiles[0]),
+                    'executable': solution.executablePath,
                     'stderr': testDir + baseTfName + '.solerr',
                     'output': testDir + baseTfName + '.pyfe',
                     'outputJson': testDir + baseTfName + '.pyfejson'}
